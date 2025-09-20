@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>스톤에이지 S랭크 성장 확률 계산기</title>
   <style>
-    :root{
-      --bg:#0b1020; --card:#12182b; --muted:#9fb0c8; --text:#e8f0ff; --accent:#5eead4; --accent2:#a78bfa; --bad:#f87171; --good:#34d399;
-    }
+    :root{ --bg:#0b1020; --card:#12182b; --muted:#9fb0c8; --text:#e8f0ff; --accent:#5eead4; --accent2:#a78bfa; --bad:#f87171; --good:#34d399; --warn:#fbbf24; }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 20% 0%,#132041 0%,#0b1020 55%);}    
     header{padding:28px 20px 10px; text-align:center}
     h1{margin:0;font-size:28px;letter-spacing:.3px}
-    p.sub{margin:8px auto 0;max-width:780px;color:var(--muted);line-height:1.5}
+    p.sub{margin:8px auto 0;max-width:860px;color:var(--muted);line-height:1.5}
     main{padding:22px;display:grid;gap:18px;grid-template-columns: 1.1fr 1.2fr}
-    @media (max-width: 980px){main{grid-template-columns:1fr}}
+    @media (max-width: 1100px){main{grid-template-columns:1fr}}
     .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px 16px 12px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
     .card h2{margin:0 0 12px;font-size:18px}
     .row{display:grid;grid-template-columns:1fr 1fr; gap:10px}
@@ -23,10 +21,9 @@
     input,select,button,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0f1426;color:var(--text);outline:none}
     input::placeholder{color:#789}
     .hint{font-size:12px;color:#9ab}
-    .actions{display:flex;gap:10px; margin-top:10px}
+    .actions{display:flex;gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center}
     button{cursor:pointer}
     button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;font-weight:700}
-    .grid{display:grid;grid-template-columns:1fr 1fr; gap:10px}
     .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:#0e152b;color:var(--muted);font-size:12px}
     .kpi{display:grid;grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px}
     .kpi .item{padding:14px;border-radius:12px;background:#0e1528;border:1px solid rgba(255,255,255,.08)}
@@ -35,27 +32,149 @@
     table{width:100%;border-collapse:collapse;margin-top:8px}
     th,td{padding:8px;border-bottom:1px dashed rgba(255,255,255,.12);font-size:13px}
     th{color:#9ab;text-align:left}
-    .ok{color:var(--good);font-weight:700}
-    .bad{color:var(--bad);font-weight:700}
     footer{padding:20px;text-align:center;color:#8ea2bf;font-size:12px}
     .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .muted{color:#9ab}
+    .icon-btn{width:auto;min-width:40px;display:inline-flex;align-items:center;gap:6px}
+    .star{font-size:16px;}
+    .star.fav{color:var(--warn)}
+    .del{background:transparent;border:1px solid rgba(255,255,255,.18)}
+    canvas{background:#0e1528;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+    .charts{display:grid;grid-template-columns:repeat(2,1fr); gap:12px; margin-top:12px}
+    @media (max-width:900px){.charts{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <header>
     <h1>스톤에이지 S랭크 성장 확률 계산기</h1>
-    <p class="sub">펫을 검색하고, <b>정수 표기 초기치</b>를 입력하면, <span class="pill"><span>모형</span><span class="mono">(K=200, A~조합균등, B~Rank범위 균등)</span></span> 가정하에 <b>S 랭크 달성 확률</b>을 추정합니다.<br/>임계값(체/공/방/순의 <i>표기 성장치</i>)은 자유롭게 설정할 수 있습니다.</p>
+    <p class="sub">펫을 검색하고, <b>정수 표기 초기치</b>를 입력하면, <span class="pill"><span>모형</span><span class="mono">(K=200, A~조합균등, B~Rank범위 균등)</span></span> 가정하에 <b>S 랭크 달성 확률</b>을 추정합니다.</p>
   </header>
   <main>
-    <!-- 기존 입력/설정/결과 카드 섹션은 동일 -->
+    <section class="card" id="sectionInput">
+      <h2>① 펫 선택 또는 수동 입력</h2>
+      <div class="row">
+        <div>
+          <label>펫 검색</label>
+          <input id="petSearch" list="petNames" placeholder="이름 입력 (자동완성)"/>
+          <datalist id="petNames"></datalist>
+          <div class="hint">자동완성에서 선택하거나, 아래 드롭다운을 사용하세요.</div>
+        </div>
+        <div>
+          <label>펫 선택</label>
+          <div class="actions">
+            <select id="petSelect" style="flex:1 1 auto; min-width:200px"></select>
+            <button id="favToggle" class="icon-btn" title="즐겨찾기"><span class="star" id="favIcon">☆</span>즐겨찾기</button>
+            <label class="pill"><input type="checkbox" id="favOnly"/> 즐겨찾기만</label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>초기치 계수 C0</label>
+          <input id="c0" type="number" step="1" min="1" placeholder="예: 25"/>
+        </div>
+        <div>
+          <label>성장률 소숫점(체/공/방/순)</label>
+          <input id="growthStr" type="text" placeholder="예: 10.11,2.15,1.79,1.07" />
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>초기치(정수 표기) — HP</label>
+          <input id="initHPi" type="number" step="1" placeholder="예: 52" />
+        </div>
+        <div>
+          <label>초기치(정수 표기) — ATK</label>
+          <input id="initATKi" type="number" step="1" placeholder="예: 12" />
+        </div>
+        <div>
+          <label>초기치(정수 표기) — DEF</label>
+          <input id="initDEFi" type="number" step="1" placeholder="예: 7" />
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>초기치(정수 표기) — DEX</label>
+          <input id="initDEXi" type="number" step="1" placeholder="예: 6" />
+        </div>
+        <div>
+          <label>표기식 계수(고정)</label>
+          <div class="pill mono">HP=4v+s+t+d • ATK=0.1v+s+0.1t+0.05d • DEF=0.1v+0.1s+t+0.05d • DEX=d</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="hint">즐겨찾기(☆)로 자주 쓰는 펫만 보기 필터 가능</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="sectionSettings">
+      <h2>② S 랭크 기준 & 시뮬레이션</h2>
+      <div class="actions" style="margin-bottom:6px">
+        <span class="muted">프리셋:</span>
+        <button class="pill" data-preset="default">올S 기본(10,2.2,1.4,1.2)</button>
+        <button class="pill" data-preset="atk">공격형(9.6,2.4,1.3,1.1)</button>
+        <button class="pill" data-preset="def">방어형(9.6,2.1,1.5,1.1)</button>
+        <button class="pill" data-preset="dex">순발형(9.6,2.1,1.3,1.3)</button>
+      </div>
+      <div class="row3">
+        <div>
+          <label>S 기준 — 표기 체성</label>
+          <input id="thrHPg" type="number" step="0.01" value="10" />
+        </div>
+        <div>
+          <label>S 기준 — 표기 공성</label>
+          <input id="thrATKg" type="number" step="0.01" value="2.2" />
+        </div>
+        <div>
+          <label>S 기준 — 표기 방성</label>
+          <input id="thrDEFg" type="number" step="0.01" value="1.4" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>S 기준 — 표기 순성</label>
+          <input id="thrDEXg" type="number" step="0.01" value="1.2" />
+        </div>
+        <div>
+          <label>샘플 수 (Monte Carlo)</label>
+          <input id="samples" type="number" step="1000" value="50000" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="runBtn">S 확률 계산</button>
+        <button id="fillExample">예시 채우기(오가로스)</button>
+      </div>
+      <div class="hint">모형: <b>K=200</b>, A는 합10의 조합 균등, B는 Rank 범위 균등 샘플.</div>
+    </section>
+
+    <section class="card" id="sectionResults">
+      <h2>③ 결과</h2>
+      <div class="kpi">
+        <div class="item"><div class="lbl">S 달성 확률 (4스탯 AND)</div><div class="val" id="probAll">-</div></div>
+        <div class="item"><div class="lbl">체/공/방/순 개별 확률</div><div class="val" id="probEach">-</div></div>
+        <div class="item"><div class="lbl">추정 Rank / B범위</div><div class="val" id="rankInfo">-</div></div>
+        <div class="item"><div class="lbl">추정 base(체/공/방/순)</div><div class="val" id="baseVec">-</div></div>
+      </div>
+      <div class="charts">
+        <canvas id="histHP" height="180"></canvas>
+        <canvas id="histATK" height="180"></canvas>
+        <canvas id="histDEF" height="180"></canvas>
+        <canvas id="histDEX" height="180"></canvas>
+      </div>
+      <table>
+        <thead><tr><th>항목</th><th>값</th></tr></thead>
+        <tbody id="detailRows"></tbody>
+      </table>
+    </section>
 
     <section class="card" id="adminGate">
       <h2>관리자 영역</h2>
       <div class="row">
         <div>
           <label>관리자 암호 입력</label>
-          <input id="adminPwd" type="password" placeholder="암호를 입력하세요" />
-          <div class="hint">올바른 암호를 입력하면 아래에 펫 모델 입력 폼이 표시됩니다.</div>
+          <input id="adminPwd" type="password" placeholder="암호: NaengMyeon" />
+          <div class="hint">암호가 올바르면 아래 입력 폼이 열립니다.</div>
         </div>
         <div>
           <label>&nbsp;</label>
@@ -103,10 +222,17 @@
             <button id="addPetBtn" class="primary">펫 추가</button>
           </div>
         </div>
-        <div class="hint">여러 펫을 연속 입력할 수 있습니다. 추가 시 목록과 미리보기가 즉시 갱신됩니다.</div>
+        <div class="actions">
+          <button id="exportJson">JSON 내보내기</button>
+          <input id="importFile" type="file" accept="application/json,text/csv" />
+          <button id="importBtn">가져오기(JSON/CSV)</button>
+          <button id="exportCsv">CSV 내보내기</button>
+          <button id="clearAll" class="del">모든 데이터 초기화</button>
+          <span class="muted" id="saveStatus"></span>
+        </div>
         <table>
           <thead>
-            <tr><th>이름</th><th>C0</th><th>초기치(HP/ATK/DEF/DEX)</th><th>성장률(HP/ATK/DEF/DEX)</th></tr>
+            <tr><th>이름</th><th>C0</th><th>초기치(HP/ATK/DEF/DEX)</th><th>성장률(HP/ATK/DEF/DEX)</th><th>관리</th></tr>
           </thead>
           <tbody id="adminList"></tbody>
         </table>
@@ -117,7 +243,288 @@
   <footer>모형/공식은 사용자가 제공한 설명을 따릅니다. 실제 게임 서버/버전에 따라 차이가 있을 수 있습니다.</footer>
 
 <script>
-// (JS 부분은 그대로 유지, 단 dataPreview 등 내장 데이터 출력 관련은 제거 가능)
+// ========================= 데이터 저장/불러오기 =========================
+const STORAGE_KEY = 'stoneage_pets_json_v2';
+const FAV_KEY = 'stoneage_favs_v1';
+function defaultData(){
+  return [
+    { name:"실버우리", C0:20, initDec:[38.5, 6.715000000000001, 7.075, 6.3], growthDec:[9.52875, 1.6619625, 1.7510625, 1.55925] },
+    { name:"램가스",   C0:20, initDec:[48.30, 7.86, 12.71, 1.90], growthDec:[10.51, 1.71, 2.77, 0.41] },
+    { name:"오가로스", C0:25, initDec:[55.80, 11.84, 9.89, 5.88], growthDec:[10.11, 2.15, 1.79, 1.07] },
+    { name:"오르곤",   C0:26, initDec:[55.99, 11.25, 6.69, 7.15], growthDec:[11.07, 2.22, 1.32, 1.41] },
+    { name:"모가로스", C0:27, initDec:[56.62, 13.13, 7.96, 8.12], growthDec:[9.85, 2.28, 1.38, 1.41] },
+    { name:"부르돈",   C0:25, initDec:[51.125, 11.43125, 6.70625, 7.125], growthDec:[10.12275, 2.2633875, 1.3278375, 1.41075] },
+    { name:"사용자 정의", C0:25, initDec:[0,0,0,0], growthDec:[0,0,0,0] },
+  ];
+}
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultData();
+    const arr = JSON.parse(raw);
+    if(!Array.isArray(arr)) return defaultData();
+    return arr.filter(p=>p && typeof p.name==='string' && typeof p.C0==='number' && Array.isArray(p.initDec) && Array.isArray(p.growthDec));
+  }catch(e){ console.warn('loadData error', e); return defaultData(); }
+}
+function saveData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); setSaveStatus('저장됨'); }catch(e){ setSaveStatus('저장 실패'); }}
+function setSaveStatus(msg){ const el=document.getElementById('saveStatus'); if(!el) return; el.textContent=''+msg; setTimeout(()=>{el.textContent='';}, 1500); }
+function loadFavs(){ try{ const s = localStorage.getItem(FAV_KEY); return s? new Set(JSON.parse(s)) : new Set(); } catch{ return new Set(); } }
+function saveFavs(){ try{ localStorage.setItem(FAV_KEY, JSON.stringify([...FAVS])); } catch{} }
+
+// ========================= 전역 상태 & 엘리먼트 =========================
+let DATA = loadData();
+let FAVS = loadFavs();
+
+// 입력 섹션 엘리먼트
+const petSearch = document.getElementById('petSearch');
+const petNames = document.getElementById('petNames');
+const petSelect = document.getElementById('petSelect');
+const favToggle = document.getElementById('favToggle');
+const favIcon = document.getElementById('favIcon');
+const favOnly = document.getElementById('favOnly');
+
+const c0El = document.getElementById('c0');
+const initHPi = document.getElementById('initHPi');
+const initATKi = document.getElementById('initATKi');
+const initDEFi = document.getElementById('initDEFi');
+const initDEXi = document.getElementById('initDEXi');
+const growthStr = document.getElementById('growthStr');
+
+// 설정/결과
+const runBtn = document.getElementById('runBtn');
+const fillExample = document.getElementById('fillExample');
+const thrHPg = document.getElementById('thrHPg');
+const thrATKg = document.getElementById('thrATKg');
+const thrDEFg = document.getElementById('thrDEFg');
+const thrDEXg = document.getElementById('thrDEXg');
+const samplesEl = document.getElementById('samples');
+const probAll = document.getElementById('probAll');
+const probEach = document.getElementById('probEach');
+const rankInfo = document.getElementById('rankInfo');
+const baseVec = document.getElementById('baseVec');
+const detailRows = document.getElementById('detailRows');
+
+// 차트 캔버스
+const histCanvases = {
+  HP: document.getElementById('histHP'),
+  ATK: document.getElementById('histATK'),
+  DEF: document.getElementById('histDEF'),
+  DEX: document.getElementById('histDEX'),
+};
+
+// 관리자 엘리먼트
+const adminPwd = document.getElementById('adminPwd');
+const unlockBtn = document.getElementById('unlockBtn');
+const adminPanel = document.getElementById('adminPanel');
+const adminList = document.getElementById('adminList');
+const exportJsonBtn = document.getElementById('exportJson');
+const exportCsvBtn = document.getElementById('exportCsv');
+const importFile = document.getElementById('importFile');
+const importBtn = document.getElementById('importBtn');
+const clearAllBtn = document.getElementById('clearAll');
+
+const admName = document.getElementById('admName');
+const admC0 = document.getElementById('admC0');
+const admInitHP = document.getElementById('admInitHP');
+const admInitATK = document.getElementById('admInitATK');
+const admInitDEF = document.getElementById('admInitDEF');
+const admInitDEX = document.getElementById('admInitDEX');
+const admGrowthStr = document.getElementById('admGrowthStr');
+const addPetBtn = document.getElementById('addPetBtn');
+
+// ========================= 셀렉트/자동완성/즐겨찾기 =========================
+function ensureUserDefinedLast(){
+  const idx = DATA.findIndex(p=>p.name==='사용자 정의');
+  if(idx>=0 && idx!==DATA.length-1){ const u = DATA.splice(idx,1)[0]; DATA.push(u); }
+  else if(idx===-1){ DATA.push({ name:'사용자 정의', C0:25, initDec:[0,0,0,0], growthDec:[0,0,0,0]}); }
+}
+function buildNameList(){
+  petNames.innerHTML='';
+  DATA.forEach(p=>{ if(p.name==='사용자 정의') return; const o=document.createElement('option'); o.value=p.name; petNames.appendChild(o); });
+}
+function refreshSelect(){
+  ensureUserDefinedLast();
+  petSelect.innerHTML='';
+  const showFavOnly = favOnly.checked;
+  DATA.forEach((p,idx)=>{
+    if(showFavOnly && !FAVS.has(p.name)) return;
+    const opt=document.createElement('option'); opt.value=idx; opt.textContent=p.name; petSelect.appendChild(opt);
+  });
+  if(!petSelect.value && petSelect.options.length>0) petSelect.selectedIndex = 0;
+  updateFavIcon();
+}
+function updateFavIcon(){
+  const p = DATA[+petSelect.value]; if(!p) return; const on = FAVS.has(p.name);
+  favIcon.textContent = on ? '★' : '☆';
+  favIcon.className = on ? 'star fav' : 'star';
+}
+function applyPet(){
+  const p = DATA[+petSelect.value]; if(!p) return;
+  c0El.value = p.C0;
+  const [HP,ATK,DEF,DEX] = p.initDec;
+  initHPi.value = Math.floor(HP) || 0; initATKi.value = Math.floor(ATK) || 0; initDEFi.value = Math.floor(DEF) || 0; initDEXi.value = Math.floor(DEX) || 0;
+  growthStr.value = p.growthDec.join(',');
+  updateFavIcon();
+}
+function initUI(){
+  buildNameList(); refreshSelect();
+  let i = DATA.findIndex(p=>p.name==='오가로스'); if(i<0) i = DATA.findIndex(p=>p.name!=='사용자 정의');
+  petSelect.value = String(Math.max(0,i)); applyPet();
+}
+petSelect.addEventListener('change', applyPet);
+petSearch.addEventListener('change', ()=>{ const name = petSearch.value.trim(); const idx = DATA.findIndex(p=>p.name===name); if(idx>=0){ petSelect.value=String(idx); applyPet(); }});
+favToggle.addEventListener('click', ()=>{ const p = DATA[+petSelect.value]; if(!p) return; if(FAVS.has(p.name)) FAVS.delete(p.name); else FAVS.add(p.name); saveFavs(); updateFavIcon(); refreshSelect(); });
+favOnly.addEventListener('change', ()=>{ refreshSelect(); applyPet(); });
+fillExample.addEventListener('click', ()=>{ const i=DATA.findIndex(p=>p.name==='오가로스'); if(i>=0){ petSearch.value=DATA[i].name; petSelect.value=String(i); applyPet(); }});
+
+// ========================= 수학 유틸/역산 =========================
+function invertDisplay(HP,ATK,DEF,DEX){
+  const d = DEX; const A = [ [4,1,1], [0.1,1,0.1], [0.1,0.1,1] ]; const b = [ HP - d, ATK - 0.05*d, DEF - 0.05*d ];
+  const det = (A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0]));
+  const inv = [
+    [  (A[1][1]*A[2][2]-A[1][2]*A[2][1])/det, -(A[0][1]*A[2][2]-A[0][2]*A[2][1])/det,  (A[0][1]*A[1][2]-A[0][2]*A[1][1])/det ],
+    [ -(A[1][0]*A[2][2]-A[1][2]*A[2][0])/det,  (A[0][0]*A[2][2]-A[0][2]*A[2][0])/det, -(A[0][0]*A[1][2]-A[0][2]*A[1][0])/det ],
+    [  (A[1][0]*A[2][1]-A[1][1]*A[2][0])/det, -(A[0][0]*A[2][1]-A[0][1]*A[2][0])/det,  (A[0][0]*A[1][1]-A[0][1]*A[1][0])/det ],
+  ];
+  const v = inv[0][0]*b[0] + inv[0][1]*b[1] + inv[0][2]*b[2];
+  const s = inv[1][0]*b[0] + inv[1][1]*b[1] + inv[1][2]*b[2];
+  const t = inv[2][0]*b[0] + inv[2][1]*b[1] + inv[2][2]*b[2];
+  return [v,s,t,d];
+}
+function rankFromSum(sum){ if(sum>=100) return {rank:1, Bmin:450, Bmax:500}; if(sum>=95) return {rank:2, Bmin:470, Bmax:520}; if(sum>=90) return {rank:3, Bmin:490, Bmax:540}; if(sum>=85) return {rank:4, Bmin:510, Bmax:560}; if(sum>=80) return {rank:5, Bmin:530, Bmax:580}; return {rank:6, Bmin:550, Bmax:600}; }
+function inferBaseFromGrowth(gHP,gATK,gDEF,gDEX){
+  const [vg,sg,tg,dg] = invertDisplay(gHP,gATK,gDEF,gDEX); const Aavg = 2.5; let best=null;
+  for(let B=450;B<=600;B++){
+    const eV = vg*10000/B - Aavg; const eS = sg*10000/B - Aavg; const eT = tg*10000/B - Aavg; const eD = dg*10000/B - Aavg;
+    const rV = Math.round(eV), rS=Math.round(eS), rT=Math.round(eT), rD=Math.round(eD);
+    const score = Math.abs(eV-rV)+Math.abs(eS-rS)+Math.abs(eT-rT)+Math.abs(eD-rD);
+    if(!best || score < best.score){ best = {B, base:[rV,rS,rT,rD], score}; }
+  }
+  const sum = best.base.reduce((a,b)=>a+b,0); const rk = rankFromSum(sum); return { base:best.base, B:best.B, score:best.score, sum, rk };
+}
+function compositions10(){ const res=[]; for(let a=0;a<=10;a++) for(let b=0;b<=10-a;b++) for(let c=0;c<=10-a-b;c++){ let d=10-a-b-c; res.push([a,b,c,d]); } return res; }
+const ASET = compositions10();
+function displayFromRaw(v,s,t,d){ return [ 4*v + s + t + d, 0.1*v + s + 0.1*t + 0.05*d, 0.1*v + 0.1*s + t + 0.05*d, d ]; }
+
+// ========================= 시뮬레이션 & 히스토그램 =========================
+function simulateProbability({growthDec, thresholds, samples}){
+  const inf = inferBaseFromGrowth(...growthDec); const base = inf.base; const {Bmin,Bmax} = inf.rk;
+  let okAll=0, okH=0, okS=0, okT=0, okD=0;
+  const arrH=[],arrS=[],arrT=[],arrD=[];
+  for(let i=0;i<samples;i++){
+    const A = ASET[Math.floor(Math.random()*ASET.length)];
+    const B = Bmin + Math.random()*(Bmax-Bmin);
+    const growV = (base[0] + A[0]) * B / 10000;
+    const growS = (base[1] + A[1]) * B / 10000;
+    const growT = (base[2] + A[2]) * B / 10000;
+    const growD = (base[3] + A[3]) * B / 10000;
+    const [gHP,gATK,gDEF,gDEX] = displayFromRaw(growV,growS,growT,growD);
+    const hp=+gHP.toFixed(2), at=+gATK.toFixed(2), df=+gDEF.toFixed(2), dx=+gDEX.toFixed(2);
+    arrH.push(hp); arrS.push(at); arrT.push(df); arrD.push(dx);
+    const passH = hp >= thresholds[0]; const passS = at >= thresholds[1]; const passT = df >= thresholds[2]; const passD = dx >= thresholds[3];
+    if(passH) okH++; if(passS) okS++; if(passT) okT++; if(passD) okD++; if(passH && passS && passT && passD) okAll++;
+  }
+  return { base, rankInfo: inf, probs:[okAll/samples, okH/samples, okS/samples, okT/samples, okD/samples], dists:{HP:arrH, ATK:arrS, DEF:arrT, DEX:arrD} };
+}
+function drawHistogram(canvas, values, bins=30){
+  if(!canvas) return; const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width, h = canvas.height; const pad=24; const innerW=w-pad*2, innerH=h-pad*2;
+  if(values.length===0) return;
+  const min = Math.min(...values), max = Math.max(...values);
+  const bw = (max-min)/bins || 1; const counts = new Array(bins).fill(0);
+  values.forEach(v=>{ let idx=Math.floor((v-min)/bw); if(idx>=bins) idx=bins-1; if(idx<0) idx=0; counts[idx]++; });
+  const ymax = Math.max(...counts) || 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.strokeRect(pad,pad,innerW,innerH);
+  for(let i=0;i<bins;i++){
+    const x = pad + i*(innerW/bins) + 1; const bh = innerH*counts[i]/ymax; const y = pad + innerH - bh;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x,y,(innerW/bins)-2,bh);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font='12px system-ui'; ctx.fillText(min.toFixed(2)+' ~ '+max.toFixed(2), pad, h-6);
+}
+
+function run(){
+  const gParts = (growthStr.value||'').split(',').map(s=>Number(s.trim())).filter(x=>!isNaN(x));
+  if(gParts.length!==4){ alert('성장률 소숫점(4개)을 정확히 입력해 주세요.'); return; }
+  const thresholds = [Number(thrHPg.value), Number(thrATKg.value), Number(thrDEFg.value), Number(thrDEXg.value)];
+  const samples = Math.max(1000, Number(samplesEl.value)||50000);
+  const { base, rankInfo:inf, probs, dists } = simulateProbability({ growthDec:gParts, thresholds, samples });
+  probAll.textContent = (probs[0]*100).toFixed(2)+'%';
+  probEach.textContent = `HP ${(probs[1]*100).toFixed(1)}% · ATK ${(probs[2]*100).toFixed(1)}% · DEF ${(probs[3]*100).toFixed(1)}% · DEX ${(probs[4]*100).toFixed(1)}%`;
+  rankInfo.textContent = `Rank ${inf.rk.rank} (B ∈ [${inf.rk.Bmin}, ${inf.rk.Bmax}]), 최적 B≈${inf.B}`;
+  baseVec.textContent = `(${base.join(', ')})`;
+  detailRows.innerHTML = '';
+  const rows = [ ['가정 스케일','K = 200'], ['성장률 소숫점 입력', gParts.join(' / ')], ['S 기준(체/공/방/순)', thresholds.join(' / ')], ['추정 base', `(${base.join(', ')})`], ['추정 Rank', `Rank ${inf.rk.rank} (합=${inf.sum})`], ['보정계수 B', `범위 [${inf.rk.Bmin}, ${inf.rk.Bmax}], 최적≈${inf.B}`], ['샘플 수', String(samples)] ];
+  for(const [k,v] of rows){ const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=k; const td2=document.createElement('td'); td2.textContent=v; tr.appendChild(td1); tr.appendChild(td2); detailRows.appendChild(tr);} 
+  // 히스토그램
+  drawHistogram(histCanvases.HP, dists.HP); drawHistogram(histCanvases.ATK, dists.ATK); drawHistogram(histCanvases.DEF, dists.DEF); drawHistogram(histCanvases.DEX, dists.DEX);
+}
+runBtn.addEventListener('click', run);
+
+// ========================= 프리셋 =========================
+const presetBtns = document.querySelectorAll('[data-preset]');
+const PRESETS = {
+  default:[10,2.2,1.4,1.2], atk:[9.6,2.4,1.3,1.1], def:[9.6,2.1,1.5,1.1], dex:[9.6,2.1,1.3,1.3]
+};
+presetBtns.forEach(btn=>btn.addEventListener('click', ()=>{ const p = PRESETS[btn.dataset.preset]; if(!p) return; [thrHPg.value,thrATKg.value,thrDEFg.value,thrDEXg.value] = p; }));
+
+// ========================= 관리자 기능 (삭제, JSON/CSV) =========================
+function renderAdminList(){
+  adminList.innerHTML='';
+  DATA.forEach((p,idx)=>{ if(p.name==='사용자 정의') return; const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=p.name; const td2=document.createElement('td'); td2.textContent=p.C0; const td3=document.createElement('td'); td3.textContent=p.initDec.join(' / '); const td4=document.createElement('td'); td4.textContent=p.growthDec.join(' / ');
+    const td5=document.createElement('td'); const delBtn=document.createElement('button'); delBtn.textContent='삭제'; delBtn.className='del'; delBtn.addEventListener('click',()=>{ if(!confirm(`${p.name} 을(를) 삭제할까요?`)) return; DATA.splice(idx,1); saveData(); refreshSelect(); renderAdminList(); }); td5.appendChild(delBtn);
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4); tr.appendChild(td5); adminList.appendChild(tr);
+  });
+}
+unlockBtn.addEventListener('click', ()=>{ const ok = adminPwd.value==='NaengMyeon'; if(!ok){ alert('암호가 올바르지 않습니다.'); return;} adminPanel.style.display='block'; renderAdminList(); });
+addPetBtn.addEventListener('click', ()=>{
+  const name = (admName.value||'').trim(); const C0 = Number(admC0.value);
+  const initHP = Number(admInitHP.value), initATK=Number(admInitATK.value), initDEF=Number(admInitDEF.value), initDEX=Number(admInitDEX.value);
+  const gParts = (admGrowthStr.value||'').split(',').map(s=>Number(s.trim())).filter(x=>!isNaN(x));
+  if(!name){ alert('펫 이름을 입력하세요.'); return; }
+  if(!Number.isFinite(C0) || C0<=0){ alert('C0를 올바르게 입력하세요.'); return; }
+  if(![initHP,initATK,initDEF,initDEX].every(Number.isFinite)){ alert('초기치 소숫점 4개를 모두 입력하세요.'); return; }
+  if(gParts.length!==4){ alert('성장률 소숫점 4개를 쉼표로 구분하여 입력하세요.'); return; }
+  const msg = `다음 항목을 추가/수정할까요?\n\n이름: ${name}\nC0: ${C0}\n초기치: ${initHP} / ${initATK} / ${initDEF} / ${initDEX}\n성장률: ${gParts.join(' / ')}`;
+  if(!confirm(msg)) return;
+  const idx = DATA.findIndex(p=>p.name===name);
+  const newObj = { name, C0, initDec:[initHP,initATK,initDEF,initDEX], growthDec:gParts };
+  if(idx>=0){ DATA[idx]=newObj; } else { const userIdx = DATA.findIndex(p=>p.name==='사용자 정의'); const insertIdx = userIdx>=0? userIdx : DATA.length; DATA.splice(insertIdx,0,newObj); }
+  saveData(); buildNameList(); refreshSelect(); renderAdminList(); applyPet();
+  admName.value=''; admC0.value=''; admInitHP.value=''; admInitATK.value=''; admInitDEF.value=''; admInitDEX.value=''; admGrowthStr.value='';
+  alert('반영되었습니다.');
+});
+exportJsonBtn.addEventListener('click', ()=>{ const blob = new Blob([JSON.stringify(DATA,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='stoneage_pets.json'; a.click(); URL.revokeObjectURL(url); });
+exportCsvBtn.addEventListener('click', ()=>{
+  const rows = [['name','C0','initHP','initATK','initDEF','initDEX','gHP','gATK','gDEF','gDEX']];
+  DATA.forEach(p=>{ if(p.name==='사용자 정의') return; const r=[p.name,p.C0,...p.initDec,...p.growthDec]; rows.push(r); });
+  const csv = rows.map(r=>r.map(x=>String(x).includes(',')?`"${String(x).replaceAll('"','""')}"`:String(x)).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='stoneage_pets.csv'; a.click(); URL.revokeObjectURL(url);
+});
+importBtn.addEventListener('click', ()=>{
+  const f = importFile.files && importFile.files[0]; if(!f){ alert('파일을 선택하세요(JSON/CSV)'); return; }
+  const rd = new FileReader(); rd.onload = ()=>{
+    try{
+      if(f.type==='application/json' || f.name.toLowerCase().endsWith('.json')){
+        const arr = JSON.parse(rd.result); if(!Array.isArray(arr)) throw new Error('배열 JSON이 아닙니다'); DATA = arr; saveData();
+      } else { // CSV
+        const text = rd.result; const lines = text.split(/\r?\n/).filter(Boolean); if(lines.length<2) throw new Error('빈 CSV');
+        const hdr = lines[0].split(',').map(s=>s.trim());
+        const idxs = {name:hdr.indexOf('name'),C0:hdr.indexOf('C0'),i0:hdr.indexOf('initHP'),i1:hdr.indexOf('initATK'),i2:hdr.indexOf('initDEF'),i3:hdr.indexOf('initDEX'),g0:hdr.indexOf('gHP'),g1:hdr.indexOf('gATK'),g2:hdr.indexOf('gDEF'),g3:hdr.indexOf('gDEX')};
+        const arr=[]; for(let li=1; li<lines.length; li++){ const cells = lines[li].split(','); if(cells.length<5) continue; const obj={ name:cells[idxs.name], C0:Number(cells[idxs.C0]), initDec:[Number(cells[idxs.i0]),Number(cells[idxs.i1]),Number(cells[idxs.i2]),Number(cells[idxs.i3])], growthDec:[Number(cells[idxs.g0]),Number(cells[idxs.g1]),Number(cells[idxs.g2]),Number(cells[idxs.g3])] }; arr.push(obj); }
+        DATA = arr;
+        saveData();
+      }
+      buildNameList(); refreshSelect(); renderAdminList(); applyPet(); alert('가져왔습니다.');
+    }catch(e){ alert('가져오기 실패: '+e.message); }
+  };
+  rd.readAsText(f);
+});
+clearAllBtn.addEventListener('click', ()=>{ if(!confirm('모든 로컬 데이터를 초기화할까요?')) return; localStorage.removeItem(STORAGE_KEY); DATA = defaultData(); saveData(); buildNameList(); refreshSelect(); renderAdminList(); applyPet(); alert('초기화되었습니다.'); });
+
+// 초기화
+initUI();
 </script>
 </body>
 </html>
