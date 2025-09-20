@@ -142,6 +142,70 @@
       <div class="hint">필요시 코드 내 DATA 배열에 펫을 추가하세요. (C0, 초기치 소숫점, 성장률 소숫점)</div>
       <pre class="mono" id="dataPreview" style="white-space:pre-wrap"></pre>
     </section>
+      <section class="card" id="adminGate">
+      <h2>관리자 영역</h2>
+      <div class="row">
+        <div>
+          <label>관리자 암호 입력</label>
+          <input id="adminPwd" type="password" placeholder="암호를 입력하세요" />
+          <div class="hint">올바른 암호를 입력하면 아래에 펫 모델 입력 폼이 표시됩니다.</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="unlockBtn" class="primary">관리자 해제</button>
+        </div>
+      </div>
+
+      <div id="adminPanel" style="display:none; margin-top:12px;">
+        <h3 style="margin:0 0 8px; font-size:16px;">펫 모델 값 입력</h3>
+        <div class="row">
+          <div>
+            <label>펫 이름</label>
+            <input id="admName" type="text" placeholder="예: 신펫-예시" />
+          </div>
+          <div>
+            <label>초기치 계수 C0</label>
+            <input id="admC0" type="number" step="1" min="1" placeholder="예: 25" />
+          </div>
+        </div>
+        <div class="row3">
+          <div>
+            <label>초기치 소숫점 HP</label>
+            <input id="admInitHP" type="number" step="0.00001" placeholder="예: 55.80" />
+          </div>
+          <div>
+            <label>초기치 소숫점 ATK</label>
+            <input id="admInitATK" type="number" step="0.00001" placeholder="예: 11.84" />
+          </div>
+          <div>
+            <label>초기치 소숫점 DEF</label>
+            <input id="admInitDEF" type="number" step="0.00001" placeholder="예: 9.89" />
+          </div>
+        </div>
+        <div class="row3">
+          <div>
+            <label>초기치 소숫점 DEX</label>
+            <input id="admInitDEX" type="number" step="0.00001" placeholder="예: 5.88" />
+          </div>
+          <div>
+            <label>성장률 소숫점 입력 (쉼표 구분)</label>
+            <input id="admGrowthStr" type="text" placeholder="예: 10.11,2.15,1.79,1.07" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="addPetBtn" class="primary">펫 추가</button>
+          </div>
+        </div>
+        <div class="hint">여러 펫을 연속 입력할 수 있습니다. 추가 시 목록과 미리보기가 즉시 갱신됩니다.</div>
+        <table>
+          <thead>
+            <tr><th>이름</th><th>C0</th><th>초기치(HP/ATK/DEF/DEX)</th><th>성장률(HP/ATK/DEF/DEX)</th></tr>
+          </thead>
+          <tbody id="adminList"></tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
   <footer>모형/공식은 사용자가 제공한 설명을 따릅니다. 실제 게임 서버/버전에 따라 차이가 있을 수 있습니다.</footer>
 
@@ -351,6 +415,94 @@ function run(){
 runBtn.addEventListener('click', run);
 
 initSelect();
+// === 관리자 기능 ===
+const adminPwd = document.getElementById('adminPwd');
+const unlockBtn = document.getElementById('unlockBtn');
+const adminPanel = document.getElementById('adminPanel');
+const adminList = document.getElementById('adminList');
+
+const admName = document.getElementById('admName');
+const admC0 = document.getElementById('admC0');
+const admInitHP = document.getElementById('admInitHP');
+const admInitATK = document.getElementById('admInitATK');
+const admInitDEF = document.getElementById('admInitDEF');
+const admInitDEX = document.getElementById('admInitDEX');
+const admGrowthStr = document.getElementById('admGrowthStr');
+const addPetBtn = document.getElementById('addPetBtn');
+
+function refreshSelectAndPreview(){
+  petSelect.innerHTML='';
+  DATA.forEach((p,idx)=>{
+    const opt=document.createElement('option');
+    opt.value=idx; opt.textContent=p.name; petSelect.appendChild(opt);
+  });
+  // 사용자 정의를 항상 마지막으로 유지
+  let userIdx = DATA.findIndex(p=>p.name==='사용자 정의');
+  if(userIdx===-1){ DATA.push({ name:'사용자 정의', C0:25, initDec:[0,0,0,0], growthDec:[0,0,0,0]}); }
+  petSelect.value = String(Math.max(0, DATA.findIndex(p=>p.name!=='사용자 정의')));
+  applyPet();
+  dataPreview.textContent = JSON.stringify(DATA,null,2);
+  renderAdminList();
+}
+
+function renderAdminList(){
+  adminList.innerHTML='';
+  DATA.forEach(p=>{
+    if(p.name==='사용자 정의') return;
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=p.name; tr.appendChild(td1);
+    const td2=document.createElement('td'); td2.textContent=p.C0; tr.appendChild(td2);
+    const td3=document.createElement('td'); td3.textContent=p.initDec.join(' / '); tr.appendChild(td3);
+    const td4=document.createElement('td'); td4.textContent=p.growthDec.join(' / '); tr.appendChild(td4);
+    adminList.appendChild(tr);
+  });
+}
+
+unlockBtn.addEventListener('click', ()=>{
+  const ok = adminPwd.value === 'NaengMyeon';
+  if(!ok){ alert('암호가 올바르지 않습니다.'); return; }
+  adminPanel.style.display='block';
+  renderAdminList();
+});
+
+addPetBtn.addEventListener('click', ()=>{
+  const name = (admName.value||'').trim();
+  const C0 = Number(admC0.value);
+  const initHP = Number(admInitHP.value), initATK=Number(admInitATK.value), initDEF=Number(admInitDEF.value), initDEX=Number(admInitDEX.value);
+  const gParts = (admGrowthStr.value||'').split(',').map(s=>Number(s.trim())).filter(x=>!isNaN(x));
+
+  if(!name){ alert('펫 이름을 입력하세요.'); return; }
+  if(!Number.isFinite(C0) || C0<=0){ alert('C0를 올바르게 입력하세요.'); return; }
+  if(![initHP,initATK,initDEF,initDEX].every(Number.isFinite)){ alert('초기치 소숫점 4개를 모두 입력하세요.'); return; }
+  if(gParts.length!==4){ alert('성장률 소숫점 4개를 쉼표로 구분하여 입력하세요.'); return; }
+
+  // 확인 창
+  const msg = `다음 항목을 추가할까요?\n\n이름: ${name}\nC0: ${C0}\n초기치: ${initHP} / ${initATK} / ${initDEF} / ${initDEX}\n성장률: ${gParts.join(' / ')}`;
+  if(!confirm(msg)) return;
+
+  // 기존 이름이 있으면 덮어쓰기 여부 확인
+  const idx = DATA.findIndex(p=>p.name===name);
+  if(idx>=0){
+    if(!confirm('같은 이름의 펫이 존재합니다. 덮어쓸까요?')) return;
+    DATA[idx] = { name, C0, initDec:[initHP,initATK,initDEF,initDEX], growthDec:gParts };
+  }else{
+    // 사용자 정의 앞에 삽입
+    const userIdx = DATA.findIndex(p=>p.name==='사용자 정의');
+    const insertIdx = userIdx>=0? userIdx : DATA.length;
+    DATA.splice(insertIdx,0,{ name, C0, initDec:[initHP,initATK,initDEF,initDEX], growthDec:gParts });
+  }
+
+  refreshSelectAndPreview();
+
+  // 다음 입력을 위한 초기화
+  admName.value=''; admC0.value='';
+  admInitHP.value=''; admInitATK.value=''; admInitDEF.value=''; admInitDEX.value='';
+  admGrowthStr.value='';
+
+  alert('추가되었습니다. 계속해서 입력할 수 있습니다.');
+});
+
+renderAdminList();
 </script>
 </body>
 </html>
