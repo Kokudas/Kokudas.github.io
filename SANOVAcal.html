@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>스톤에이지 S랭크 성장 확률 계산기</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#12182b; --muted:#9fb0c8; --text:#e8f0ff; --accent:#5eead4; --accent2:#a78bfa; --bad:#f87171; --good:#34d399;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:var(--text);background:radial-gradient(1200px 800px at 20% 0%,#132041 0%,#0b1020 55%);}    
+    header{padding:28px 20px 10px; text-align:center}
+    h1{margin:0;font-size:28px;letter-spacing:.3px}
+    p.sub{margin:8px auto 0;max-width:780px;color:var(--muted);line-height:1.5}
+    main{padding:22px;display:grid;gap:18px;grid-template-columns: 1.1fr 1.2fr}
+    @media (max-width: 980px){main{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px 16px 12px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0 0 12px;font-size:18px}
+    .row{display:grid;grid-template-columns:1fr 1fr; gap:10px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr; gap:10px}
+    label{font-size:12px;color:var(--muted);display:block;margin:8px 0 6px}
+    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0f1426;color:var(--text);outline:none}
+    input::placeholder{color:#789}
+    .hint{font-size:12px;color:#9ab}
+    .actions{display:flex;gap:10px; margin-top:10px}
+    button{cursor:pointer}
+    button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;font-weight:700}
+    .grid{display:grid;grid-template-columns:1fr 1fr; gap:10px}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:#0e152b;color:var(--muted);font-size:12px}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px}
+    .kpi .item{padding:14px;border-radius:12px;background:#0e1528;border:1px solid rgba(255,255,255,.08)}
+    .kpi .val{font-weight:800;font-size:18px}
+    .kpi .lbl{font-size:12px;color:#9ab}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:8px;border-bottom:1px dashed rgba(255,255,255,.12);font-size:13px}
+    th{color:#9ab;text-align:left}
+    .ok{color:var(--good);font-weight:700}
+    .bad{color:var(--bad);font-weight:700}
+    footer{padding:20px;text-align:center;color:#8ea2bf;font-size:12px}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>스톤에이지 S랭크 성장 확률 계산기</h1>
+    <p class="sub">펫을 검색하고, <b>정수 표기 초기치</b>를 입력하면, <span class="pill"><span>모형</span><span class="mono">(K=200, A~조합균등, B~Rank범위 균등)</span></span> 가정하에 <b>S 랭크 달성 확률</b>을 추정합니다.<br/>임계값(체/공/방/순의 <i>표기 성장치</i>)은 자유롭게 설정할 수 있습니다.</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>① 펫 선택 또는 수동 입력</h2>
+      <div class="row">
+        <div>
+          <label>펫 검색/선택</label>
+          <select id="petSelect"></select>
+          <div class="hint">선택하면 오른쪽 필드가 채워집니다. 목록에 없으면 "사용자 정의"를 선택하세요.</div>
+        </div>
+        <div>
+          <label>초기치 계수 C0</label>
+          <input id="c0" type="number" step="1" min="1" placeholder="예: 25"/>
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>초기치(정수 표기) — 체력 HP</label>
+          <input id="initHPi" type="number" step="1" placeholder="예: 52" />
+        </div>
+        <div>
+          <label>초기치(정수 표기) — 공격 ATK</label>
+          <input id="initATKi" type="number" step="1" placeholder="예: 12" />
+        </div>
+        <div>
+          <label>초기치(정수 표기) — 방어 DEF</label>
+          <input id="initDEFi" type="number" step="1" placeholder="예: 7" />
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>초기치(정수 표기) — 순발 DEX</label>
+          <input id="initDEXi" type="number" step="1" placeholder="예: 6" />
+        </div>
+        <div>
+          <label>성장률 소숫점(체/공/방/순) — 예: 10.11 / 2.15 / 1.79 / 1.07</label>
+          <input id="growthStr" type="text" placeholder="예: 10.11,2.15,1.79,1.07" />
+        </div>
+        <div>
+          <label>표기식 계수 확인</label>
+          <div class="pill mono">HP=4v+s+t+d • ATK=0.1v+s+0.1t+0.05d • DEF=0.1v+0.1s+t+0.05d • DEX=d</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>② S 랭크 기준 & 시뮬레이션 설정</h2>
+      <div class="row3">
+        <div>
+          <label>S 기준 — 표기 체성 (예: 10)</label>
+          <input id="thrHPg" type="number" step="0.01" value="10" />
+        </div>
+        <div>
+          <label>S 기준 — 표기 공성</label>
+          <input id="thrATKg" type="number" step="0.01" value="2.2" />
+        </div>
+        <div>
+          <label>S 기준 — 표기 방성</label>
+          <input id="thrDEFg" type="number" step="0.01" value="1.4" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>S 기준 — 표기 순성</label>
+          <input id="thrDEXg" type="number" step="0.01" value="1.2" />
+        </div>
+        <div>
+          <label>샘플 수 (Monte Carlo)</label>
+          <input id="samples" type="number" step="1000" value="50000" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="runBtn">S 확률 계산</button>
+        <button id="fillExample">예시 채우기(오가로스)</button>
+      </div>
+      <div class="hint">모형 가정: <b>K=200</b>, A는 4스탯에 합 10을 <b>조합 균등</b> 분배, B는 Rank별 범위에서 <b>균등</b> 샘플.</div>
+    </section>
+
+    <section class="card">
+      <h2>③ 결과</h2>
+      <div class="kpi">
+        <div class="item"><div class="lbl">S 달성 확률 (4스탯 AND)</div><div class="val" id="probAll">-</div></div>
+        <div class="item"><div class="lbl">체/공/방/순 개별 확률</div><div class="val" id="probEach">-</div></div>
+        <div class="item"><div class="lbl">추정 Rank / B범위</div><div class="val" id="rankInfo">-</div></div>
+        <div class="item"><div class="lbl">추정 base(체/공/방/순)</div><div class="val" id="baseVec">-</div></div>
+      </div>
+      <table>
+        <thead><tr><th>항목</th><th>값</th></tr></thead>
+        <tbody id="detailRows"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>내장 데이터(검색용)</h2>
+      <div class="hint">필요시 코드 내 DATA 배열에 펫을 추가하세요. (C0, 초기치 소숫점, 성장률 소숫점)</div>
+      <pre class="mono" id="dataPreview" style="white-space:pre-wrap"></pre>
+    </section>
+  </main>
+  <footer>모형/공식은 사용자가 제공한 설명을 따릅니다. 실제 게임 서버/버전에 따라 차이가 있을 수 있습니다.</footer>
+
+<script>
+// === 데이터셋 예시 ===
+const DATA = [
+  { name:"실버우리", C0:20, initDec:[38.5, 6.715000000000001, 7.075, 6.3], growthDec:[9.52875, 1.6619625, 1.7510625, 1.55925] },
+  { name:"램가스",   C0:20, initDec:[48.30, 7.86, 12.71, 1.90], growthDec:[10.51, 1.71, 2.77, 0.41] },
+  { name:"오가로스", C0:25, initDec:[55.80, 11.84, 9.89, 5.88], growthDec:[10.11, 2.15, 1.79, 1.07] },
+  { name:"오르곤",   C0:26, initDec:[55.99, 11.25, 6.69, 7.15], growthDec:[11.07, 2.22, 1.32, 1.41] },
+  { name:"모가로스", C0:27, initDec:[56.62, 13.13, 7.96, 8.12], growthDec:[9.85, 2.28, 1.38, 1.41] },
+  { name:"부르돈",   C0:25, initDec:[51.125, 11.43125, 6.70625, 7.125], growthDec:[10.12275, 2.2633875, 1.3278375, 1.41075] },
+  { name:"사용자 정의", C0:25, initDec:[0,0,0,0], growthDec:[0,0,0,0] },
+];
+
+const petSelect = document.getElementById('petSelect');
+const c0El = document.getElementById('c0');
+const initHPi = document.getElementById('initHPi');
+const initATKi = document.getElementById('initATKi');
+const initDEFi = document.getElementById('initDEFi');
+const initDEXi = document.getElementById('initDEXi');
+const growthStr = document.getElementById('growthStr');
+const dataPreview = document.getElementById('dataPreview');
+const runBtn = document.getElementById('runBtn');
+const fillExample = document.getElementById('fillExample');
+
+const probAll = document.getElementById('probAll');
+const probEach = document.getElementById('probEach');
+const rankInfo = document.getElementById('rankInfo');
+const baseVec = document.getElementById('baseVec');
+const detailRows = document.getElementById('detailRows');
+
+const thrHPg = document.getElementById('thrHPg');
+const thrATKg = document.getElementById('thrATKg');
+const thrDEFg = document.getElementById('thrDEFg');
+const thrDEXg = document.getElementById('thrDEXg');
+const samplesEl = document.getElementById('samples');
+
+function initSelect(){
+  petSelect.innerHTML = '';
+  DATA.forEach((p,idx)=>{
+    const opt = document.createElement('option');
+    opt.value = idx; opt.textContent = p.name;
+    petSelect.appendChild(opt);
+  });
+  petSelect.value = 2; // 오가로스 기본 선택
+  applyPet();
+  dataPreview.textContent = JSON.stringify(DATA,null,2);
+}
+
+function applyPet(){
+  const p = DATA[+petSelect.value];
+  c0El.value = p.C0;
+  growthStr.value = p.growthDec.join(',');
+  // 정수 초기치는 사용자 입력값이 확률 계산에 직접 쓰이지 않지만, UI 편의상 채움
+  const [HP,ATK,DEF,DEX] = p.initDec;
+  initHPi.value = Math.floor(HP);
+  initATKi.value = Math.floor(ATK);
+  initDEFi.value = Math.floor(DEF);
+  initDEXi.value = Math.floor(DEX);
+}
+
+petSelect.addEventListener('change', applyPet);
+fillExample.addEventListener('click', ()=>{ petSelect.value = 2; applyPet(); });
+
+// === 선형 역산: 표기 -> 원시 (v,s,t,d) ===
+function invertDisplay(HP,ATK,DEF,DEX){
+  const d = DEX;
+  // Solve A*[v,s,t]^T = b
+  const A = [ [4,1,1], [0.1,1,0.1], [0.1,0.1,1] ];
+  const b = [ HP - d, ATK - 0.05*d, DEF - 0.05*d ];
+  // Solve 3x3
+  const det = (A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0]));
+  function minor(i,j){
+    const m = [];
+    for(let r=0;r<3;r++) if(r!==i){
+      const row=[]; for(let c=0;c<3;c++) if(c!==j) row.push(A[r][c]);
+      m.push(row);
+    }
+    return m[0][0]*m[1][1]-m[0][1]*m[1][0];
+  }
+  const inv = [
+    [  (A[1][1]*A[2][2]-A[1][2]*A[2][1])/det, -(A[0][1]*A[2][2]-A[0][2]*A[2][1])/det,  (A[0][1]*A[1][2]-A[0][2]*A[1][1])/det ],
+    [ -(A[1][0]*A[2][2]-A[1][2]*A[2][0])/det,  (A[0][0]*A[2][2]-A[0][2]*A[2][0])/det, -(A[0][0]*A[1][2]-A[0][2]*A[1][0])/det ],
+    [  (A[1][0]*A[2][1]-A[1][1]*A[2][0])/det, -(A[0][0]*A[2][1]-A[0][1]*A[2][0])/det,  (A[0][0]*A[1][1]-A[0][1]*A[1][0])/det ],
+  ];
+  const v = inv[0][0]*b[0] + inv[0][1]*b[1] + inv[0][2]*b[2];
+  const s = inv[1][0]*b[0] + inv[1][1]*b[1] + inv[1][2]*b[2];
+  const t = inv[2][0]*b[0] + inv[2][1]*b[1] + inv[2][2]*b[2];
+  return [v,s,t,d];
+}
+
+// Rank 판정 규칙 (합 기준)
+function rankFromSum(sum){
+  if(sum>=100) return {rank:1, Bmin:450, Bmax:500};
+  if(sum>=95)  return {rank:2, Bmin:470, Bmax:520};
+  if(sum>=90)  return {rank:3, Bmin:490, Bmax:540};
+  if(sum>=85)  return {rank:4, Bmin:510, Bmax:560};
+  if(sum>=80)  return {rank:5, Bmin:530, Bmax:580};
+  return {rank:6, Bmin:550, Bmax:600};
+}
+
+// 성장 베이스 역추정 (A_avg=2.5 가정)
+function inferBaseFromGrowth(gHP,gATK,gDEF,gDEX){
+  const [vg,sg,tg,dg] = invertDisplay(gHP,gATK,gDEF,gDEX);
+  const Aavg = 2.5;
+  // B를 450..600 탐색하여 정수 base에 가장 근접
+  let best=null;
+  for(let B=450;B<=600;B++){
+    const eV = vg*10000/B - Aavg;
+    const eS = sg*10000/B - Aavg;
+    const eT = tg*10000/B - Aavg;
+    const eD = dg*10000/B - Aavg;
+    const rV = Math.round(eV), rS=Math.round(eS), rT=Math.round(eT), rD=Math.round(eD);
+    const score = Math.abs(eV-rV)+Math.abs(eS-rS)+Math.abs(eT-rT)+Math.abs(eD-rD);
+    if(!best || score < best.score){
+      best = {B, base:[rV,rS,rT,rD], score};
+    }
+  }
+  const sum = best.base.reduce((a,b)=>a+b,0);
+  const rk = rankFromSum(sum);
+  return { base:best.base, B:best.B, score:best.score, sum, rk };
+}
+
+// A 조합(합10) 전수
+function compositions10(){
+  const res=[]; for(let a=0;a<=10;a++) for(let b=0;b<=10-a;b++) for(let c=0;c<=10-a-b;c++){ let d=10-a-b-c; res.push([a,b,c,d]); }
+  return res; // 286개
+}
+const ASET = compositions10();
+
+// 표기식으로 변환
+function displayFromRaw(v,s,t,d){
+  return [ 4*v + s + t + d,
+           0.1*v + s + 0.1*t + 0.05*d,
+           0.1*v + 0.1*s + t + 0.05*d,
+           d ];
+}
+
+function simulateProbability(opts){
+  const {C0, growthDec, thresholds, samples} = opts;
+  // 성장 베이스 추정
+  const inf = inferBaseFromGrowth(...growthDec);
+  const base = inf.base; const Bmin = inf.rk.Bmin, Bmax = inf.rk.Bmax;
+  // 확률 계산: A는 286 조합을 균등 샘플, B는 [Bmin,Bmax] 균등 실수
+  const Aavg = 2.5; // per-level 평균 분배값(가정)
+  let okAll=0, okH=0, okS=0, okT=0, okD=0;
+  for(let i=0;i<samples;i++){
+    const A = ASET[Math.floor(Math.random()*ASET.length)];
+    const B = Bmin + Math.random()*(Bmax-Bmin);
+    const growV = (base[0] + A[0]) * B / 10000;
+    const growS = (base[1] + A[1]) * B / 10000;
+    const growT = (base[2] + A[2]) * B / 10000;
+    const growD = (base[3] + A[3]) * B / 10000;
+    const [gHP,gATK,gDEF,gDEX] = displayFromRaw(growV,growS,growT,growD);
+    const passH = (Math.round(gHP*100)/100) >= thresholds[0];
+    const passS = (Math.round(gATK*100)/100) >= thresholds[1];
+    const passT = (Math.round(gDEF*100)/100) >= thresholds[2];
+    const passD = (Math.round(gDEX*100)/100) >= thresholds[3];
+    if(passH) okH++; if(passS) okS++; if(passT) okT++; if(passD) okD++;
+    if(passH && passS && passT && passD) okAll++;
+  }
+  return { base, rankInfo: inferBaseFromGrowth(...growthDec),
+           probs:[okAll/samples, okH/samples, okS/samples, okT/samples, okD/samples] };
+}
+
+function run(){
+  // 입력 읽기
+  const C0 = Number(c0El.value||0);
+  const gParts = (growthStr.value||'').split(',').map(s=>Number(s.trim())).filter(x=>!isNaN(x));
+  if(C0<=0 || gParts.length!==4){
+    alert('C0와 성장률 소숫점(4개)을 정확히 입력해 주세요. 예: 10.11,2.15,1.79,1.07');
+    return;
+  }
+  const thresholds = [Number(thrHPg.value), Number(thrATKg.value), Number(thrDEFg.value), Number(thrDEXg.value)];
+  const samples = Math.max(1000, Number(samplesEl.value)||50000);
+
+  const { base, rankInfo, probs } = simulateProbability({
+    C0, growthDec: gParts, thresholds, samples
+  });
+
+  // 결과 표시
+  probAll.textContent = (probs[0]*100).toFixed(2)+'%';
+  probEach.textContent = `HP ${(probs[1]*100).toFixed(1)}% · ATK ${(probs[2]*100).toFixed(1)}% · DEF ${(probs[3]*100).toFixed(1)}% · DEX ${(probs[4]*100).toFixed(1)}%`;
+  rankInfo.textContent = `Rank ${rankInfo.rk.rank} (B ∈ [${rankInfo.rk.Bmin}, ${rankInfo.rk.Bmax}]), 최적 B≈${rankInfo.B}`;
+  baseVec.textContent = `(${base.join(', ')})`;
+
+  // 상세
+  detailRows.innerHTML = '';
+  const rows = [
+    ['가정 스케일', 'K = 200'],
+    ['성장률 소숫점 입력', gParts.join(' / ')],
+    ['S 기준(체/공/방/순)', thresholds.join(' / ')],
+    ['추정 base', `(${base.join(', ')})`],
+    ['추정 Rank', `Rank ${rankInfo.rk.rank} (합=${rankInfo.sum})`],
+    ['보정계수 B', `범위 [${rankInfo.rk.Bmin}, ${rankInfo.rk.Bmax}], 최적≈${rankInfo.B}`],
+    ['샘플 수', String(samples)]
+  ];
+  for(const [k,v] of rows){
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=k; 
+    const td2=document.createElement('td'); td2.textContent=v; tr.appendChild(td1); tr.appendChild(td2);
+    detailRows.appendChild(tr);
+  }
+}
+
+runBtn.addEventListener('click', run);
+
+initSelect();
+</script>
+</body>
+</html>
