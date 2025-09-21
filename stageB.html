@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>StageB v0.3 · 환각 확률 계산(커트라인 모델)</title>
+  <title>StageB v0.3.1 · 환각 확률 계산(커트라인 모델)</title>
   <style>
     :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545;--bad:#ff5c5c}
     *{box-sizing:border-box}
@@ -36,7 +36,7 @@
 <body>
 <header>
   <div class="wrap">
-    <strong>StageB v0.3 · 환각 확률 계산</strong>
+    <strong>StageB v0.3.1 · 환각 확률 계산</strong>
     <a class="pill" href="./stageA.html">⬅️ StageA로</a>
   </div>
 </header>
@@ -56,7 +56,7 @@
           <button class="btn" id="btnLoad">불러오기</button>
         </div>
       </div>
-      <div class="muted" id="info">StageA에서 저장한 항목을 선택해 주세요.</div>
+      <div class="muted" id="info">StageA에서 “StageB로 저장” 후 여기서 선택하세요. (키: <span class="mono">StageA_페트명</span>)</div>
     </div>
   </section>
 
@@ -82,7 +82,7 @@
 
       <div class="row" style="margin-top:10px">
         <button class="btn-ok" id="btnCalc">계산 시작</button>
-        <div class="muted" id="calcNote">결과는 “성공 확률 : n%”로 요약 표시됩니다.</div>
+        <div class="muted" id="calcNote">결과는 “성공 확률 : n%”로 큼직하게 표시됩니다.</div>
       </div>
 
       <div class="big" id="headline" style="margin-top:12px">성공 확률 : —</div>
@@ -116,9 +116,8 @@
     return [H,A,D,G];
   }
 
-  // ---------- 보너스 분배 사전 계산 (합 10, 비음수 정수 4분할) ----------
-  const bonusPartitions = (()=>{ // 약 286개
-    const out=[];
+  // ---------- 보너스 분배 사전 계산 (합 10) ----------
+  const bonusPartitions = (()=>{ const out=[];
     for(let h=0; h<=10; h++){
       for(let a=0; a<=10-h; a++){
         for(let d=0; d<=10-h-a; d++){
@@ -130,39 +129,25 @@
     return out;
   })();
 
-  // ---------- 정수초기치 생성 가능성 검증 & 카운트 ----------
   function countIntMatchesForCand(cand, intHADG, roundMode){
-    // baseS 수정 없이 "초기 난수"를 base 계수에 더하는 모델:
-    // base' = baseS + (Δ + bonus)  (Δ∈{-2..2}, bonus는 10분배)
-    // raw = initnum * (base' + Aavg) / 100
-    // disp = M(raw) → roundBy(roundMode)
     const {initnum, base} = cand;
     let hit=0, tot=0;
-
-    // Δ 루프 (5^4 = 625)
     for(let dh=-2; dh<=2; dh++){
       for(let da=-2; da<=2; da++){
         for(let dd=-2; dd<=2; dd++){
           for(let dg=-2; dg<=2; dg++){
-            // 보너스 분배 286개
             for(const b of bonusPartitions){
-              const bH=b[0], bA=b[1], bD=b[2], bG=b[3];
-
-              const bh = base[0] + dh + bH;
-              const ba = base[1] + da + bA;
-              const bd = base[2] + dd + bD;
-              const bg = base[3] + dg + bG;
-
+              const bh = base[0] + dh + b[0];
+              const ba = base[1] + da + b[1];
+              const bd = base[2] + dd + b[2];
+              const bg = base[3] + dg + b[3];
               const h = initnum*(bh + Aavg)/100;
               const a = initnum*(ba + Aavg)/100;
               const d = initnum*(bd + Aavg)/100;
               const g = initnum*(bg + Aavg)/100;
-
               const disp = displayFromRaw(h,a,d,g).map(x=>roundBy(roundMode,x));
               tot++;
-              if(disp[0]===intHADG[0] && disp[1]===intHADG[1] && disp[2]===intHADG[2] && disp[3]===intHADG[3]){
-                hit++;
-              }
+              if(disp[0]===intHADG[0] && disp[1]===intHADG[1] && disp[2]===intHADG[2] && disp[3]===intHADG[3]) hit++;
             }
           }
         }
@@ -171,8 +156,6 @@
     return {hit, tot};
   }
 
-  // ---------- 140레벨 누적 표기 계산 ----------
-  // 단순 누적: InitDisp(소수) + (LvMax-1)*GrowDisp(소수)
   function initDecimalDisp(cand){
     const {initnum, base} = cand;
     const h = initnum*(base[0] + Aavg)/100;
@@ -183,8 +166,8 @@
   }
 
   function totalDispAt140(cand, growDisp){
-    const initDisp = initDecimalDisp(cand); // 소수 유지
-    const lvGain = 139; // 1→140
+    const initDisp = initDecimalDisp(cand);
+    const lvGain = 139;
     return [
       initDisp[0] + lvGain*growDisp[0],
       initDisp[1] + lvGain*growDisp[1],
@@ -193,11 +176,11 @@
     ];
   }
 
-  function isS(totalDisp, cut){
-    return (totalDisp[0] >= cut[0] && totalDisp[1] >= cut[1] && totalDisp[2] >= cut[2] && totalDisp[3] >= cut[3]);
+  function isS(total, cut){
+    return (total[0] >= cut[0] && total[1] >= cut[1] && total[2] >= cut[2] && total[3] >= cut[3]);
   }
 
-  // ---------- UI/로딩 ----------
+  // ---------- UI ----------
   const sel=document.getElementById('selPets');
   const btnRefresh=document.getElementById('btnRefresh');
   const btnLoad=document.getElementById('btnLoad');
@@ -205,18 +188,36 @@
   const roundNote=document.getElementById('roundNote');
   const candSummary=document.getElementById('candSummary');
   const tblBody=document.getElementById('tbl').querySelector('tbody');
-
   const headline=document.getElementById('headline');
   const subline=document.getElementById('subline');
 
   function refreshKeys(){
     sel.innerHTML='';
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('StageA_')).sort();
-    keys.forEach(k=>{
-      const opt=document.createElement('option');
-      opt.value=k; opt.textContent=k.replace('StageA_','');
-      sel.appendChild(opt);
-    });
+    try{
+      // ✅ 인덱스 기반 안전 스캔
+      const keys=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k && k.startsWith('StageA_')) keys.push(k);
+      }
+      keys.sort();
+      if(keys.length===0){
+        const opt=document.createElement('option');
+        opt.value=''; opt.textContent='(저장된 항목 없음)';
+        sel.appendChild(opt);
+        info.textContent='StageA에서 “StageB로 저장”을 먼저 수행하세요.';
+        return;
+      }
+      keys.forEach(k=>{
+        const opt=document.createElement('option');
+        opt.value=k;
+        opt.textContent=k.replace('StageA_','');
+        sel.appendChild(opt);
+      });
+      info.textContent='목록에서 페트를 선택 후 “불러오기”를 누르세요.';
+    }catch(e){
+      info.textContent='저장소 접근 실패: 브라우저 저장소 권한을 확인하세요.';
+    }
   }
   btnRefresh.onclick=refreshKeys;
   window.addEventListener('load',refreshKeys);
@@ -227,12 +228,22 @@
     const key=sel.value;
     if(!key){ alert('목록에서 항목을 선택하세요.'); return; }
     try{
-      payload = JSON.parse(localStorage.getItem(key)||'{}');
-      if(!payload || !payload.candidates){ alert('저장 형식이 올바르지 않습니다.'); return; }
+      const raw=localStorage.getItem(key);
+      if(!raw){ alert('로컬 저장에서 항목을 찾을 수 없습니다.'); return; }
+      payload = JSON.parse(raw);
+      if(!payload || !Array.isArray(payload.candidates)){
+        alert('저장 형식이 올바르지 않습니다. StageA에서 다시 저장해 주세요.');
+        payload=null; return;
+      }
       info.textContent = `불러옴: ${payload.petName} · 후보 ${payload.candidates.length}개`;
       roundNote.textContent = `라운딩 규칙: ${payload.initRound||'floor'}`;
       renderCandidates([], payload.candidates);
-    }catch(e){ alert('불러오기 실패: '+e.message); }
+      headline.textContent='성공 확률 : —';
+      subline.textContent='';
+    }catch(e){
+      alert('불러오기 실패: '+e.message);
+      payload=null;
+    }
   };
 
   function renderCandidates(matchIdxs, all){
@@ -266,10 +277,9 @@
     ];
 
     const roundMode = payload.initRound || 'floor';
-    const growDisp = payload.targetGrow; // [h,a,d,g] 소수 성장
+    const growDisp = payload.targetGrow; // [h,a,d,g]
     const cands = payload.candidates || [];
 
-    // 1) cand별 정수초기치 일치 횟수 계산 → p(Int|cand) 비례치
     const weights = new Array(cands.length).fill(0);
     const matchIdxs=[];
     let wSum = 0;
@@ -290,7 +300,6 @@
       return;
     }
 
-    // 2) cand별 S성공(결정) → totalDispAt140 >= cut ?
     let num = 0;
     for(let i=0;i<cands.length;i++){
       if(weights[i]===0) continue;
