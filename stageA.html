@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StageA v0.4.1 · 후보 역산 (→ StageB 연동)</title>
+  <title>StageA v0.5 · 후보 역산 (→ StageB 연동)</title>
   <style>
     :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545;--bad:#ff5c5c}
     *{box-sizing:border-box}
@@ -27,7 +27,6 @@
     .btn:hover{background:#162a55}
     .btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d}
     .btn-ok:hover{filter:brightness(1.05)}
-    .btn-warn{background:#1e2438;border:1px solid #3a4262}
     .muted{color:var(--muted);font-size:13px}
     .grid{display:grid;gap:8px}
     table{width:100%;border-collapse:collapse}
@@ -41,7 +40,7 @@
 <body>
   <header>
     <div class="wrap">
-      <strong>StageA v0.4.1 · 후보 역산</strong>
+      <strong>StageA v0.5 · 후보 역산</strong>
       <a class="pill" href="./stageB.html">➡️ StageB로 이동</a>
     </div>
   </header>
@@ -96,18 +95,14 @@
             <label>최대 후보 수</label>
             <input id="maxCand" type="number" value="120" />
           </div>
-          <div>
-            <label style="opacity:.0">.</label>
-            <button class="btn-warn" id="btnReset">역산목록 초기화</button>
-          </div>
         </div>
 
         <div class="row">
           <button class="btn-ok" id="btnSolve">후보 역산</button>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px">
             <button class="btn" id="btnSaveLS">StageB로 저장</button>
             <button class="btn" id="btnDownload">JSON 내보내기</button>
-            <button class="btn" id="btnDeleteLS">저장 삭제(현재 페트)</button>
+            <button class="btn" id="btnClearLS">저장 초기화</button>
           </div>
         </div>
         <div class="muted">※ StageA는 소수2자리 초기치+성장률로 가능한 후보(baseS, initnum, rank)를 역산합니다. StageB에서 커트라인 시뮬레이션을 통해 성공확률을 계산합니다.</div>
@@ -131,146 +126,28 @@ const AVG=a=>a.reduce((x,y)=>x+y,0)/a.length;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function roundBy(m,x){if(m==='floor')return Math.floor(x);if(m==='ceil')return Math.ceil(x);return Math.round(x);}
 const M=[[4,1,1,1],[0.1,1,0.1,0.05],[0.1,0.1,1,0.05],[0,0,0,1]];
-function inv4(mat){let a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
-  for(let i=0;i<n;i++){let p=i;for(let r=i;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[p][i]))p=r;
-    if(Math.abs(a[p][i])<1e-12)throw Error('역행렬 불가');if(p!==i){[a[i],a[p]]=[a[p],a[i]];[id[i],id[p]]=[id[p],id[i]];}
-    let pv=a[i][i];for(let j=0;j<n;j++){a[i][j]/=pv;id[i][j]/=pv;}
-    for(let r=0;r<n;r++){if(r===i)continue;let f=a[r][i];for(let j=0;j<n;j++){a[r][j]-=f*a[i][j];id[r][j]-=f*id[i][j];}}
-  }return id;}
+function inv4(mat){let a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];for(let i=0;i<n;i++){let p=i;for(let r=i;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[p][i]))p=r;if(Math.abs(a[p][i])<1e-12)throw Error('역행렬 불가');if(p!==i){[a[i],a[p]]=[a[p],a[i]];[id[i],id[p]]=[id[p],id[i]];}let pv=a[i][i];for(let j=0;j<n;j++){a[i][j]/=pv;id[i][j]/=pv;}for(let r=0;r<n;r++){if(r===i)continue;let f=a[r][i];for(let j=0;j<n;j++){a[r][j]-=f*a[i][j];id[r][j]-=f*id[i][j];}}}return id;}
 const Minv=inv4(M);
 
 function displayFromRaw(h,a,d,g){return [h*4+a+d+g,h*0.1+a+d*0.1+g*0.05,h*0.1+a*0.1+d+g*0.05,g];}
 
-function invertBaseFromGrow(growDisp,rank){
-  const Bavg=AVG(RANK_B[rank]);
-  const scale=Bavg/10000;
-  const Aavg=2.5;
-  let x=[0,0,0,0];
-  for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++)s+=Minv[i][j]*growDisp[j];x[i]=s;}
-  return x.map(v=>clamp(v/scale-Aavg,5,85));
-}
+function invertBaseFromGrow(growDisp,rank){const Bavg=AVG(RANK_B[rank]);const scale=Bavg/10000;const Aavg=2.5;let x=[0,0,0,0];for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++)s+=Minv[i][j]*growDisp[j];x[i]=s;}return x.map(v=>clamp(v/scale-Aavg,5,85));}
 
-function scoreInitConsistency(initDisp,initnum,baseS){
-  const Aavg=2.5;
-  const h=initnum*(baseS[0]+Aavg)/100,
-        a=initnum*(baseS[1]+Aavg)/100,
-        d=initnum*(baseS[2]+Aavg)/100,
-        g=initnum*(baseS[3]+Aavg)/100;
-  const disp=displayFromRaw(h,a,d,g);
-  return Math.abs(disp[0]-initDisp[0])+Math.abs(disp[1]-initDisp[1])+Math.abs(disp[2]-initDisp[2])+Math.abs(disp[3]-initDisp[3]);
-}
+function scoreInitConsistency(initDisp,initnum,baseS){const Aavg=2.5;const h=initnum*(baseS[0]+Aavg)/100,a=initnum*(baseS[1]+Aavg)/100,d=initnum*(baseS[2]+Aavg)/100,g=initnum*(baseS[3]+Aavg)/100;const disp=displayFromRaw(h,a,d,g);return Math.abs(disp[0]-initDisp[0])+Math.abs(disp[1]-initDisp[1])+Math.abs(disp[2]-initDisp[2])+Math.abs(disp[3]-initDisp[3]);}
 
-const els={
-  petName:document.getElementById('petName'),
-  initRound:document.getElementById('initRound'),
-  initH:document.getElementById('initH'),
-  initA:document.getElementById('initA'),
-  initD:document.getElementById('initD'),
-  initG:document.getElementById('initG'),
-  growH:document.getElementById('growH'),
-  growA:document.getElementById('growA'),
-  growD:document.getElementById('growD'),
-  growG:document.getElementById('growG'),
-  rankMode:document.getElementById('rankMode'),
-  maxCand:document.getElementById('maxCand'),
-  btnSolve:document.getElementById('btnSolve'),
-  btnSaveLS:document.getElementById('btnSaveLS'),
-  btnDownload:document.getElementById('btnDownload'),
-  btnReset:document.getElementById('btnReset'),
-  btnDeleteLS:document.getElementById('btnDeleteLS'),
-  tbl:document.getElementById('tbl'),
-  summary:document.getElementById('summary'),
-  lsKey:document.getElementById('lsKey')
-};
+const els={petName:document.getElementById('petName'),initRound:document.getElementById('initRound'),initH:document.getElementById('initH'),initA:document.getElementById('initA'),initD:document.getElementById('initD'),initG:document.getElementById('initG'),growH:document.getElementById('growH'),growA:document.getElementById('growA'),growD:document.getElementById('growD'),growG:document.getElementById('growG'),rankMode:document.getElementById('rankMode'),maxCand:document.getElementById('maxCand'),btnSolve:document.getElementById('btnSolve'),btnSaveLS:document.getElementById('btnSaveLS'),btnDownload:document.getElementById('btnDownload'),btnClearLS:document.getElementById('btnClearLS'),tbl:document.getElementById('tbl'),summary:document.getElementById('summary'),lsKey:document.getElementById('lsKey')};
 let currentCandidates=[];
 
-function readInputs(){
-  const petName=(els.petName.value||'').trim();
-  const roundMode=els.initRound.value;
-  const initDisp=[parseFloat(els.initH.value),parseFloat(els.initA.value),parseFloat(els.initD.value),parseFloat(els.initG.value)];
-  const growDisp=[parseFloat(els.growH.value),parseFloat(els.growA.value),parseFloat(els.growD.value),parseFloat(els.growG.value)];
-  if(!petName) throw Error('페트 이름을 입력하세요.');
-  if(initDisp.some(x=>isNaN(x))||growDisp.some(x=>isNaN(x))) throw Error('초기치/성장 수치를 모두 입력하세요.');
-  const rankSel=els.rankMode.value;
-  const maxCand=Math.max(10,parseInt(els.maxCand.value)||120);
-  return {petName,roundMode,initDisp,growDisp,rankSel,maxCand};
-}
+function readInputs(){const petName=(els.petName.value||'').trim();const roundMode=els.initRound.value;const initDisp=[parseFloat(els.initH.value),parseFloat(els.initA.value),parseFloat(els.initD.value),parseFloat(els.initG.value)];const growDisp=[parseFloat(els.growH.value),parseFloat(els.growA.value),parseFloat(els.growD.value),parseFloat(els.growG.value)];if(initDisp.some(x=>isNaN(x))||growDisp.some(x=>isNaN(x)))throw Error('입력 누락');const rankSel=els.rankMode.value;const maxCand=Math.max(10,parseInt(els.maxCand.value)||120);return {petName,roundMode,initDisp,growDisp,rankSel,maxCand};}
 
-function solve(){
-  const s=readInputs();
-  const ranks=s.rankSel==='auto'?['R1','R2','R3','R4','R5','R6']:[s.rankSel];
-  const bag=[];
-  for(let initnum=20;initnum<=36;initnum++){
-    for(const rk of ranks){
-      const baseS=invertBaseFromGrow(s.growDisp,rk);
-      const err=scoreInitConsistency(s.initDisp,initnum,baseS);
-      bag.push({
-        rank:rk,
-        initnum,
-        base:baseS.map(v=>Number(v.toFixed(3))),
-        sum:Number(baseS.reduce((a,b)=>a+b,0).toFixed(3)),
-        score:Number(err.toFixed(6))
-      });
-    }
-  }
-  bag.sort((a,b)=>a.score-b.score);
-  currentCandidates=bag.slice(0,s.maxCand);
-  render();
-}
+function solve(){const s=readInputs();const ranks=s.rankSel==='auto'?['R1','R2','R3','R4','R5','R6']:[s.rankSel];const bag=[];for(let initnum=20;initnum<=36;initnum++){for(const rk of ranks){const baseS=invertBaseFromGrow(s.growDisp,rk);const err=scoreInitConsistency(s.initDisp,initnum,baseS);bag.push({rank:rk,initnum,base:baseS.map(v=>Number(v.toFixed(3))),sum:Number(baseS.reduce((a,b)=>a+b,0).toFixed(3)),score:Number(err.toFixed(6))});}}bag.sort((a,b)=>a.score-b.score);currentCandidates=bag.slice(0,s.maxCand);render(s.petName,s.roundMode,s.growDisp);}
 
-function render(){
-  els.tbl.innerHTML='';
-  currentCandidates.forEach((c,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.join(' / ')}]</td><td>${c.sum}</td><td>${c.score}</td>`;
-    els.tbl.appendChild(tr);
-  });
-  els.summary.textContent=`후보 ${currentCandidates.length}개`;
-}
+function render(petName,roundMode,growDisp){els.tbl.innerHTML='';currentCandidates.forEach((c,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.join(' / ')}]</td><td>${c.sum}</td><td>${c.score}</td>`;els.tbl.appendChild(tr);});els.summary.textContent=`후보 ${currentCandidates.length}개`;}
 
 els.btnSolve.onclick=()=>{try{solve()}catch(e){alert(e.message)}};
-els.btnDownload.onclick=()=>{
-  try{
-    const s=readInputs();
-    const blob=new Blob([JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates},null,2)],{type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=`${s.petName||'pet'}_candidates.json`;
-    a.click();
-  }catch(e){alert(e.message)}
-};
-els.btnSaveLS.onclick=()=>{
-  try{
-    const s=readInputs();
-    const key=`StageA_${s.petName}`;
-    localStorage.setItem(key,JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates}));
-    els.lsKey.textContent=key;
-    alert('저장 완료: StageB에서 불러올 수 있습니다.');
-  }catch(e){alert(e.message)}
-};
-
-// ✅ 역산목록 초기화
-els.btnReset.onclick=()=>{
-  currentCandidates=[];
-  render();
-  els.lsKey.textContent='(미저장)';
-  alert('현재 역산 목록을 초기화했습니다.');
-};
-
-// ✅ 현재 페트 저장 삭제
-els.btnDeleteLS.onclick=()=>{
-  try{
-    const name=(els.petName.value||'').trim();
-    if(!name){ alert('페트 이름을 먼저 입력하세요.'); return; }
-    const key=`StageA_${name}`;
-    if(localStorage.getItem(key)){
-      localStorage.removeItem(key);
-      alert(`로컬 저장 삭제: ${key}`);
-    }else{
-      alert('삭제할 항목이 없습니다.');
-    }
-  }catch(e){alert(e.message)}
-};
+els.btnDownload.onclick=()=>{const s=readInputs();const blob=new Blob([JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${s.petName||'pet'}_candidates.json`;a.click();};
+els.btnSaveLS.onclick=()=>{const s=readInputs();const key=`StageA_${s.petName}`;localStorage.setItem(key,JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates}));els.lsKey.textContent=key;alert('StageB에서 불러올 수 있습니다');};
+els.btnClearLS.onclick=()=>{const s=readInputs();const key=`StageA_${s.petName}`;localStorage.removeItem(key);els.lsKey.textContent='(삭제됨)';alert('저장된 항목이 초기화되었습니다');};
 </script>
 </body>
 </html>
