@@ -3,54 +3,50 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>kokudas · StoneAge 펫 계산기</title>
+<title>펫 계산기 안내 — Index</title>
 <style>
-  :root{--bg:#0b1220;--panel:#0c1426;--ink:#e5e7eb;--mut:#9aa7bd;--acc:#60a5fa}
-  *{box-sizing:border-box;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-  body{margin:0;background:var(--bg);color:var(--ink)}
-  header{padding:24px 16px;border-bottom:1px solid #1f2937;background:#0a1020}
-  main{max-width:840px;margin:24px auto;padding:0 16px}
-  h1{margin:0 0 6px 0}
-  .mut{color:var(--mut)}
-  .card{background:linear-gradient(180deg,var(--panel),#0b152a 55%);border:1px solid #1f2937;border-radius:14px;padding:16px;margin-bottom:16px}
-  a.btn{display:inline-block;padding:12px 16px;border-radius:12px;border:1px solid #334155;background:#0d1b31;color:#dbeafe;text-decoration:none;margin-right:10px}
-  a.btn:hover{background:#112244}
-  ul{margin:8px 0 0 20px;line-height:1.65}
-  code{background:#0b1a33;padding:2px 6px;border-radius:6px;border:1px solid #183255}
+:root{--bg:#0b1220;--card:#121a2b;--ink:#e7eefc;--muted:#9bb0d8;--acc:#6aa1ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,'Noto Sans KR',Pretendard,Helvetica,Arial}
+a{color:var(--acc);text-decoration:none}
+.wrap{max-width:860px;margin:40px auto;padding:0 16px}
+.card{background:#121a2b;border:1px solid #223054;border-radius:14px;padding:20px;margin-bottom:16px}
+.btn{display:inline-block;background:#1b2740;border:1px solid #253250;color:var(--ink);padding:10px 14px;border-radius:10px;margin-right:8px}
+.hint{color:#9bb0d8;font-size:14px}
+li{margin:6px 0}
 </style>
 </head>
 <body>
-<header>
-  <h1>StoneAge 펫 성장 · 랭크 계산기</h1>
-  <div class="mut">kokudas.github.io</div>
-</header>
-<main>
+<div class="wrap">
+  <h1 style="margin:0 0 8px">펫 계산기 가이드</h1>
+  <div class="hint" style="margin-bottom:16px">샴기르/해피 스타일과 유사한 흐름으로 구성되었습니다.</div>
   <div class="card">
     <h2>빠른 이동</h2>
     <p>
-      <a class="btn" href="./stageA.html">단계A · 역산(후보 산출)</a>
-      <a class="btn" href="./stageB.html">단계B · Lv140 환각(S) 확률</a>
+      <a class="btn" href="https://kokudas.github.io/">홈</a>
+      <a class="btn" href="stageA.html">StageA (후보 역산)</a>
+      <a class="btn" href="stageB.html">StageB (S 확률)</a>
     </p>
   </div>
 
   <div class="card">
-    <h2>사용 흐름</h2>
+    <h2>사용 절차</h2>
     <ol>
-      <li><b>단계A</b>에서 해당 펫의 <b>표기 성장(소숫점)</b>과 <b>표기 초기(소숫점)</b>을 입력하고 후보를 역산합니다.</li>
-      <li>(선택) <b>초기치 정수 사전필터</b>에 1레벨 표기 정수(예: <code>52,12,7,6</code>)를 입력하면 후보를 더 줄일 수 있습니다.</li>
-      <li><b>단계B로 전송</b>을 누르면 후보가 <code>localStorage</code>에 저장됩니다.</li>
-      <li><b>단계B</b>에서 1→140레벨을 몬테카를로로 시뮬레이션하여 환각(S) 달성 확률을 계산합니다.</li>
+      <li><b>StageA</b>에서 <u>표기 초기치(소수 둘째)</u>와 <u>표기 성장률(소수 둘째)</u> 입력 → 후보 역산.</li>
+      <li>(선택) 보유 펫의 <u>초기치 정수</u>를 사전필터로 넣으면 StageB가 빨라집니다.</li>
+      <li><b>StageA</b>에서 “StageB로 저장(로컬)” 클릭.</li>
+      <li><b>StageB</b>에서 펫 선택 + 초기치 정수 입력 → “계산 시작”.</li>
+      <li>크게 표시되는 “성공 확률 = 평균 p(S|Int)” 값만 보면 됩니다.</li>
     </ol>
   </div>
 
   <div class="card">
     <h2>주의 / 안내</h2>
     <ul>
-      <li>본 계산기는 <b>참고용</b>입니다. 서버/버전/난수 로직 차이에 따라 실제와 다를 수 있습니다.</li>
-      <li>사전필터는 연산량이 큽니다. 브라우저 멈춤을 방지하기 위해 기본값은 <b>빠름(샘플링)</b>이며, 더 엄격하게 보려면 모드를 올리세요.</li>
-      <li><code>localStorage</code> 저장을 사용하므로 같은 브라우저/기기에서 이어 사용하길 권장합니다.</li>
+      <li>라운딩 규칙: <b>Floor</b>(버림) vs <b>Round</b>(반올림). 서버 표기에 맞춰 선택하세요.</li>
+      <li>결과는 참고용입니다. 게임 내부 숨은 가중치/편차가 다르면 편차가 생길 수 있습니다.</li>
+      <li>브라우저 로컬스토리지를 사용합니다. “StageA 값 초기화”로 언제든 삭제 가능.</li>
     </ul>
   </div>
-</main>
+</div>
 </body>
 </html>
