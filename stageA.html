@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StageA v0.5 · 후보 역산 (→ StageB 연동)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>StageA v0.6 · 후보 역산 (→ StageB 연동)</title>
   <style>
     :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545;--bad:#ff5c5c}
     *{box-sizing:border-box}
@@ -40,7 +40,7 @@
 <body>
   <header>
     <div class="wrap">
-      <strong>StageA v0.5 · 후보 역산</strong>
+      <strong>StageA v0.6 · 후보 역산</strong>
       <a class="pill" href="./stageB.html">➡️ StageB로 이동</a>
     </div>
   </header>
@@ -146,7 +146,7 @@ function render(petName,roundMode,growDisp){els.tbl.innerHTML='';currentCandidat
 
 els.btnSolve.onclick=()=>{try{solve()}catch(e){alert(e.message)}};
 els.btnDownload.onclick=()=>{const s=readInputs();const blob=new Blob([JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${s.petName||'pet'}_candidates.json`;a.click();};
-els.btnSaveLS.onclick=()=>{const s=readInputs();const key=`StageA_${s.petName}`;localStorage.setItem(key,JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates}));els.lsKey.textContent=key;alert('StageB에서 불러올 수 있습니다');};
+els.btnSaveLS.onclick=()=>{const s=readInputs();const key=`StageA_${s.petName}`;const obj={petName:s.petName,targetGrow:s.growDisp,initRound:s.roundMode,candidates:currentCandidates};localStorage.setItem(key,JSON.stringify(obj));localStorage.setItem('petCalcCandidates',JSON.stringify(obj));els.lsKey.textContent=key;alert('StageB에서 불러올 수 있습니다');};
 els.btnClearLS.onclick=()=>{const s=readInputs();const key=`StageA_${s.petName}`;localStorage.removeItem(key);els.lsKey.textContent='(삭제됨)';alert('저장된 항목이 초기화되었습니다');};
 </script>
 </body>
