@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>StageB — S랭크 확률 계산기 (샴기르/해피 스타일)</title>
+  <title>StageB v0.6 — S랭크 확률 계산기 (샴기르/해피 스타일 · compat fix)</title>
   <style>
     :root{--bg:#0b1220;--card:#111a2b;--ink:#e5ecff;--muted:#a7b3d1;--pri:#6aa6ff;--ok:#4ade80;--warn:#fbbf24;--bad:#fb7185;--chip:#1b2740}
     *{box-sizing:border-box}
@@ -44,7 +44,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>StageB — S랭크 확률 계산기</h1>
+    <h1>StageB v0.6 — S랭크 확률 계산기</h1>
     <span class="pill">샴기르/해피 호환 논리</span>
     <a class="home" href="https://kokudas.github.io/">🏠 홈으로</a>
   </header>
@@ -104,15 +104,14 @@
         </div>
         <div class="sep"></div>
         <details>
-          <summary>표기 설명 / S컷 정의</summary>
+          <summary>표기 설명 / 확률 기호</summary>
           <div>
             <div class="chips">
-              <span class="chip">p(Int|cand) = "정수초기" (해당 후보가 입력한 정수 초기치를 만들 확률)</span>
-              <span class="chip">p(S|cand,Int) = "조건부 S" (그 정수초기가 나왔다는 조건에서 S 달성 확률)</span>
-              <span class="chip">p(S|cand) = "무조건 S" (정수초기 조건 없이 후보 자체의 S 확률)</span>
+              <span class="chip">p(Int|cand): 후보가 입력한 “정수 초기치”를 만들 확률</span>
+              <span class="chip">p(S|cand,Int): 그 정수 초기치를 전제로 S 달성 확률</span>
+              <span class="chip">p(S|cand): 초기치 조건 없이 후보 자체 S 확률</span>
             </div>
-            <p class="note">표기 변환: HPv=4H+A+D+G, ATKv=0.1H+A+0.1D+0.05G, DEFv=0.1H+0.1A+D+0.05G, AGIv=G.<br>
-            S컷: StageA에서 저장된 성장률(targetGrow)의 누적 합 기준( (LvMax-1)×targetGrow ).</p>
+            <p class="note">표기 변환: HPv=4H+A+D+G, ATKv=0.1H+A+0.1D+0.05G, DEFv=0.1H+0.1A+D+0.05G, AGIv=G.</p>
           </div>
         </details>
       </div>
@@ -145,7 +144,6 @@
 <script>
 // ===== Utilities =====
 const $ = sel => document.querySelector(sel);
-const rnd = (x) => Math.round(x*1e6)/1e6;
 const fmtp = (x) => (x*100).toFixed(3)+"%";
 
 // Rank → B-range (샴기르/해피 공통 테이블)
@@ -153,18 +151,16 @@ const B_RANGE = {
   R1:[450,500], R2:[470,520], R3:[490,540], R4:[510,560], R5:[530,580], R6:[550,600]
 };
 
-// Worker 코드 (Blob)
+// Worker 코드 (Blob) — v0.6에서도 v0.5 로직 유지
 const workerCode = `(()=>{
-  const rnd=(x)=>Math.round(x*1e6)/1e6;
   const R={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
   const u=()=>Math.random();
   const randint=(a,b)=> (a+Math.floor(u()*(b-a+1))); // inclusive
   const multinom10=()=>{ // 10포인트를 4칸에 랜덤 분배
     let left=10; const v=[0,0,0,0];
     for(let i=0;i<3;i++){ const take=randint(0,left); v[i]=take; left-=take; }
-    v[3]=left; return v.sort(()=>Math.random()-0.5); // 모든 분포 동등하게 섞기
+    v[3]=left; return v.sort(()=>Math.random()-0.5);
   };
-  const pickB=(rk)=>{const [lo,hi]=R[rk]||[470,520]; return lo+u()*(hi-lo)};
   const applyRound=(x,mode)=> mode==='floor'?Math.floor(x):Math.round(x);
   // 표기 변환
   const disp = (H,A,D,G)=>({
@@ -173,118 +169,86 @@ const workerCode = `(()=>{
     DEF: 0.1*H + 0.1*A + D + 0.05*G,
     AGI: G
   });
-  // 최대가능 성장(상한 체크용): 각 스탯별로 per-level 증가량 최대화 가정
-  const bestGrowPerLevel=(baseS,rank)=>{
-    // A=10을 각 표기에 가장 유리한 분배로 가정, B=max
-    const Bmax=(R[rank]||[470,520])[1];
-    // baseS는 S단계에서 전달된 값(이미 4.5 보정된 base임)
-    const g=baseS.map(v=> (v+2.5)*Bmax/10000 ); // 평균 A=+2.5를 쓰면 느슨. 상한을 위해 A도 편향? 과대상계 방지로 +2.5 고정
-    // 각 표기에 대한 per-level 증가량 계산
-    const toHP  = 4*g[0]+g[1]+g[2]+g[3];
-    const toATK = 0.1*g[0]+g[1]+0.1*g[2]+0.05*g[3];
-    const toDEF = 0.1*g[0]+0.1*g[1]+g[2]+0.05*g[3];
-    const toAGI = g[3];
-    return {toHP,toATK,toDEF,toAGI};
-  };
-
-  onmessage=async(e)=>{
+  onmessage=(e)=>{
     const {type,payload}=e.data;
-    if(type==='run'){
-      const {cands, intInit, lvMax, trials, roundMode, targetGrow}=payload;
-      const res=[]; const L=lvMax-1;
-      // 누적 S컷
-      const Sneed={HP:targetGrow[0]*L, ATK:targetGrow[1]*L, DEF:targetGrow[2]*L, AGI:targetGrow[3]*L};
+    if(type!=='run')return;
+    const {cands, intInit, lvMax, trials, roundMode, targetGrow}=payload;
+    const res=[]; const L=lvMax-1;
+    const Sneed={HP:targetGrow[0]*L, ATK:targetGrow[1]*L, DEF:targetGrow[2]*L, AGI:targetGrow[3]*L};
 
-      for(const cand of cands){
-        const baseS = cand.base; // 이미 stageA에서 (원 base - 4.5) 반영된 값만 전달된다고 가정
-        const rk = cand.rank; const Brng=R[rk]||[470,520];
+    for(const cand of cands){
+      const baseS = cand.base.slice(); // 그대로 사용(보정 없음)
+      const Brng = R[cand.rank]||[470,520];
 
-        // 0) 상한체크: 현재 정수 초기치를 전혀 고려하지 않는 무조건 상한
-        const best = bestGrowPerLevel(baseS,rk);
-        // 무조건 상한 통과 불가 → p(S|cand)=0 확정
-        const upperBlock = (best.toHP*L < Sneed.HP) || (best.toATK*L < Sneed.ATK) || (best.toDEF*L < Sneed.DEF) || (best.toAGI*L < Sneed.AGI);
-
-        // 1) p(S|cand) — 무조건적
-        let countS=0;
-        if(!upperBlock){
-          for(let t=0;t<trials;t++){
-            // 레벨업 합산
-            let gHP=0,gATK=0,gDEF=0,gAGI=0;
-            for(let lv=2;lv<=lvMax;lv++){
-              const A = multinom10();
-              const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
-              const per = [0,1,2,3].map(i=> (baseS[i]+A[i]) * B / 10000 );
-              gHP  += 4*per[0]+per[1]+per[2]+per[3];
-              gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-              gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-              gAGI += per[3];
-            }
-            if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) countS++;
-          }
+      // p(S|cand) — 초기치 조건 없이
+      let okS=0;
+      for(let t=0;t<trials;t++){
+        let gHP=0,gATK=0,gDEF=0,gAGI=0;
+        for(let lv=2;lv<=lvMax;lv++){
+          const A10 = multinom10();
+          const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
+          const per = [0,1,2,3].map(i=> (baseS[i]+A10[i]) * B / 10000 );
+          gHP  += 4*per[0]+per[1]+per[2]+per[3];
+          gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
+          gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
+          gAGI += per[3];
         }
-        const pS = !upperBlock ? (countS/trials) : 0;
-
-        // 2) p(Int|cand) — 정수초기 일치
-        let countInt=0;
-        const TARGET=intInit;
-        for(let t=0;t<trials;t++){
-          // 1레벨 생성
-          // 랜덤 -2..2, 보너스 10 분배
-          const r=[0,0,0,0].map(()=> randint(-2,2));
-          const bonus = multinom10();
-          const H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
-          const A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
-          const D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
-          const G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
-          const v = disp(H,A,D,G);
-          const vi={HP:Math.floor(v.HP), ATK:Math.floor(v.ATK), DEF:Math.floor(v.DEF), AGI:Math.floor(v.AGI)};
-          if(vi.HP===TARGET.HP && vi.ATK===TARGET.ATK && vi.DEF===TARGET.DEF && vi.AGI===TARGET.AGI) countInt++;
-        }
-        const pInt = countInt/trials;
-
-        // 3) p(S|cand,Int) — 조건부 (정수초기 고정)
-        let pScI=0;
-        if(pInt>0 && !upperBlock){
-          let matched=0, success=0; let guard=0;
-          while(matched<Math.min(500,Math.max(100,Math.floor(trials*0.25)))){ // 100~500회 조건 샘플 확보
-            guard++; if(guard>trials*20) break; // 안전탈출
-            // 초기치가 일치할 때까지 리젝션
-            let ok=false, r=[0,0,0,0], bonus=[0,0,0,0], H,A,D,G;
-            for(let tries=0;tries<2000;tries++){
-              r=[0,0,0,0].map(()=> randint(-2,2)); bonus = multinom10();
-              H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
-              A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
-              D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
-              G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
-              const v = disp(H,A,D,G);
-              if(Math.floor(v.HP)===TARGET.HP && Math.floor(v.ATK)===TARGET.ATK && Math.floor(v.DEF)===TARGET.DEF && Math.floor(v.AGI)===TARGET.AGI){ ok=true; break; }
-            }
-            if(!ok){
-              // 초기치가 극저확률이면 탈출
-              break;
-            }
-            matched++;
-            // 성장 시뮬
-            let gHP=0,gATK=0,gDEF=0,gAGI=0;
-            for(let lv=2;lv<=lvMax;lv++){
-              const A10 = multinom10();
-              const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
-              const per = [0,1,2,3].map(i=> (baseS[i]+A10[i]) * B / 10000 );
-              gHP  += 4*per[0]+per[1]+per[2]+per[3];
-              gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-              gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-              gAGI += per[3];
-            }
-            if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) success++;
-          }
-          pScI = matched>0 ? (success/matched) : 0;
-        }
-
-        res.push({cand, pS, pInt, pScI});
-        postMessage({type:'progress', payload:{name:cand.rank+"/"+cand.initnum}});
+        if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) okS++;
       }
-      postMessage({type:'done', payload:{rows:res}});
+      const pS = okS/trials;
+
+      // p(Int|cand) — 정수초기 일치
+      let okI=0;
+      for(let t=0;t<trials;t++){
+        const r=[0,0,0,0].map(()=> randint(-2,2));
+        const bonus = multinom10();
+        const H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
+        const A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
+        const D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
+        const G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
+        const v = disp(H,A,D,G);
+        const vi={HP:applyRound(v.HP,roundMode), ATK:applyRound(v.ATK,roundMode), DEF:applyRound(v.DEF,roundMode), AGI:applyRound(v.AGI,roundMode)};
+        if(vi.HP===intInit.HP && vi.ATK===intInit.ATK && vi.DEF===intInit.DEF && vi.AGI===intInit.AGI) okI++;
+      }
+      const pInt = okI/trials;
+
+      // p(S|cand,Int) — 조건부 (정수초기 고정)
+      let pScI=0;
+      if(pInt>0){
+        let matched=0, success=0; let guard=0;
+        while(matched<Math.min(500,Math.max(100,Math.floor(trials*0.25)))){
+          guard++; if(guard>trials*20) break;
+          let ok=false, r=[0,0,0,0], bonus=[0,0,0,0], H,A,D,G;
+          for(let tries=0;tries<2000;tries++){
+            r=[0,0,0,0].map(()=> randint(-2,2)); bonus = multinom10();
+            H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
+            A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
+            D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
+            G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
+            const v = disp(H,A,D,G);
+            if(applyRound(v.HP,roundMode)===intInit.HP && applyRound(v.ATK,roundMode)===intInit.ATK && applyRound(v.DEF,roundMode)===intInit.DEF && applyRound(v.AGI,roundMode)===intInit.AGI){ ok=true; break; }
+          }
+          if(!ok) break;
+          matched++;
+          let gHP=0,gATK=0,gDEF=0,gAGI=0;
+          for(let lv=2;lv<=lvMax;lv++){
+            const A10 = multinom10();
+            const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
+            const per = [0,1,2,3].map(i=> (baseS[i]+A10[i]) * B / 10000 );
+            gHP  += 4*per[0]+per[1]+per[2]+per[3];
+            gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
+            gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
+            gAGI += per[3];
+          }
+          if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) success++;
+        }
+        pScI = matched>0 ? (success/matched) : 0;
+      }
+
+      res.push({cand, pS, pInt, pScI});
+      postMessage({type:'progress', payload:{name:cand.rank+"/"+cand.initnum}});
     }
+    postMessage({type:'done', payload:{rows:res}});
   };
 })();`;
 
@@ -292,11 +256,28 @@ const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type:'text
 
 let linked = null; // {petName,targetGrow,initRound,candidates:[{rank,initnum,base,score}]}
 
+// LocalStorage 불러오기 — petCalcCandidates 우선, 없으면 StageA_*
 function loadFromLocal(){
   try{
-    const raw=localStorage.getItem('petCalcCandidates');
-    if(!raw) return false;
-    const obj=JSON.parse(raw);
+    let obj=null;
+    const primary = localStorage.getItem('petCalcCandidates');
+    if(primary){ obj = JSON.parse(primary); }
+    if(!obj){
+      // StageA_* 중 가장 최근(키순으로는 보장 안 되므로 length>0인 첫 항목) 선택
+      const keys=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k && k.startsWith('StageA_')) keys.push(k);
+      }
+      keys.sort();
+      for(const k of keys){
+        const raw=localStorage.getItem(k);
+        if(!raw) continue;
+        const cand=JSON.parse(raw);
+        if(cand && cand.candidates && cand.candidates.length>0){ obj=cand; break; }
+      }
+    }
+    if(!obj) return false;
     linked=obj; $('#linkState').textContent=`연결됨: ${obj.petName} · 후보 ${obj.candidates.length}개`;
     $('#petInfoPill').textContent = `${obj.petName} · 후보 ${obj.candidates.length}개`;
     if(obj.initRound) $('#roundMode').value=obj.initRound;
@@ -308,13 +289,23 @@ function attachFile(){
   const f=$('#fileJson').files?.[0]; if(!f) return;
   const r=new FileReader();
   r.onload=()=>{
-    try{ linked=JSON.parse(r.result); $('#linkState').textContent=`파일 연결: ${linked.petName} · 후보 ${linked.candidates.length}개`; $('#petInfoPill').textContent = `${linked.petName} · 후보 ${linked.candidates.length}개`; if(linked.initRound) $('#roundMode').value=linked.initRound; }
-    catch(e){ alert('JSON 파싱 실패'); }
+    try{
+      linked=JSON.parse(r.result);
+      $('#linkState').textContent=`파일 연결: ${linked.petName} · 후보 ${linked.candidates.length}개`;
+      $('#petInfoPill').textContent = `${linked.petName} · 후보 ${linked.candidates.length}개`;
+      if(linked.initRound) $('#roundMode').value=linked.initRound;
+    } catch(e){ alert('JSON 파싱 실패'); }
   };
   r.readAsText(f);
 }
 
-function clearLocal(){ localStorage.removeItem('petCalcCandidates'); linked=null; $('#linkState').textContent='상태: 후보 미연결'; $('#petInfoPill').textContent='—'; }
+function clearLocal(){
+  localStorage.removeItem('petCalcCandidates');
+  // StageA_*는 남겨두고 연결만 끊음
+  linked=null;
+  $('#linkState').textContent='상태: 후보 미연결';
+  $('#petInfoPill').textContent='—';
+}
 
 function applyPreset(which){
   if(which==='happy'){ $('#roundMode').value='floor'; }
@@ -322,29 +313,29 @@ function applyPreset(which){
 }
 
 function run(){
-  if(!linked){ alert('후보 데이터가 필요합니다. StageA에서 저장(로컬) 후 불러와 주세요.\n또는 JSON 파일을 첨부하세요.'); return; }
+  if(!linked){
+    alert('후보 데이터가 필요합니다. StageA에서 저장(로컬) 후 불러오거나 JSON 파일을 첨부하세요.');
+    return;
+  }
   const petName=$('#petName').value.trim();
   if(petName && petName!==linked.petName){
     if(!confirm(`주의: 입력한 이름(\"${petName}\")과 저장명(\"${linked.petName}\")가 다릅니다. 계속할까요?`)) return;
   }
-  const ints={HP: +$('#intHP').value, ATK:+$('#intATK').value, DEF:+$('#intDEF').value, AGI:+$('#intAGI').value};
-  if([ints.HP,ints.ATK,ints.DEF,ints.AGI].some(x=>!Number.isFinite(x))){ alert('정수 표기 초기치(HP/ATK/DEF/AGI)를 모두 입력하세요.'); return; }
+  const ints={HP:+$('#intHP').value, ATK:+$('#intATK').value, DEF:+$('#intDEF').value, AGI:+$('#intAGI').value};
+  if([ints.HP,ints.ATK,ints.DEF,ints.AGI].some(x=>!Number.isFinite(x))){
+    alert('정수 표기 초기치(HP/ATK/DEF/AGI)를 모두 입력하세요.');
+    return;
+  }
   const lvMax= Math.max(2, +$('#lvMax').value|0);
   const trials= Math.max(1000, +$('#trials').value|0);
   const roundMode=$('#roundMode').value;
   const targetGrow = linked.targetGrow && linked.targetGrow.length===4 ? linked.targetGrow : [9.97,2.41,1.43,1.21];
 
-  // StageA의 base가 (원본-4.5) 처리 안 되어 있으면 보정
-  const cands = linked.candidates.map(c=>{
-    const b=c.base; // many StageA versions already subtract 4.5
-    const seemsShifted = (b[0]>40 || b[1]>60 || b[2]>30 || b[3]>35); // heuristic
-    const base = seemsShifted ? [b[0]-4.5,b[1]-4.5,b[2]-4.5,b[3]-4.5] : b.slice();
-    return {rank:c.rank, initnum:c.initnum, base, score:c.score};
-  });
+  // 후보 base는 그대로 사용(보정 없음)
+  const cands = linked.candidates.map(c=>({rank:c.rank, initnum:c.initnum, base:c.base.slice(), score:c.score}));
 
   $('#summary').textContent='계산 중… (Web Worker)';
   $('#tbl tbody').innerHTML='';
-
   worker.postMessage({type:'run', payload:{cands, intInit:ints, lvMax, trials, roundMode, targetGrow}});
 }
 
@@ -354,7 +345,7 @@ worker.onmessage=(e)=>{
     $('#summary').textContent = `계산 중… ${payload.name}`;
   } else if(type==='done'){
     const rows = payload.rows;
-    // 정렬: p(S|cand,Int) 우선, 다음 p(S|cand), 다음 p(Int|cand)
+    // 정렬: p(S|cand,Int) > p(S|cand) > p(Int|cand)
     rows.sort((a,b)=> (b.pScI-a.pScI) || (b.pS-a.pS) || (b.pInt-a.pInt));
     const tb=$('#tbl tbody'); tb.innerHTML='';
     let avgScI=0, avgS=0; let n=rows.length; let minScI=1, maxScI=0, minS=1, maxS=0;
@@ -367,7 +358,7 @@ worker.onmessage=(e)=>{
         <td>${match}</td>
         <td>${r.cand.rank}</td>
         <td>${r.cand.initnum}</td>
-        <td>[${r.cand.base.map(x=>x.toFixed(3)).join(' / ')}]</td>
+        <td>[${r.cand.base.map(x=>Number(x).toFixed(3)).join(' / ')}]</td>
         <td>${fmtp(r.pInt)}</td>
         <td class="${r.pScI===0?'bad':''}">${fmtp(r.pScI)}</td>
         <td class="${r.pS===0?'bad':''}">${fmtp(r.pS)}</td>`;
