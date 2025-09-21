@@ -22,7 +22,6 @@ li{margin:6px 0}
   <div class="card">
     <h2>빠른 이동</h2>
     <p>
-      <a class="btn" href="https://kokudas.github.io/">홈</a>
       <a class="btn" href="stageA.html">StageA (후보 역산)</a>
       <a class="btn" href="stageB.html">StageB (S 확률)</a>
     </p>
@@ -32,10 +31,9 @@ li{margin:6px 0}
     <h2>사용 절차</h2>
     <ol>
       <li><b>StageA</b>에서 <u>표기 초기치(소수 둘째)</u>와 <u>표기 성장률(소수 둘째)</u> 입력 → 후보 역산.</li>
-      <li>(선택) 보유 펫의 <u>초기치 정수</u>를 사전필터로 넣으면 StageB가 빨라집니다.</li>
       <li><b>StageA</b>에서 “StageB로 저장(로컬)” 클릭.</li>
-      <li><b>StageB</b>에서 펫 선택 + 초기치 정수 입력 → “계산 시작”.</li>
-      <li>크게 표시되는 “성공 확률 = 평균 p(S|Int)” 값만 보면 됩니다.</li>
+      <li><b>StageB</b>에서 펫 선택 + <u>초기치 정수</u> 입력 → “계산 시작”.</li>
+      <li>크게 표시되는 “성공 확률 = 평균 p(S|Int)”만 보면 됩니다.</li>
     </ol>
   </div>
 
@@ -43,8 +41,8 @@ li{margin:6px 0}
     <h2>주의 / 안내</h2>
     <ul>
       <li>라운딩 규칙: <b>Floor</b>(버림) vs <b>Round</b>(반올림). 서버 표기에 맞춰 선택하세요.</li>
-      <li>결과는 참고용입니다. 게임 내부 숨은 가중치/편차가 다르면 편차가 생길 수 있습니다.</li>
-      <li>브라우저 로컬스토리지를 사용합니다. “StageA 값 초기화”로 언제든 삭제 가능.</li>
+      <li>결과는 참고용입니다. 내부 가정/편차로 오차가 발생할 수 있습니다.</li>
+      <li>브라우저 로컬스토리지 사용. StageB의 “StageA 값 초기화”로 삭제 가능.</li>
     </ul>
   </div>
 </div>
