@@ -124,6 +124,7 @@ tr:hover td{background:rgba(122,162,255,.06)}
         <div class="row" style="margin-top:14px;align-items:flex-end">
           <button id="btnSolve" class="btn">후보 역산</button>
           <button id="btnExport" class="btn alt" disabled>JSON 저장</button>
+          <button id="btnSend" class="btn alt" disabled>단계B로 전송</button>
           <span id="status" class="small muted" style="margin-left:10px"></span>
         </div>
       </div>
@@ -438,6 +439,24 @@ btnExport.addEventListener('click', ()=>{
       score: c.score
     }))
   };
+// 후보를 만들고 나서...
+btnExport.disabled = limited.length===0;
+document.getElementById('btnSend').disabled = (limited.length===0);
+
+// 전송 버튼: localStorage 저장 후 B로 이동
+document.getElementById('btnSend').addEventListener('click', ()=>{
+  if(!lastCandidates.length){ alert('전송할 후보가 없습니다.'); return; }
+  const data = {
+    petName: (petNameEl.value.trim()||''),
+    targetGrow: [parseFloat(g_hp.value), parseFloat(g_atk.value), parseFloat(g_def.value), parseFloat(g_agi.value)],
+    initRound: initRoundEl.value,
+    // 주의: S-기준 base를 저장(= 단계B에서 성장 시 -2.5, 초기치 필터 시 -4.5 사용)
+    candidates: lastCandidates.map(c=>({ rank:c.rank, initnum:c.initnum, base:c.base, score:c.score }))
+  };
+  localStorage.setItem('kokudas:candidates', JSON.stringify(data));
+  location.href = 'https://kokudas.github.io/stageB.html';
+});
+  
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
