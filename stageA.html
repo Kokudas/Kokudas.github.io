@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>StoneAge 단계A – 역산(계수 추정)</title>
 <style>
 :root{--bg:#0b1020;--card:#121830;--ink:#e8ecff;--muted:#a8b2d1;--accent:#7aa2ff;--radius:16px}
@@ -10,9 +10,9 @@
 a{color:#cdd7ff;text-decoration:none}
 nav{position:sticky;top:0;z-index:99;background:#0a122a;border-bottom:1px solid #283052;padding:8px 16px;display:flex;gap:12px;align-items:center}
 .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
-.card{background:#121830;border:1px solid #283052;border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px}
+.card{background:#121830;border:1px solid #283052;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px}
 .row{display:flex;gap:12px;flex-wrap:wrap} label{display:block;color:#a8b2d1;margin-bottom:6px;font-weight:600}
-.input{background:#0c1230;border:1px solid #2a335d;border-radius:12px;color:var(--ink);padding:10px 12px;width:100%}
+.input{background:#0c1230;border:1px solid #2a335d;border-radius:12px;color:#e8ecff;padding:10px 12px;width:100%}
 .input:focus{border-color:#7aa2ff;box-shadow:0 0 0 3px rgba(122,162,255,.12)}
 .btn{cursor:pointer;background:#7aa2ff;border:none;color:#0b1020;padding:12px 16px;border-radius:12px;font-weight:700}
 .small{font-size:12px;color:#a8b2d1}
@@ -68,6 +68,7 @@ table{width:100%;border-collapse:separate;border-spacing:0} th,td{padding:9px;bo
 
       <div class="row" style="margin-top:12px;align-items:flex-end">
         <button id="btnSolve" class="btn">후보 추정 & 저장</button>
+        <button id="btnExport" class="btn" style="background:#37d67a">JSON 내보내기</button>
         <span id="status" class="small" style="margin-left:10px"></span>
       </div>
     </div>
@@ -114,29 +115,24 @@ function solveAndSave(){
 
   const [V0,S0,T0,D0]=toPure(...init);
   const roundMode=roundModeSel.value; const initMin=+initMinInp.value; const initMax=+initMaxInp.value; const span=+baseSpan.value; const eps0=+eps0Inp.value;
-  const f = (x)=> roundMode==='floor'? Math.floor(x): Math.round(x);
 
   const candidates=[];
   for(let initnum=initMin; initnum<=initMax; initnum++){
-    // 중심 비율(정석 가정)을 V0,S0,T0,D0에서 역으로 환산
     const est = [V0,S0,T0,D0].map(x=> x*100/initnum);
     for(let dv=-span; dv<=span; dv++){
       for(let ds=-span; ds<=span; ds++){
         for(let dt=-span; dt<=span; dt++){
           for(let dd=-span; dd<=span; dd++){
             const base=[est[0]+dv, est[1]+ds, est[2]+dt, est[3]+dd];
-            // 초기치 정수 매칭 검사(보너스 전 분포를 평균치로 근사)
             const V=precise(initnum*base[0]/100), S=precise(initnum*base[1]/100), T=precise(initnum*base[2]/100), D=precise(initnum*base[3]/100);
             const disp=toDisp(V,S,T,D);
             if( Math.abs(disp[0]-init[0])<=eps0 && Math.abs(disp[1]-init[1])<=eps0 &&
                 Math.abs(disp[2]-init[2])<=eps0 && Math.abs(disp[3]-init[3])<=eps0){
-              // 성장치 평균 일치 검사(랭크별 평균 B중심 5값: (min+max)/2)
               for(const [rk,[b0,b1]] of Object.entries(RANKS)){
                 const B= (b0+b1)/2;
                 const uV=precise(base[0]*B/10000), uS=precise(base[1]*B/10000), uT=precise(base[2]*B/10000), uD=precise(base[3]*B/10000);
                 const ug=toDisp(uV,uS,uT,uD);
                 const err = Math.abs(ug[0]-grow[0])+Math.abs(ug[1]-grow[1])+Math.abs(ug[2]-grow[2])+Math.abs(ug[3]-grow[3]);
-                // score: 초기/성장 오차 가중 합
                 const score = 1/(1e-6 + err);
                 candidates.push({rank:rk, initnum, base:base.map(x=>Number(x.toFixed(3))), score});
               }
@@ -147,17 +143,15 @@ function solveAndSave(){
     }
   }
 
-  // 상위 200 자동 선별
   candidates.sort((a,b)=> b.score-a.score);
   const top = candidates.slice(0,200);
-  localStorage.setItem(KEY(name), JSON.stringify({
-    petName:name,
-    targetGrow: grow, // per-level S표기 목표
-    initRound: roundMode,
-    candidates: top
-  }));
 
-  // 표/요약
+  // 이름 키도 함께 저장 (stageB 호환)
+  localStorage.setItem('stoneage_pet_name', name);
+  const payload = {petName:name, targetGrow:grow, initRound:roundMode, candidates:top};
+  localStorage.setItem(KEY(name), JSON.stringify(payload));
+
+  // 표
   const tbody=document.getElementById('tbody'); tbody.innerHTML='';
   top.forEach((c,i)=>{
     const tr=document.createElement('tr');
@@ -168,15 +162,29 @@ function solveAndSave(){
   alert(`후보 ${top.length}건을 저장했습니다. 단계B에서 같은 이름("${name}")으로 불러와 계산하세요.`);
 }
 
+function exportJSON(){
+  const name=(document.getElementById('pet_name').value||'').trim();
+  if(!name){alert('페트 이름을 먼저 입력/저장하세요.');return;}
+  const raw=localStorage.getItem(KEY(name));
+  if(!raw){alert('저장된 후보가 없습니다.');return;}
+  const blob=new Blob([raw],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${name}_candidates.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 const hp0=document.getElementById('hp0'), atk0=document.getElementById('atk0'), def0=document.getElementById('def0'), agi0=document.getElementById('agi0');
 const hpU=document.getElementById('hpU'), atkU=document.getElementById('atkU'), defU=document.getElementById('defU'), agiU=document.getElementById('agiU');
 const initMinInp=document.getElementById('initMin'), initMaxInp=document.getElementById('initMax'), baseSpan=document.getElementById('baseSpan'), eps0Inp=document.getElementById('eps0'), roundModeSel=document.getElementById('roundMode');
+
 document.getElementById('btnSolve').addEventListener('click', ()=>{
   document.getElementById('overlay').style.display='flex';
   document.getElementById('overlayText').textContent='후보 추정 중…';
-  // 살짝 딜레이로 렌더 보장
   setTimeout(()=>{ solveAndSave(); document.getElementById('overlay').style.display='none'; }, 50);
 });
+document.getElementById('btnExport').addEventListener('click', exportJSON);
 </script>
 </body>
 </html>
