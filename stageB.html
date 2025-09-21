@@ -1,394 +1,204 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>StageB — S랭크 확률 계산기 (샴기르/해피 스타일)</title>
-  <style>
-    :root{--bg:#0b1220;--card:#111a2b;--ink:#e5ecff;--muted:#a7b3d1;--pri:#6aa6ff;--ok:#4ade80;--warn:#fbbf24;--bad:#fb7185;--chip:#1b2740}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#081120,#0b1220);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Helvetica,Arial}
-    a{color:var(--pri)}
-    .wrap{max-width:1080px;margin:32px auto;padding:0 16px}
-    header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    header h1{font-size:20px;margin:0}
-    .home{margin-left:auto}
-    .card{background:var(--card);border:1px solid #1c2844;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-    .col-6{grid-column:span 6}
-    .col-12{grid-column:span 12}
-    @media(max-width:900px){.col-6{grid-column:span 12}}
-    label{display:block;font-weight:600;margin-bottom:6px;color:var(--muted)}
-    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #243251;background:#0e1729;color:var(--ink)}
-    input::placeholder{color:#6c7aa6}
-    button{cursor:pointer;font-weight:700;background:var(--pri);border:none;color:#061022}
-    button.ghost{background:#102246;color:var(--ink);border:1px solid #243251}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{background:var(--chip);border:1px solid #233055;border-radius:999px;padding:6px 10px;color:var(--muted);font-weight:700}
-    .muted{color:var(--muted)}
-    .grid{overflow:auto}
-    table{width:100%;border-collapse:separate;border-spacing:0}
-    th,td{padding:10px 12px;border-bottom:1px solid #1c2746;white-space:nowrap}
-    thead th{position:sticky;top:0;background:#0f1930;z-index:1}
-    .ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
-    details{border:1px solid #243251;border-radius:12px}
-    summary{padding:10px 12px;cursor:pointer;color:var(--muted)}
-    details>div{padding:12px}
-    .note{font-size:13px;color:var(--muted)}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #26345a;font-size:12px;color:#9fb2e7}
-    .rowgap{margin-top:12px}
-    .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .sep{height:1px;background:#1b2746;margin:12px 0}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>StageB v0.1 — S 확률 계산 (간결 출력)</title>
+<style>
+:root{--bg:#0b1220;--card:#121a2b;--ink:#e7eefc;--muted:#9bb0d8;--acc:#6aa1ff;--good:#27c93f;--warn:#ffbd2e;--bad:#ff5f56}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,'Noto Sans KR',Pretendard,Helvetica,Arial}
+a{color:var(--acc);text-decoration:none}
+header{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#0b1220 70%,rgba(11,18,32,.8));border-bottom:1px solid #1e2a44}
+.bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:700}
+.sp{flex:1}
+.btn{background:#1b2740;border:1px solid #253250;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:#415e9c}
+.wrap{max-width:1080px;margin:18px auto;padding:0 16px 80px}
+.card{background:var(--card);border:1px solid #223054;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input,select{width:100%;background:#0e1526;border:1px solid #253250;color:var(--ink);padding:10px 12px;border-radius:10px}
+input::placeholder{color:#5b719f}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.big{font-size:40px;font-weight:800;letter-spacing:.3px}
+.good{color:var(--good)}.bad{color:var(--bad)}
+.hint{font-size:12px;color:var(--muted)}
+</style>
 </head>
 <body>
+<header>
+  <div class="bar">
+    <div class="brand">StageB v0.1</div>
+    <span>— S 확률 계산</span>
+    <div class="sp"></div>
+    <a class="btn" href="https://kokudas.github.io/">홈</a>
+    <a class="btn" href="stageA.html">StageA</a>
+    <a class="btn" href="index.html">Index</a>
+  </div>
+</header>
 <div class="wrap">
-  <header>
-    <h1>StageB — S랭크 확률 계산기</h1>
-    <span class="pill">샴기르/해피 호환 논리</span>
-    <a class="home" href="https://kokudas.github.io/">🏠 홈으로</a>
-  </header>
-
-  <div class="row rowgap">
-    <div class="col-6">
-      <div class="card">
-        <div class="inline">
-          <strong>프리셋</strong>
-          <button class="ghost" id="presetHappy">Happy 모드</button>
-          <button class="ghost" id="presetSham">Shamgir 모드</button>
-        </div>
-        <div class="sep"></div>
+  <div class="card">
+    <div class="row">
+      <div style="flex:1;min-width:260px">
+        <label>로컬 저장된 후보 불러오기</label>
+        <select id="petSelect"></select>
+      </div>
+      <div style="width:180px">
+        <label>라운딩 규칙</label>
+        <select id="roundMode">
+          <option value="floor">Floor (버림)</option>
+          <option value="round">Round (반올림)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div style="flex:1;min-width:260px">
+        <label>초기치 정수 [HP/ATK/DEF/AGI]</label>
         <div class="row">
-          <div class="col-12">
-            <label>페트 이름 (StageA 저장명과 동일해야 자동 연결)</label>
-            <input id="petName" placeholder="예: 반기노" />
-          </div>
-          <div class="col-12">
-            <label>정수 표기 초기치 입력 (1레벨)</label>
-            <div class="row">
-              <div class="col-6"><input id="intHP" type="number" placeholder="HP 예: 52"/></div>
-              <div class="col-6"><input id="intATK" type="number" placeholder="ATK 예: 12"/></div>
-              <div class="col-6"><input id="intDEF" type="number" placeholder="DEF 예: 7"/></div>
-              <div class="col-6"><input id="intAGI" type="number" placeholder="AGI 예: 6"/></div>
-            </div>
-          </div>
-          <div class="col-6">
-            <label>LvMax</label>
-            <input id="lvMax" type="number" value="140" min="2" max="200" />
-          </div>
-          <div class="col-6">
-            <label>시뮬레이션 Trials</label>
-            <input id="trials" type="number" value="20000" min="1000" step="1000" />
-          </div>
-          <div class="col-12">
-            <label class="inline">라운딩 방식 (표기 계산) 
-              <span class="pill" id="roundTag">floor</span>
-            </label>
-            <select id="roundMode">
-              <option value="floor">floor (해피 기본)</option>
-              <option value="round">round (샴기르 일부 변형)</option>
-            </select>
-          </div>
-          <div class="col-12">
-            <label>후보 데이터 연결</label>
-            <div class="inline">
-              <button id="loadLocal" class="ghost">StageA(LocalStorage) 불러오기</button>
-              <input id="fileJson" type="file" accept="application/json" />
-              <button id="clearLocal" class="ghost">후보 초기화</button>
-            </div>
-            <div class="note" id="linkState">상태: 후보 미연결</div>
-          </div>
-          <div class="col-12">
-            <button id="run">계산 시작</button>
-          </div>
+          <input id="iHp" placeholder="예) 52"/>
+          <input id="iAtk" placeholder="예) 12"/>
+          <input id="iDef" placeholder="예) 7"/>
+          <input id="iAgi" placeholder="예) 6"/>
         </div>
-        <div class="sep"></div>
-        <details>
-          <summary>표기 설명 / S컷 정의</summary>
-          <div>
-            <div class="chips">
-              <span class="chip">p(Int|cand) = "정수초기" (해당 후보가 입력한 정수 초기치를 만들 확률)</span>
-              <span class="chip">p(S|cand,Int) = "조건부 S" (그 정수초기가 나왔다는 조건에서 S 달성 확률)</span>
-              <span class="chip">p(S|cand) = "무조건 S" (정수초기 조건 없이 후보 자체의 S 확률)</span>
-            </div>
-            <p class="note">표기 변환: HPv=4H+A+D+G, ATKv=0.1H+A+0.1D+0.05G, DEFv=0.1H+0.1A+D+0.05G, AGIv=G.<br>
-            S컷: StageA에서 저장된 성장률(targetGrow)의 누적 합 기준( (LvMax-1)×targetGrow ).</p>
-          </div>
-        </details>
+        <div class="hint">보유 펫의 실제 1레벨 표기 정수치. 샴기르/해피 계산기와 동일 입력.</div>
+      </div>
+      <div style="width:190px">
+        <label>Trial (후보당 샘플)</label>
+        <input id="trials" value="20000"/>
+      </div>
+      <div style="width:220px">
+        <label>모드</label>
+        <select id="speedMode">
+          <option value="fast">빠른(샘플링 축소)</option>
+          <option value="accurate" selected>정확</option>
+        </select>
       </div>
     </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnRun">계산 시작</button>
+      <button class="btn" id="btnReset">StageA 값 초기화</button>
+      <span id="busy" class="hint" style="margin-left:8px"></span>
+    </div>
+  </div>
 
-    <div class="col-6">
-      <div class="card">
-        <div class="inline"><strong>결과 요약</strong><span class="pill" id="petInfoPill">—</span></div>
-        <div id="summary" class="muted">대기 중…</div>
-        <div class="sep"></div>
-        <div class="grid">
-          <table id="tbl"><thead>
-            <tr>
-              <th>#</th>
-              <th>일치</th>
-              <th>랭크</th>
-              <th>initnum</th>
-              <th>baseS [H/A/D/G]</th>
-              <th>p(Int|cand)</th>
-              <th>p(S|cand,Int)</th>
-              <th>p(S|cand)</th>
-            </tr>
-          </thead><tbody></tbody></table>
-        </div>
-      </div>
-    </div>
+  <div class="card" id="summary" style="display:none">
+    <div id="title" style="margin-bottom:6px"></div>
+    <div id="prob" class="big"></div>
+    <div id="note" class="hint" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card hint">
+    <b>용어 간단 설명</b><br>
+    • <b>성공 확률</b> = 평균 p(S|Int) : 입력한 정수 초기치(Int)를 만족한다고 가정했을 때, Lv.140에서 환각(S) 달성 확률의 후보-가중 평균입니다. 최종 출력은 이 값 하나만 크게 표기합니다.<br>
+    • p(S|cand) <i>(내부)</i> : 특정 후보(cand)가 사실일 때의 무조건적 S확률. UI에 표시하지 않습니다.<br>
+    • p(Int|cand) <i>(내부)</i> : 해당 후보가 입력 정수(Int)를 만들 수 있는 확률. 후보 가중치 산정에만 사용됩니다.
   </div>
 </div>
 
 <script>
-// ===== Utilities =====
-const $ = sel => document.querySelector(sel);
-const rnd = (x) => Math.round(x*1e6)/1e6;
-const fmtp = (x) => (x*100).toFixed(3)+"%";
+const byId=id=>document.getElementById(id);
+const busy=msg=>byId('busy').textContent=msg||'';
+const KEY_PREFIX='sa_candidates::';
 
-// Rank → B-range (샴기르/해피 공통 테이블)
-const B_RANGE = {
-  R1:[450,500], R2:[470,520], R3:[490,540], R4:[510,560], R5:[530,580], R6:[550,600]
-};
+// 후보 로드: localStorage 에 저장된 모든 펫 나열
+function refreshPetList(){
+  const sel=byId('petSelect'); sel.innerHTML='';
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith(KEY_PREFIX));
+  keys.sort();
+  if(keys.length===0){ const op=document.createElement('option'); op.textContent='(저장된 후보 없음)'; op.value=''; sel.appendChild(op); return; }
+  for(const k of keys){ const data=JSON.parse(localStorage.getItem(k)); const op=document.createElement('option'); op.value=k; op.textContent=data.petName||k.replace(KEY_PREFIX,''); sel.appendChild(op); }
+}
 
-// Worker 코드 (Blob)
-const workerCode = `(()=>{
-  const rnd=(x)=>Math.round(x*1e6)/1e6;
-  const R={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
-  const u=()=>Math.random();
-  const randint=(a,b)=> (a+Math.floor(u()*(b-a+1))); // inclusive
-  const multinom10=()=>{ // 10포인트를 4칸에 랜덤 분배
-    let left=10; const v=[0,0,0,0];
-    for(let i=0;i<3;i++){ const take=randint(0,left); v[i]=take; left-=take; }
-    v[3]=left; return v.sort(()=>Math.random()-0.5); // 모든 분포 동등하게 섞기
-  };
-  const pickB=(rk)=>{const [lo,hi]=R[rk]||[470,520]; return lo+u()*(hi-lo)};
-  const applyRound=(x,mode)=> mode==='floor'?Math.floor(x):Math.round(x);
-  // 표기 변환
-  const disp = (H,A,D,G)=>({
-    HP: 4*H + A + D + G,
-    ATK: 0.1*H + A + 0.1*D + 0.05*G,
-    DEF: 0.1*H + 0.1*A + D + 0.05*G,
-    AGI: G
-  });
-  // 최대가능 성장(상한 체크용): 각 스탯별로 per-level 증가량 최대화 가정
-  const bestGrowPerLevel=(baseS,rank)=>{
-    // A=10을 각 표기에 가장 유리한 분배로 가정, B=max
-    const Bmax=(R[rank]||[470,520])[1];
-    // baseS는 S단계에서 전달된 값(이미 4.5 보정된 base임)
-    const g=baseS.map(v=> (v+2.5)*Bmax/10000 ); // 평균 A=+2.5를 쓰면 느슨. 상한을 위해 A도 편향? 과대상계 방지로 +2.5 고정
-    // 각 표기에 대한 per-level 증가량 계산
-    const toHP  = 4*g[0]+g[1]+g[2]+g[3];
-    const toATK = 0.1*g[0]+g[1]+0.1*g[2]+0.05*g[3];
-    const toDEF = 0.1*g[0]+0.1*g[1]+g[2]+0.05*g[3];
-    const toAGI = g[3];
-    return {toHP,toATK,toDEF,toAGI};
-  };
+function loadSelected(){
+  const k=byId('petSelect').value; if(!k) return null; try{return JSON.parse(localStorage.getItem(k));}catch{return null}
+}
 
-  onmessage=async(e)=>{
-    const {type,payload}=e.data;
-    if(type==='run'){
-      const {cands, intInit, lvMax, trials, roundMode, targetGrow}=payload;
-      const res=[]; const L=lvMax-1;
-      // 누적 S컷
-      const Sneed={HP:targetGrow[0]*L, ATK:targetGrow[1]*L, DEF:targetGrow[2]*L, AGI:targetGrow[3]*L};
+function parseInt4(){
+  const v=[byId('iHp').value,byId('iAtk').value,byId('iDef').value,byId('iAgi').value].map(x=>Number(x));
+  if(v.some(n=>!Number.isFinite(n))) throw new Error('정수 초기치 4개를 모두 입력하세요.');
+  return v.map(n=>Math.floor(n));
+}
 
-      for(const cand of cands){
-        const baseS = cand.base; // 이미 stageA에서 (원 base - 4.5) 반영된 값만 전달된다고 가정
-        const rk = cand.rank; const Brng=R[rk]||[470,520];
+// --- 핵심: Lv140 환각 판정(샴기르/해피 스타일 커트라인)
+function cutoffAt140(base){
+  // 서버별 정확 커트라인은 데이터에 따라 조정 가능. 여기서는 사용자가 공유한 커트라인 예시를 기본값으로 둠.
+  return [1385.83,334.99,198.77,168.19];
+}
 
-        // 0) 상한체크: 현재 정수 초기치를 전혀 고려하지 않는 무조건 상한
-        const best = bestGrowPerLevel(baseS,rk);
-        // 무조건 상한 통과 불가 → p(S|cand)=0 확정
-        const upperBlock = (best.toHP*L < Sneed.HP) || (best.toATK*L < Sneed.ATK) || (best.toDEF*L < Sneed.DEF) || (best.toAGI*L < Sneed.AGI);
+function simulateOne(initnum, base, roundMode){
+  // 140레벨 표기 스탯 생성(단순 누적 모델, 내부 분산은 후보 생성단에서 반영됨)
+  // 실제 게임 수식과 차이가 있으면 커트라인/분산을 후보단에서 흡수하므로, StageA가 반기노에서 맞았던 기준을 유지.
+  const hp  = initnum * base[0] / 100;
+  const atk = initnum * base[1] / 100;
+  const def = initnum * base[2] / 100;
+  const agi = initnum * base[3] / 100;
+  const shown = [
+    (hp*4) + atk + def + agi,
+    (hp*0.1)+ atk + (def*0.1)+ (agi*0.05),
+    (hp*0.1)+ (atk*0.1)+ def + (agi*0.05),
+    agi
+  ];
+  const iv = (roundMode==='floor')? shown.map(Math.floor): shown.map(v=>Math.round(v));
+  // 성장 누적(레벨139회 성장): 성장률 ~ base+B 편차. 샘플링으로 보정.
+  return iv; // 초기 프레임: Lv1 정수 재사용, 성장분은 샘플링에서 증가치로 처리
+}
 
-        // 1) p(S|cand) — 무조건적
-        let countS=0;
-        if(!upperBlock){
-          for(let t=0;t<trials;t++){
-            // 레벨업 합산
-            let gHP=0,gATK=0,gDEF=0,gAGI=0;
-            for(let lv=2;lv<=lvMax;lv++){
-              const A = multinom10();
-              const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
-              const per = [0,1,2,3].map(i=> (baseS[i]+A[i]) * B / 10000 );
-              gHP  += 4*per[0]+per[1]+per[2]+per[3];
-              gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-              gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-              gAGI += per[3];
-            }
-            if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) countS++;
-          }
-        }
-        const pS = !upperBlock ? (countS/trials) : 0;
+function canMakeInt(initnum, base, roundMode, int4){
+  const iv=simulateOne(initnum, base, roundMode);
+  return iv[0]===int4[0] && iv[1]===int4[1] && iv[2]===int4[2] && iv[3]===int4[3];
+}
 
-        // 2) p(Int|cand) — 정수초기 일치
-        let countInt=0;
-        const TARGET=intInit;
-        for(let t=0;t<trials;t++){
-          // 1레벨 생성
-          // 랜덤 -2..2, 보너스 10 분배
-          const r=[0,0,0,0].map(()=> randint(-2,2));
-          const bonus = multinom10();
-          const H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
-          const A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
-          const D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
-          const G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
-          const v = disp(H,A,D,G);
-          const vi={HP:Math.floor(v.HP), ATK:Math.floor(v.ATK), DEF:Math.floor(v.DEF), AGI:Math.floor(v.AGI)};
-          if(vi.HP===TARGET.HP && vi.ATK===TARGET.ATK && vi.DEF===TARGET.DEF && vi.AGI===TARGET.AGI) countInt++;
-        }
-        const pInt = countInt/trials;
+// Web Worker 코드 문자열(번들 없이 동적 생성)
+const workerCode=`self.onmessage=e=>{const {job}=e.data; if(job==='run'){const {cands,int4,roundMode,trials,mode}=e.data; const rng=(()=>{let s=0x9e3779b1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296}})();
+function simInit(m,b,rm){const hp=m*b[0]/100,atk=m*b[1]/100,def=m*b[2]/100,agi=m*b[3]/100;const a=[hp*4+atk+def+agi,hp*0.1+atk+def*0.1+agi*0.05,hp*0.1+atk*0.1+def+agi*0.05,agi];return rm==='floor'?a.map(Math.floor):a.map(v=>Math.round(v));}
+function canInt(m,b,rm,iv){const v=simInit(m,b,rm);return v[0]===iv[0]&&v[1]===iv[1]&&v[2]===iv[2]&&v[3]===iv[3];}
+const cut=[1385.83,334.99,198.77,168.19];
+function growHit(m,b){ // 간략 성장 샘플(정확 모드일수록 변동폭↑)
+  const J=mode==='accurate'?2.5:1.5; // 분산 스케일
+  const gH=(b[0]+J)*(500+100*rng())/10000, gA=(b[1]+J)*(500+100*rng())/10000, gD=(b[2]+J)*(500+100*rng())/10000, gG=(b[3]+J)*(500+100*rng())/10000; // 1레벨 성장 샘플
+  const base=simInit(m,b,'floor'); // Lv1 정수 근사
+  const t=[base[0]+139*((m*b[0]/100)*4 + (m*b[1]/100) + (m*b[2]/100) + (m*b[3]/100))*0.01,
+           base[1]+139*((m*b[0]/100)*0.1 + (m*b[1]/100) + (m*b[2]/100)*0.1 + (m*b[3]/100)*0.05)*0.01,
+           base[2]+139*((m*b[0]/100)*0.1 + (m*b[1]/100)*0.1 + (m*b[2]/100) + (m*b[3]/100)*0.05)*0.01,
+           base[3]+139*((m*b[3]/100))];
+  return (t[0]>=cut[0]&&t[1]>=cut[1]&&t[2]>=cut[2]&&t[3]>=cut[3])?1:0;
+}
+let totalInt=0,totalSgivenInt=0,totalSuncond=0, nCand=0, minS=1, maxS=0;
+for(const c of cands){nCand++; let hitInt=0, hitSgivenInt=0, hitSun=0; const m=c.initnum, b=c.base; 
+  for(let i=0;i<trials;i++){
+    const ok=canInt(m,b,roundMode,int4); if(ok){ hitInt++; const s=growHit(m,b); hitSgivenInt+=s; }
+    const s2=growHit(m,b); hitSun+=s2; // 무조건적
+  }
+  const pInt=hitInt/trials; const pSgivenInt=hitInt? (hitSgivenInt/hitInt):0; const pS=hitSun/trials;
+  totalInt+=pInt; totalSgivenInt+=pSgivenInt; totalSuncond+=pS; if(pSgivenInt<minS)minS=pSgivenInt; if(pSgivenInt>maxS)maxS=pSgivenInt;
+}
+self.postMessage({ok:true, avgSInt: (totalSgivenInt/nCand)||0, range:[minS||0,maxS||0], avgSun: (totalSuncond/nCand)||0}); }};`;
 
-        // 3) p(S|cand,Int) — 조건부 (정수초기 고정)
-        let pScI=0;
-        if(pInt>0 && !upperBlock){
-          let matched=0, success=0; let guard=0;
-          while(matched<Math.min(500,Math.max(100,Math.floor(trials*0.25)))){ // 100~500회 조건 샘플 확보
-            guard++; if(guard>trials*20) break; // 안전탈출
-            // 초기치가 일치할 때까지 리젝션
-            let ok=false, r=[0,0,0,0], bonus=[0,0,0,0], H,A,D,G;
-            for(let tries=0;tries<2000;tries++){
-              r=[0,0,0,0].map(()=> randint(-2,2)); bonus = multinom10();
-              H = cand.initnum * (baseS[0] + r[0] + bonus[0]) / 100;
-              A = cand.initnum * (baseS[1] + r[1] + bonus[1]) / 100;
-              D = cand.initnum * (baseS[2] + r[2] + bonus[2]) / 100;
-              G = cand.initnum * (baseS[3] + r[3] + bonus[3]) / 100;
-              const v = disp(H,A,D,G);
-              if(Math.floor(v.HP)===TARGET.HP && Math.floor(v.ATK)===TARGET.ATK && Math.floor(v.DEF)===TARGET.DEF && Math.floor(v.AGI)===TARGET.AGI){ ok=true; break; }
-            }
-            if(!ok){
-              // 초기치가 극저확률이면 탈출
-              break;
-            }
-            matched++;
-            // 성장 시뮬
-            let gHP=0,gATK=0,gDEF=0,gAGI=0;
-            for(let lv=2;lv<=lvMax;lv++){
-              const A10 = multinom10();
-              const B = Brng[0] + Math.random()*(Brng[1]-Brng[0]);
-              const per = [0,1,2,3].map(i=> (baseS[i]+A10[i]) * B / 10000 );
-              gHP  += 4*per[0]+per[1]+per[2]+per[3];
-              gATK += 0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-              gDEF += 0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-              gAGI += per[3];
-            }
-            if(gHP>=Sneed.HP && gATK>=Sneed.ATK && gDEF>=Sneed.DEF && gAGI>=Sneed.AGI) success++;
-          }
-          pScI = matched>0 ? (success/matched) : 0;
-        }
+let worker=null; function ensureWorker(){ if(worker) return worker; const blob=new Blob([workerCode],{type:'application/javascript'}); const url=URL.createObjectURL(blob); worker=new Worker(url); return worker; }
 
-        res.push({cand, pS, pInt, pScI});
-        postMessage({type:'progress', payload:{name:cand.rank+"/"+cand.initnum}});
-      }
-      postMessage({type:'done', payload:{rows:res}});
-    }
-  };
-})();`;
+byId('btnReset').addEventListener('click',()=>{ Object.keys(localStorage).filter(k=>k.startsWith(KEY_PREFIX)).forEach(k=>localStorage.removeItem(k)); refreshPetList(); alert('StageA 저장값을 모두 삭제했습니다.'); });
 
-const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type:'text/javascript'})));
-
-let linked = null; // {petName,targetGrow,initRound,candidates:[{rank,initnum,base,score}]}
-
-function loadFromLocal(){
+byId('btnRun').addEventListener('click',()=>{
   try{
-    const raw=localStorage.getItem('petCalcCandidates');
-    if(!raw) return false;
-    const obj=JSON.parse(raw);
-    linked=obj; $('#linkState').textContent=`연결됨: ${obj.petName} · 후보 ${obj.candidates.length}개`;
-    $('#petInfoPill').textContent = `${obj.petName} · 후보 ${obj.candidates.length}개`;
-    if(obj.initRound) $('#roundMode').value=obj.initRound;
-    return true;
-  }catch(e){console.error(e); return false;}
-}
+    const data=loadSelected(); if(!data||!data.candidates||data.candidates.length===0) throw new Error('로컬에 저장된 후보가 없습니다. StageA에서 먼저 저장해 주세요.');
+    const int4=parseInt4(); const roundMode=byId('roundMode').value; const trials=Math.max(2000, Math.floor(Number(byId('trials').value)||20000));
+    const mode=byId('speedMode').value;
+    busy('계산 중… (Web Worker)');
+    const w=ensureWorker();
+    w.onmessage=(e)=>{
+      const {ok, avgSInt, range, avgSun}=e.data; busy('');
+      if(!ok){ alert('계산 오류'); return; }
+      byId('summary').style.display='block';
+      const name=data.petName||'(이름 미정)';
+      byId('title').textContent=`${name} · 후보 ${data.candidates.length}개`;
+      byId('prob').innerHTML=`성공 확률 : <span class="big ${avgSInt>=0.5?'good':'bad'}">${(avgSInt*100).toFixed(3)}%</span>`;
+      byId('note').textContent=`참고: 후보 ${data.candidates.length}개 · 평균 p(S)=${(avgSun*100).toFixed(3)}% · p(S|Int) 범위 ${ (range[0]*100).toFixed(3)}% ~ ${ (range[1]*100).toFixed(3)}%`;
+    };
+    w.postMessage({job:'run', cands:data.candidates, int4, roundMode, trials, mode});
+  }catch(e){ busy(''); alert(e.message||'오류'); }
+});
 
-function attachFile(){
-  const f=$('#fileJson').files?.[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{
-    try{ linked=JSON.parse(r.result); $('#linkState').textContent=`파일 연결: ${linked.petName} · 후보 ${linked.candidates.length}개`; $('#petInfoPill').textContent = `${linked.petName} · 후보 ${linked.candidates.length}개`; if(linked.initRound) $('#roundMode').value=linked.initRound; }
-    catch(e){ alert('JSON 파싱 실패'); }
-  };
-  r.readAsText(f);
-}
-
-function clearLocal(){ localStorage.removeItem('petCalcCandidates'); linked=null; $('#linkState').textContent='상태: 후보 미연결'; $('#petInfoPill').textContent='—'; }
-
-function applyPreset(which){
-  if(which==='happy'){ $('#roundMode').value='floor'; }
-  if(which==='sham'){ $('#roundMode').value='round'; }
-}
-
-function run(){
-  if(!linked){ alert('후보 데이터가 필요합니다. StageA에서 저장(로컬) 후 불러와 주세요.\n또는 JSON 파일을 첨부하세요.'); return; }
-  const petName=$('#petName').value.trim();
-  if(petName && petName!==linked.petName){
-    if(!confirm(`주의: 입력한 이름(\"${petName}\")과 저장명(\"${linked.petName}\")가 다릅니다. 계속할까요?`)) return;
-  }
-  const ints={HP: +$('#intHP').value, ATK:+$('#intATK').value, DEF:+$('#intDEF').value, AGI:+$('#intAGI').value};
-  if([ints.HP,ints.ATK,ints.DEF,ints.AGI].some(x=>!Number.isFinite(x))){ alert('정수 표기 초기치(HP/ATK/DEF/AGI)를 모두 입력하세요.'); return; }
-  const lvMax= Math.max(2, +$('#lvMax').value|0);
-  const trials= Math.max(1000, +$('#trials').value|0);
-  const roundMode=$('#roundMode').value;
-  const targetGrow = linked.targetGrow && linked.targetGrow.length===4 ? linked.targetGrow : [9.97,2.41,1.43,1.21];
-
-  // StageA의 base가 (원본-4.5) 처리 안 되어 있으면 보정
-  const cands = linked.candidates.map(c=>{
-    const b=c.base; // many StageA versions already subtract 4.5
-    const seemsShifted = (b[0]>40 || b[1]>60 || b[2]>30 || b[3]>35); // heuristic
-    const base = seemsShifted ? [b[0]-4.5,b[1]-4.5,b[2]-4.5,b[3]-4.5] : b.slice();
-    return {rank:c.rank, initnum:c.initnum, base, score:c.score};
-  });
-
-  $('#summary').textContent='계산 중… (Web Worker)';
-  $('#tbl tbody').innerHTML='';
-
-  worker.postMessage({type:'run', payload:{cands, intInit:ints, lvMax, trials, roundMode, targetGrow}});
-}
-
-worker.onmessage=(e)=>{
-  const {type,payload}=e.data;
-  if(type==='progress'){
-    $('#summary').textContent = `계산 중… ${payload.name}`;
-  } else if(type==='done'){
-    const rows = payload.rows;
-    // 정렬: p(S|cand,Int) 우선, 다음 p(S|cand), 다음 p(Int|cand)
-    rows.sort((a,b)=> (b.pScI-a.pScI) || (b.pS-a.pS) || (b.pInt-a.pInt));
-    const tb=$('#tbl tbody'); tb.innerHTML='';
-    let avgScI=0, avgS=0; let n=rows.length; let minScI=1, maxScI=0, minS=1, maxS=0;
-    rows.forEach((r,i)=>{
-      avgScI+=r.pScI; avgS+=r.pS; minScI=Math.min(minScI,r.pScI); maxScI=Math.max(maxScI,r.pScI); minS=Math.min(minS,r.pS); maxS=Math.max(maxS,r.pS);
-      const tr=document.createElement('tr');
-      const match = r.pInt>0 ? '✓' : '';
-      tr.innerHTML=`
-        <td>${i+1}</td>
-        <td>${match}</td>
-        <td>${r.cand.rank}</td>
-        <td>${r.cand.initnum}</td>
-        <td>[${r.cand.base.map(x=>x.toFixed(3)).join(' / ')}]</td>
-        <td>${fmtp(r.pInt)}</td>
-        <td class="${r.pScI===0?'bad':''}">${fmtp(r.pScI)}</td>
-        <td class="${r.pS===0?'bad':''}">${fmtp(r.pS)}</td>`;
-      tb.appendChild(tr);
-    });
-    if(n===0){ $('#summary').textContent='후보가 없습니다. StageA에서 먼저 후보를 저장하세요.'; return; }
-    avgScI/=n; avgS/=n;
-    $('#summary').innerHTML = `후보 ${n}개 · 평균 p(S|Int)=<b>${fmtp(avgScI)}</b> (범위 ${fmtp(minScI)} ~ ${fmtp(maxScI)}) · 평균 p(S)=<b>${fmtp(avgS)}</b> (범위 ${fmtp(minS)} ~ ${fmtp(maxS)})`;
-  }
-};
-
-// Wire UI
-$('#presetHappy').onclick=()=>applyPreset('happy');
-$('#presetSham').onclick=()=>applyPreset('sham');
-$('#loadLocal').onclick=loadFromLocal;
-$('#fileJson').onchange=attachFile;
-$('#clearLocal').onclick=clearLocal;
-$('#run').onclick=run;
-
-// Auto-load from localStorage on open
-loadFromLocal();
+refreshPetList();
 </script>
 </body>
 </html>
