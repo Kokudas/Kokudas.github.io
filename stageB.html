@@ -1,30 +1,23 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>StageB – 환각(S) 확률 시뮬레이터</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>StageB – 정수 초기치 검증 + 환각(S) 확률</title>
 <style>
-  :root{
-    --bg:#0b1220; --panel:#121a2b; --ink:#e9edf6; --muted:#a9b3c7; --accent:#5aa9ff; --ok:#20c997; --warn:#ffb020; --bad:#ff6b6b;
-  }
+  :root{ --bg:#0b1220; --panel:#121a2b; --ink:#e9edf6; --muted:#a9b3c7; --accent:#5aa9ff; --ok:#20c997; --warn:#ffb020; --bad:#ff6b6b; }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Apple SD Gothic Neo, "Malgun Gothic", sans-serif}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR","Malgun Gothic",sans-serif}
   a{color:var(--accent);text-decoration:none}
   header,main,footer{max-width:1100px;margin:0 auto;padding:16px}
-  header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  header .spacer{flex:1}
   .btn{background:#1b2742;color:var(--ink);border:1px solid #2a385a;border-radius:10px;padding:10px 14px;cursor:pointer}
   .btn:hover{background:#223255}
-  .btn.primary{background:var(--accent);border-color:#4598f0;color:#071224}
-  .btn.ghost{background:transparent;border:1px dashed #2a385a}
   .row{display:flex;gap:16px;flex-wrap:wrap}
   .col{flex:1;min-width:280px}
   .card{background:var(--panel);border:1px solid #1f2a45;border-radius:14px;padding:16px}
   h1,h2,h3{margin:6px 0 12px}
-  small, .muted{color:var(--muted)}
+  small,.muted{color:var(--muted)}
   input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #2a385a;background:#0e1628;color:var(--ink)}
-  code.k{background:#0e1628;border:1px solid #2a385a;border-radius:6px;padding:2px 6px}
   table{width:100%;border-collapse:collapse}
   th,td{border-bottom:1px solid #223155;padding:10px;text-align:right}
   th:first-child, td:first-child{text-align:left}
@@ -32,116 +25,76 @@
   .pill.ok{background:rgba(32,201,151,.12);color:var(--ok);border:1px solid rgba(32,201,151,.35)}
   .pill.warn{background:rgba(255,176,32,.1);color:var(--warn);border:1px solid rgba(255,176,32,.35)}
   .pill.bad{background:rgba(255,107,107,.1);color:var(--bad);border:1px solid rgba(255,107,107,.35)}
+  .mono{font-family:ui-monospace,Menlo,Consolas,"Liberation Mono",monospace}
   .progress{height:10px;background:#10203a;border:1px solid #223155;border-radius:99px;overflow:hidden}
-  .bar{height:100%;background:linear-gradient(90deg, #5aa9ff, #20c997);width:0%}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
-  footer{color:var(--muted);font-size:13px}
+  .bar{height:100%;background:linear-gradient(90deg,#5aa9ff,#20c997);width:0%}
 </style>
 </head>
 <body>
-
-<header>
+<header class="row" style="align-items:center">
   <a class="btn" href="https://kokudas.github.io/">홈으로</a>
   <a class="btn" href="https://kokudas.github.io/stageA">StageA (후보 역산)</a>
-  <span class="spacer"></span>
-  <span class="muted">StageB – Lv140 환각(S) 확률 시뮬레이터</span>
+  <h3 style="margin-left:auto">StageB – 정수 초기치 검증 + Lv140 환각 확률</h3>
 </header>
 
 <main class="row">
-
-  <!-- 좌측: 입력/로드 -->
   <section class="col card">
     <h2>1) 후보 불러오기</h2>
-    <p class="muted">
-      StageA에서 저장한 후보는 자동으로 <code class="k">localStorage</code>의 키 <code class="k">petCalcCandidates</code> 로 전달됩니다.
-      아래 버튼으로 불러오거나, JSON을 붙여넣기/파일 업로드로 로드할 수 있어요.
-    </p>
-
-    <div class="row">
-      <div class="col">
-        <button class="btn" id="btnLoadLS">로컬 저장소에서 불러오기</button>
-      </div>
-      <div class="col">
-        <input type="file" id="fileJson" accept=".json,application/json" />
-      </div>
+    <p class="muted">StageA에서 저장한 후보는 localStorage 키 <code>petCalcCandidates</code>로 자동 감지됩니다. 수동 JSON도 가능.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnLoadLS">로컬에서 불러오기</button>
+      <input type="file" id="fileJson" accept=".json,application/json"/>
+      <button class="btn" id="btnParse">붙여넣기 적용</button>
+      <button class="btn" id="btnClear">초기화</button>
     </div>
-
-    <label style="margin-top:12px;">JSON 붙여넣기</label>
-    <textarea id="taJson" rows="6" placeholder='{"petName":"반기노","targetGrow":[9.97,2.41,1.43,1.21], "candidates":[...]}'>
-    </textarea>
-
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" id="btnParse">붙여넣기/파일 내용 적용</button>
-      <button class="btn ghost" id="btnClear">후보 초기화</button>
-    </div>
-
-    <div id="loadedInfo" class="muted" style="margin-top:10px;"></div>
+    <textarea id="taJson" rows="6" placeholder='{"petName":"반기노","targetGrow":[9.97,2.41,1.43,1.21],"candidates":[...]}' style="margin-top:8px"></textarea>
+    <div id="loadedInfo" class="muted" style="margin-top:8px"></div>
   </section>
 
-  <!-- 우측: 파라미터/실행 -->
   <section class="col card">
-    <h2>2) 시뮬레이션 설정</h2>
-
+    <h2>2) 정수 초기치 & 시뮬레이션 설정</h2>
     <div class="row">
-      <div class="col">
-        <label>페트 이름</label>
-        <input id="petName" placeholder="예: 반기노" />
-      </div>
-      <div class="col">
-        <label>레벨 최대치</label>
-        <input id="lvMax" type="number" min="10" max="200" value="140" />
+      <div class="col"><label>페트 이름</label><input id="petName" placeholder="예: 반기노"/></div>
+      <div class="col"><label>초기치 반올림 방식</label>
+        <select id="initRound"><option value="floor">내림(floor)</option><option value="round">반올림(round)</option></select>
       </div>
     </div>
-
+    <h3 style="margin-top:10px">내 페트 1레벨 표기 초기치(정수)</h3>
+    <div class="row">
+      <div class="col"><input id="intH" type="number" placeholder="체 예: 52"/></div>
+      <div class="col"><input id="intA" type="number" placeholder="공 예: 12"/></div>
+      <div class="col"><input id="intD" type="number" placeholder="방 예: 7"/></div>
+      <div class="col"><input id="intG" type="number" placeholder="순 예: 6"/></div>
+    </div>
     <div class="row" style="margin-top:10px">
-      <div class="col">
-        <label>시행 횟수(Trial)</label>
-        <input id="trials" type="number" min="200" max="1000000" value="5000" />
-      </div>
-      <div class="col">
-        <label>표기 성장 커트라인(자동)</label>
-        <div class="muted">
-          targetGrow × (LvMax-1) 로 자동 계산됩니다. (StageA에서 넘어온 값 사용)
-        </div>
-      </div>
+      <div class="col"><label>LvMax</label><input id="lvMax" type="number" min="10" max="200" value="140"/></div>
+      <div class="col"><label>Trials</label><input id="trials" type="number" min="500" max="200000" value="8000"/></div>
     </div>
-
-    <div style="margin-top:10px">
-      <label>실행 옵션</label>
-      <div class="muted">
-        - A(보너스 10포인트 분배): 레벨마다 무작위 균등 샘플<br/>
-        - B(랭크 보정계수): 랭크 범위에서 레벨마다 무작위 정수 샘플<br/>
-        - 내부 누적 → 마지막에 표기 변환 후 S(환각) 판정
-      </div>
-    </div>
-
+    <div class="muted" style="margin-top:8px">S 커트라인은 StageA의 <b>targetGrow</b>(레벨당 표기 성장)를 이용해 <code>targetGrow × (LvMax-1)</code> 로 자동 산출됩니다.</div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn primary" id="btnRun">시뮬레이션 시작</button>
+      <button class="btn" id="btnRun">시뮬레이션 시작</button>
       <button class="btn" id="btnAbort">중단</button>
     </div>
-
     <div style="margin-top:12px">
       <div class="progress"><div class="bar" id="bar"></div></div>
-      <div id="status" class="muted" style="margin-top:6px;">준비됨</div>
+      <div id="status" class="muted" style="margin-top:6px">준비됨</div>
     </div>
-
   </section>
 </main>
 
 <main class="card">
   <h2>3) 결과</h2>
   <div id="summary" class="muted" style="margin-bottom:10px"></div>
-
   <div style="overflow:auto">
-    <table id="tbl">
+    <table>
       <thead>
         <tr>
           <th>#</th>
+          <th>적합</th>
           <th>랭크</th>
           <th>initnum</th>
-          <th>baseS (표기) [H/A/D/G]</th>
+          <th>baseS [H/A/D/G]</th>
           <th>p(S|cand)</th>
-          <th>참고</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -150,283 +103,182 @@
 </main>
 
 <footer>
-  <div>ⓘ <strong>p(S|cand)</strong>는 “해당 후보(cand)가 진짜라고 가정했을 때, Lv140에서 환각(S)을 달성할 확률(몬테카를로)”을 의미합니다.</div>
-  <div style="margin-top:8px">
-    링크: <a href="https://kokudas.github.io/">홈</a> · <a href="https://kokudas.github.io/stageA">StageA</a> · <span class="muted">StageB</span>
-  </div>
+  <div>ⓘ “적합”은 입력한 정수 초기치가 해당 후보의 <code>initnum × baseS</code>로 계산된 소수점 초기치를 <b>표기반올림규칙</b> 적용 시 정확히 만들어낼 수 있는지를 뜻합니다(✓/✗). ✓ 후보만 확률을 계산합니다.</div>
 </footer>
 
 <script>
-/* =========================
-   공통 상수/유틸
-   ========================= */
-const BRANGE = {
-  R1:[450,500],
-  R2:[470,520],
-  R3:[490,540],
-  R4:[510,560],
-  R5:[530,580],
-  R6:[550,600],
-};
-function genAllAChoices(){
-  const out=[];
-  for (let h=0; h<=10; h++){
-    for (let a=0; a<=10-h; a++){
-      for (let d=0; d<=10-h-a; d++){
-        const g = 10 - h - a - d;
-        out.push([h,a,d,g]);
-      }
-    }
-  }
-  return out; // 286
+const BRANGE = { R1:[450,500], R2:[470,520], R3:[490,540], R4:[510,560], R5:[530,580], R6:[550,600] };
+function Achoices(){
+  const arr=[]; for(let h=0;h<=10;h++){ for(let a=0;a<=10-h;a++){ for(let d=0; d<=10-h-a; d++){ const g=10-h-a-d; arr.push([h,a,d,g]); } } }
+  return arr;
 }
-const A_CHOICES = genAllAChoices();
+const ASET = Achoices();
 
-function visibleFromInternal(h,a,d,g){
-  const H = 4*h + a + d + g;
-  const A = 0.1*h + a + 0.1*d + 0.05*g;
-  const D = 0.1*h + 0.1*a + d + 0.05*g;
-  const G = g;
-  return [H,A,D,G];
+function visFromInternal(h,a,d,g){
+  return [4*h + a + d + g, 0.1*h + a + 0.1*d + 0.05*g, 0.1*h + 0.1*a + d + 0.05*g, g];
 }
+function fmt4(v){ return `[${v[0].toFixed(3)} / ${v[1].toFixed(3)} / ${v[2].toFixed(3)} / ${v[3].toFixed(3)}]`; }
+function pct(x){ return (x*100).toFixed(3)+'%'; }
 
-function fmtPct(x){
-  const v = (x*100);
-  if (!isFinite(v)) return "0.000%";
-  return v.toFixed(3) + "%";
-}
-function fmt4(arr){
-  return `[${arr[0].toFixed(3)} / ${arr[1].toFixed(3)} / ${arr[2].toFixed(3)} / ${arr[3].toFixed(3)}]`;
-}
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+let loaded=null, abort=false;
 
-/* =========================
-   상태
-   ========================= */
-let loaded = null;     // { petName, targetGrow[4], candidates:[{rank,initnum,base:[4],...}], initRound? }
-let abortFlag = false;
+const $=id=>document.getElementById(id);
+const el={ bar:$('bar'), status:$('status'), tbody:$('tbody'), summary:$('summary'), ta:$('taJson'), info:$('loadedInfo') };
 
-/* =========================
-   로딩/파싱
-   ========================= */
-const el = {
-  petName: document.getElementById('petName'),
-  lvMax: document.getElementById('lvMax'),
-  trials: document.getElementById('trials'),
-  bar: document.getElementById('bar'),
-  status: document.getElementById('status'),
-  tbody: document.getElementById('tbody'),
-  summary: document.getElementById('summary'),
-  loadedInfo: document.getElementById('loadedInfo'),
-  taJson: document.getElementById('taJson'),
-  fileJson: document.getElementById('fileJson'),
-};
-
-document.getElementById('btnLoadLS').addEventListener('click', ()=>{
-  try{
-    const raw = localStorage.getItem('petCalcCandidates');
-    if (!raw){ alert('로컬 저장소에 후보 데이터가 없습니다. StageA에서 먼저 저장해 주세요.'); return; }
-    const obj = JSON.parse(raw);
-    applyLoaded(obj, 'localStorage');
-  }catch(e){
-    console.error(e);
-    alert('localStorage 읽기/파싱에 실패했습니다.');
-  }
+// ---- Load/parse ----
+$('btnLoadLS').addEventListener('click', ()=>{
+  const raw=localStorage.getItem('petCalcCandidates');
+  if(!raw){ alert('localStorage에 후보가 없습니다. StageA에서 저장하세요.'); return; }
+  try{ apply(JSON.parse(raw),'localStorage'); }catch(e){ alert('파싱 실패'); }
 });
-
-document.getElementById('fileJson').addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0];
-  if (!f) return;
-  const text = await f.text();
-  el.taJson.value = text;
+$('fileJson').addEventListener('change', async e=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  el.ta.value = await f.text();
 });
-
-document.getElementById('btnParse').addEventListener('click', ()=>{
-  try{
-    const obj = JSON.parse(el.taJson.value);
-    applyLoaded(obj, 'manual/json');
-  }catch(e){
-    console.error(e);
-    alert('JSON 파싱 실패: 형식을 확인해 주세요.');
-  }
+$('btnParse').addEventListener('click', ()=>{
+  try{ apply(JSON.parse(el.ta.value),'manual'); }catch(e){ alert('JSON 파싱 실패'); }
 });
-
-document.getElementById('btnClear').addEventListener('click', ()=>{
-  loaded = null;
-  el.loadedInfo.textContent = '후보 초기화됨';
-  el.tbody.innerHTML = '';
-  el.summary.textContent = '';
+$('btnClear').addEventListener('click', ()=>{
+  loaded=null; el.info.textContent='초기화됨'; el.tbody.innerHTML=''; el.summary.textContent='';
 });
-
-function applyLoaded(obj, source){
-  // 최소 필드 검사
-  if (!obj || !Array.isArray(obj.candidates) || !Array.isArray(obj.targetGrow)){
-    alert('필수 필드(targetGrow, candidates)가 없습니다.');
-    return;
-  }
-  loaded = {
-    petName: obj.petName || '',
-    targetGrow: obj.targetGrow.map(Number),
-    candidates: obj.candidates.map(c=>({
-      rank: c.rank,
-      initnum: Number(c.initnum),
-      base: c.base.map(Number), // baseS(표기)
-      score: Number(c.score||0),
-    })),
-    initRound: obj.initRound || 'floor',
-  };
-  el.petName.value = loaded.petName || '';
-  el.loadedInfo.innerHTML = `불러옴: <b>${source}</b> · 후보 ${loaded.candidates.length.toLocaleString()}개 · targetGrow=${fmt4(loaded.targetGrow)}`;
+function apply(obj,src){
+  if(!obj || !Array.isArray(obj.candidates) || !Array.isArray(obj.targetGrow)){ alert('필수 필드 누락'); return; }
+  loaded = { petName: obj.petName||'', targetGrow: obj.targetGrow.map(Number), initRound: obj.initRound||'floor',
+             candidates: obj.candidates.map(c=>({ rank:c.rank, initnum:+c.initnum, base:c.base.map(Number), score:+(c.score||0) })) };
+  $('petName').value = loaded.petName||'';
+  $('initRound').value = loaded.initRound||'floor';
+  el.info.innerHTML = `불러옴: <b>${src}</b> · 후보 ${loaded.candidates.length.toLocaleString()}개 · targetGrow=${fmt4(loaded.targetGrow)}`;
 }
 
-/* =========================
-   시뮬레이션 코어
-   ========================= */
-// 1회 시뮬레이션: cand(표기 baseS/랭크/initnum), 레벨2→LvMax
+// ---- helpers ----
+function roundForDisplay(x, mode){
+  return (mode==='round') ? Math.round(x) : Math.floor(x);
+}
+function computeInitialVisibleInts(initnum, baseS, mode){
+  // baseS(표기기준)을 그대로 사용 → 내부 초기치: initnum*baseS/100
+  const ih = initnum*baseS[0]/100,
+        ia = initnum*baseS[1]/100,
+        id = initnum*baseS[2]/100,
+        ig = initnum*baseS[3]/100;
+  const vis = visFromInternal(ih,ia,id,ig);
+  return vis.map(v=>roundForDisplay(v, mode));
+}
 function runOnce(cand, lvMax){
-  // baseS → 내부 성장베이스 s = baseS - 4.5 (각 항목)
-  const s = [
-    cand.base[0] - 4.5,
-    cand.base[1] - 4.5,
-    cand.base[2] - 4.5,
-    cand.base[3] - 4.5,
-  ];
-  const br = BRANGE[cand.rank];
-  if (!br){ throw new Error('알 수 없는 랭크: ' + cand.rank); }
-  const [Bmin,Bmax] = br;
-
-  let h=0,a=0,d=0,g=0; // 내부 누적
-
-  for (let lv=2; lv<=lvMax; lv++){
-    const A = A_CHOICES[(Math.random()*A_CHOICES.length)|0]; // 균등 무작위
-    const B = Bmin + ((Math.random()*(Bmax-Bmin+1))|0);     // 정수 균등
-
-    h += (s[0] + A[0]) * B / 10000;
-    a += (s[1] + A[1]) * B / 10000;
-    d += (s[2] + A[2]) * B / 10000;
-    g += (s[3] + A[3]) * B / 10000;
+  // 성장은 내부 s = baseS - 4.5 로 환원
+  const s=[cand.base[0]-4.5, cand.base[1]-4.5, cand.base[2]-4.5, cand.base[3]-4.5];
+  const br=BRANGE[cand.rank]; const Bmin=br[0], Bmax=br[1];
+  let h=0,a=0,d=0,g=0;
+  for(let lv=2; lv<=lvMax; lv++){
+    const A=ASET[(Math.random()*ASET.length)|0];
+    const B=Bmin + ((Math.random()*(Bmax-Bmin+1))|0);
+    h += (s[0]+A[0]) * B / 10000;
+    a += (s[1]+A[1]) * B / 10000;
+    d += (s[2]+A[2]) * B / 10000;
+    g += (s[3]+A[3]) * B / 10000;
   }
-  return visibleFromInternal(h,a,d,g); // [H,A,D,G]
+  return visFromInternal(h,a,d,g); // 누적 표기 성장
 }
-
-// cand 기준 몬테카를로
-async function estimatePS_given_cand(cand, trials, Scut, lvMax, onProgress){
-  let success=0;
-  const chunk=256;
-  for (let t=0; t<trials; t++){
-    if (abortFlag) throw new Error('aborted');
+async function estimatePS(cand, lvMax, Scut, trials, onProg){
+  let ok=0; const chunk=256;
+  for(let t=0; t<trials; t++){
+    if(abort) throw new Error('aborted');
     const vis = runOnce(cand, lvMax);
-    if (vis[0] >= Scut[0] && vis[1] >= Scut[1] && vis[2] >= Scut[2] && vis[3] >= Scut[3]){
-      success++;
-    }
-    if ((t % chunk)===chunk-1){
-      onProgress?.(t+1, trials);
-      await sleep(0);
-    }
+    if (vis[0]>=Scut[0] && vis[1]>=Scut[1] && vis[2]>=Scut[2] && vis[3]>=Scut[3]) ok++;
+    if ((t%chunk)===chunk-1){ onProg?.(t+1, trials); await new Promise(r=>setTimeout(r,0)); }
   }
-  return success / trials;
+  return ok/trials;
 }
+function setBar(r){ el.bar.style.width = (Math.max(0,Math.min(1,r))*100)+'%'; }
+function setStatus(s){ el.status.textContent=s; }
 
-/* =========================
-   실행/중단
-   ========================= */
-document.getElementById('btnAbort').addEventListener('click', ()=>{
-  abortFlag = true;
-  el.status.textContent = '중단 요청됨…';
-});
+// ---- run ----
+$('btnAbort').addEventListener('click', ()=>{ abort=true; setStatus('중단 요청됨…'); });
 
-document.getElementById('btnRun').addEventListener('click', async ()=>{
+$('btnRun').addEventListener('click', async ()=>{
   try{
-    if (!loaded){ alert('먼저 후보를 불러오세요 (localStorage, 파일/붙여넣기).'); return; }
-    const petName = el.petName.value.trim() || loaded.petName || '(이름없음)';
-    const lvMax = Math.max(10, Math.min(200, parseInt(el.lvMax.value||'140',10)));
-    const trials = Math.max(200, Math.min(1000000, parseInt(el.trials.value||'5000',10)));
+    if(!loaded){ alert('먼저 후보를 불러오세요.'); return; }
+    const name=$('petName').value.trim()||loaded.petName||'(이름없음)';
+    const lvMax=Math.max(10,Math.min(200, parseInt($('lvMax').value||'140',10)));
+    const trials=Math.max(500,Math.min(200000, parseInt($('trials').value||'8000',10)));
+    const mode=$('initRound').value;
 
-    // S(환각) 커트라인: targetGrow × (lvMax-1)
-    // targetGrow는 1레벨당 "표기 성장"으로 가정
-    const Scut = loaded.targetGrow.map(x => x * (lvMax-1));
+    const want = [+$('intH').value, +$('intA').value, +$('intD').value, +$('intG').value];
+    if (want.some(isNaN)){ alert('정수 초기치를 모두 입력하세요.'); return; }
 
-    el.tbody.innerHTML = '';
-    el.summary.textContent = '';
-    abortFlag = false;
-    setBar(0); setStatus('초기화…');
+    const Scut = loaded.targetGrow.map(x=> x*(lvMax-1));
+    el.tbody.innerHTML=''; el.summary.textContent=''; abort=false; setBar(0); setStatus('적합성 검사…');
 
-    // 후보 정렬(선택): score 높은 순으로 상위 N개 제한 (속도/가독성 위해)
-    const MAX_ROWS = 80;
-    const candList = [...loaded.candidates]
-      .sort((a,b)=> (b.score||0) - (a.score||0))
-      .slice(0, MAX_ROWS);
+    // 적합 후보만 추림
+    const sorted = [...loaded.candidates].sort((a,b)=> (b.score||0)-(a.score||0));
+    const viewLimit = 80;
+    const rows=[];
+    let minP=1, maxP=0, sumP=0, cnt=0;
 
-    let minP=+1, maxP=0, sumP=0;
-    for (let i=0; i<candList.length; i++){
-      if (abortFlag) throw new Error('aborted');
-      const c = candList[i];
+    let processed=0;
+    for (let i=0; i<sorted.length && rows.length<viewLimit; i++){
+      const c=sorted[i];
+      // 정수 초기치 적합성
+      const ints = computeInitialVisibleInts(c.initnum, c.base, mode);
+      const fit = (ints[0]===want[0] && ints[1]===want[1] && ints[2]===want[2] && ints[3]===want[3]);
 
-      // 개별 cand 진행 콜백
-      const onProg = (done,total)=>{
-        const ratio = (i/candList.length) + (done/total)/candList.length;
-        setBar(ratio); setStatus(`시뮬레이션 중… ${Math.round(ratio*100)}%`);
-      };
+      let p = 0;
+      if (fit){
+        const onProg=(done,total)=>{
+          const ratio = (i/sorted.length) + (done/total)/sorted.length;
+          setBar(ratio);
+          setStatus(`시뮬레이션 중… ${Math.round(ratio*100)}%`);
+        };
+        p = await estimatePS(c, lvMax, Scut, trials, onProg);
+        minP=Math.min(minP,p); maxP=Math.max(maxP,p); sumP+=p; cnt++;
+      }else{
+        // 진행바 살짝 업데이트
+        processed++;
+        const ratio = processed/sorted.length;
+        setBar(ratio*0.3); // 적합성 검사 구간
+      }
 
-      const p = await estimatePS_given_cand(c, trials, Scut, lvMax, onProg);
-      minP = Math.min(minP, p);
-      maxP = Math.max(maxP, p);
-      sumP += p;
-
-      appendRow(i+1, c, p);
-      await sleep(0);
+      rows.push({c, fit, p});
     }
-    const avgP = sumP / candList.length;
+
+    // 테이블 렌더
+    el.tbody.innerHTML='';
+    rows.forEach((r,idx)=>{
+      const tr=document.createElement('tr');
+      const pill = r.fit
+        ? (r.p>=0.5 ? `<span class="pill ok">${pct(r.p)}</span>` :
+           r.p>0.05 ? `<span class="pill warn">${pct(r.p)}</span>` :
+                      `<span class="pill bad">${pct(r.p)}</span>`)
+        : `<span class="pill bad">—</span>`;
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td style="text-align:center">${r.fit?'✓':'✗'}</td>
+        <td>${r.c.rank}</td>
+        <td>${r.c.initnum}</td>
+        <td class="mono">${fmt4(r.c.base)}</td>
+        <td>${pill}</td>
+      `;
+      el.tbody.appendChild(tr);
+    });
+
+    const avg = cnt? (sumP/cnt):0;
     el.summary.innerHTML =
-      `<b>${petName}</b> · 후보 ${candList.length}개 · Trial=${trials.toLocaleString()} · LvMax=${lvMax}<br>`+
-      `S커트라인(표기 누적): ${fmt4(Scut)}<br>`+
-      `<b>평균 p(Lv${lvMax})</b> = <span class="pill ok">${fmtPct(avgP)}</span> &nbsp; `+
-      `범위 = <span class="pill">${fmtPct(minP)}</span> ~ <span class="pill">${fmtPct(maxP)}</span>`;
+      `<b>${name}</b> · 적합 후보 ${cnt}/${rows.length}개(표시 상한 ${viewLimit}) · Trial=${trials.toLocaleString()} · LvMax=${lvMax}<br>`+
+      `S 커트라인(누적 표기): ${fmt4(Scut)}<br>`+
+      (cnt? `<b>평균 p(S)</b>=${pct(avg)} · 범위 ${pct(minP)} ~ ${pct(maxP)}` : `<span class="pill bad">정수 초기치와 일치하는 후보가 없습니다.</span>`);
     setBar(1); setStatus('완료');
+
   }catch(e){
-    if (String(e.message)==='aborted'){
-      setStatus('사용자에 의해 중단됨'); return;
-    }
-    console.error(e);
-    alert('에러가 발생했습니다: '+ e.message);
-    setStatus('에러');
+    if (String(e.message)==='aborted'){ setStatus('사용자 중단'); return; }
+    console.error(e); alert('오류: '+e.message); setStatus('에러');
   }
 });
 
-function appendRow(idx, cand, p){
-  const tr = document.createElement('tr');
-  const pill =
-    p>=0.5 ? `<span class="pill ok">${fmtPct(p)}</span>` :
-    p>0.05 ? `<span class="pill warn">${fmtPct(p)}</span>` :
-             `<span class="pill bad">${fmtPct(p)}</span>`;
-  tr.innerHTML = `
-    <td>${idx}</td>
-    <td>${cand.rank}</td>
-    <td>${cand.initnum}</td>
-    <td class="mono">${fmt4(cand.base)}</td>
-    <td>${pill}</td>
-    <td class="muted mono">s=${fmt4([
-      cand.base[0]-4.5,
-      cand.base[1]-4.5,
-      cand.base[2]-4.5,
-      cand.base[3]-4.5
-    ])}</td>
-  `;
-  el.tbody.appendChild(tr);
-}
-function setBar(r){ el.bar.style.width = Math.max(0,Math.min(1,r))*100 + '%'; }
-function setStatus(t){ el.status.textContent = t; }
-
-/* =========================
-   초기 안내
-   ========================= */
+// 부팅 시 자동 감지
 (function boot(){
-  const raw = localStorage.getItem('petCalcCandidates');
-  if (raw){
-    try{
-      applyLoaded(JSON.parse(raw), 'localStorage(자동감지)');
-    }catch{}
-  }
+  try{
+    const raw=localStorage.getItem('petCalcCandidates');
+    if(raw){ apply(JSON.parse(raw),'localStorage(자동)'); }
+  }catch{}
 })();
 </script>
 </body>
