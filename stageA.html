@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StoneAge 단계A – 역산(계수 추정) (fixed)</title>
+  <style>
+    :root{--bg:#0b1020;--card:#121830;--ink:#e8ecff;--muted:#a8b2d1;--accent:#7aa2ff;--ok:#2ecc71;--warn:#f4c542;--err:#ff6b6b;--radius:16px}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630 60%,#0b1020);color:var(--ink);font:15px/1.6 system-ui,Segoe UI,Apple SD Gothic Neo,Noto Sans KR,Roboto,Arial,sans-serif}
+    h1,h2{margin:0 0 10px}
+    a{color:var(--accent)}
+    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px}
+    .card{background:var(--card);border:1px solid #283052;border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    label{display:block;font-weight:600;color:var(--muted);margin-bottom:6px}
+    .input{background:#0c1230;border:1px solid #2a335d;border-radius:12px;color:var(--ink);padding:10px 12px;outline:none;width:100%}
+    .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,162,255,.12)}
+    .btn{cursor:pointer;background:var(--accent);border:none;color:#0b1020;padding:12px 16px;border-radius:12px;font-weight:700}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid #283052}
+    th{color:#cdd7ff;text-align:left;position:sticky;top:0;background:var(--card)}
+    tr:hover td{background:rgba(122,162,255,.06)}
+    .tag{display:inline-flex;gap:6px;align-items:center;padding:3px 8px;border-radius:999px;border:1px solid #2a335d;background:#0c1230;color:#cdd7ff;font-size:12px}
+    .sep{height:1px;background:#283052;margin:12px 0}
+    details{background:#0c1230;border:1px solid #2a335d;border-radius:12px;padding:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>단계A – <b>역산(계수 추정)</b> <span class="tag">fixed inverse</span></h1>
+    <p class="muted">입력: <b>표기 초기치(소수 둘째)</b> 4개, <b>표기 성장률(소수 둘째)</b> 4개. 출력: <b>(rank, base[체/공/방/순], initnum)</b> 후보 세트. 
+      저장을 누르면 <code>localStorage</code>에 보관되어 단계B에서 사용됩니다.</p>
+
+    <div class="grid">
+      <!-- 좌: 입력 -->
+      <div class="card">
+        <h2>입력</h2>
+        <div class="row">
+          <div style="flex:1 1 180px"><label>초기 – 내구(HP)</label><input id="in_hp_f" type="number" step="0.01" class="input" placeholder="예) 52.39"/></div>
+          <div style="flex:1 1 180px"><label>초기 – 공격(ATK)</label><input id="in_atk_f" type="number" step="0.01" class="input" placeholder="예) 12.64"/></div>
+          <div style="flex:1 1 180px"><label>초기 – 방어(DEF)</label><input id="in_def_f" type="number" step="0.01" class="input" placeholder="예) 7.49"/></div>
+          <div style="flex:1 1 180px"><label>초기 – 순발(AGI)</label><input id="in_agi_f" type="number" step="0.01" class="input" placeholder="예) 6.37"/></div>
+        </div>
+        <div class="row">
+          <div style="flex:1 1 180px"><label>성장 – 내구</label><input id="g_hp" type="number" step="0.01" class="input" placeholder="예) 9.97"/></div>
+          <div style="flex:1 1 180px"><label>성장 – 공격</label><input id="g_atk" type="number" step="0.01" class="input" placeholder="예) 2.41"/></div>
+          <div style="flex:1 1 180px"><label>성장 – 방어</label><input id="g_def" type="number" step="0.01" class="input" placeholder="예) 1.43"/></div>
+          <div style="flex:1 1 180px"><label>성장 – 순발</label><input id="g_agi" type="number" step="0.01" class="input" placeholder="예) 1.21"/></div>
+        </div>
+
+        <div class="sep"></div>
+        <details open>
+          <summary><b>옵션</b></summary>
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1 1 180px"><label>초기 표기 정수화</label>
+              <select id="initRound" class="input">
+                <option value="floor">버림(Math.floor)</option>
+                <option value="round">반올림</option>
+              </select>
+            </div>
+            <div style="flex:1 1 180px"><label>initnum 범위</label><input id="initRange" type="text" class="input" value="10-40"/></div>
+            <div style="flex:1 1 180px"><label>base 탐색 폭(각각)</label><input id="baseSpan" type="number" class="input" value="5"/></div>
+            <div style="flex:1 1 180px"><label>초기치 허용오차 ε₀</label><input id="eps0" type="number" step="0.01" class="input" value="0.03"/></div>
+          </div>
+          <div class="row">
+            <div style="flex:1 1 180px"><label>랭크</label>
+              <select id="rankMode" class="input">
+                <option value="auto">자동(R1~R6)</option>
+                <option value="R1">R1 [450–500]</option>
+                <option value="R2">R2 [470–520]</option>
+                <option value="R3">R3 [490–540]</option>
+                <option value="R4">R4 [510–560]</option>
+                <option value="R5">R5 [530–580]</option>
+                <option value="R6">R6 [550–600]</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <div class="row" style="margin-top:14px;align-items:flex-end">
+          <button id="btnSolve" class="btn">후보 추정</button>
+          <button id="btnSave" class="btn" style="background:#37d67a">후보 저장 → 단계B</button>
+          <span id="status" class="muted small" style="margin-left:10px"></span>
+        </div>
+
+      </div>
+
+      <!-- 우: 결과 -->
+      <div class="card">
+        <h2>후보 목록</h2>
+        <div class="small muted">후보는 (rank, base[4], initnum) 조합입니다. 체크된 항목만 저장됩니다.</div>
+        <div style="max-height:560px;overflow:auto;margin-top:8px">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>선택</th>
+                <th>랭크</th>
+                <th>base[체,공,방,순]</th>
+                <th>initnum</th>
+                <th>점수</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h2>설명 (요약)</h2>
+      <p class="muted small">• 성장률로부터 랭크별 평균 B를 가정하여 <code>base≈Δ×10000/\bar B−2.5</code> 근사치를 얻고, 각 스탯 주변(±span)만 정수 스캔합니다. <br/>• 초기치(소수)와의 정합성은 보너스 합=10의 선형 한계(가중치 극값 분배)로 <b>하·상한</b>을 빠르게 구해 포함 여부로 1차 필터링합니다. <br/>• 통과 후보에 대해 초기치 오차·성장 오차를 묶어 점수를 부여합니다. 저장 시 입력한 성장 타깃과 함께 localStorage에 보관합니다.</p>
+    </div>
+  </div>
+
+  <script>
+    // ===== 유틸 =====
+    const precise = x=> Math.round(x*1e12)/1e12;
+    const parseRange = (txt,lo,hi)=>{const m=String(txt||"").match(/\s*(\d+)\s*[-~]\s*(\d+)\s*/);return m?[+m[1],+m[2]]:[lo,hi]};
+
+    // 표기 변환(순수→표기)
+    function toDisp(v,s,t,d){
+      const hp  = precise(4*v + s + t + d);
+      const atk = precise(0.1*v + s + 0.1*t + 0.05*d);
+      const def = precise(0.1*v + 0.1*s + t + 0.05*d);
+      const agi = precise(d);
+      return [hp,atk,def,agi];
+    }
+
+    // ***** 고친 역행렬 (표기→순수) *****
+    function fromDisp(HP,ATK,DEF,AGI){
+      // HP = 4V + S + T + D
+      // ATK = 0.1V + S + 0.1T + 0.05D
+      // DEF = 0.1V + 0.1S + T + 0.05D
+      // AGI = D
+      const V = precise( 0.261904761904762*HP - 0.238095238095238*ATK - 0.238095238095238*DEF - 0.238095238095238*AGI );
+      const S = precise(-0.0238095238095238*HP + 1.03174603174603*ATK - 0.0793650793650794*DEF - 0.0238095238095238*AGI );
+      const T = precise(-0.0238095238095238*HP - 0.0793650793650794*ATK + 1.03174603174603*DEF - 0.0238095238095238*AGI );
+      const D = precise( AGI );
+      return [V,S,T,D];
+    }
+
+    const RANKS={
+      R1:{name:'R1',Bmin:450,Bmax:500,Bavg:475},
+      R2:{name:'R2',Bmin:470,Bmax:520,Bavg:495},
+      R3:{name:'R3',Bmin:490,Bmax:540,Bavg:515},
+      R4:{name:'R4',Bmin:510,Bmax:560,Bavg:535},
+      R5:{name:'R5',Bmin:530,Bmax:580,Bavg:555},
+      R6:{name:'R6',Bmin:550,Bmax:600,Bavg:575},
+    };
+
+    function approxBaseFromGrowth(target, rank){
+      // Δ (순수성장) ≈ (base+2.5)*B/10000 ⇒ base ≈ Δ*10000/B − 2.5 (B는 평균값 사용)
+      const [dv,ds,dt,dd] = fromDisp(target[0],target[1],target[2],target[3]);
+      const B = rank.Bavg;
+      return [dv,ds,dt,dd].map(x=> precise(x*10000/B - 2.5));
+    }
+
+    function boundsInitial(init, base){
+      // 보너스 합=10, 각 스탯 가중치에 따라 HP/ATK/DEF/AGI의 최소/최대 구간 계산(선형극값)
+      const wV = init/100, wS=init/100, wT=init/100, wD=init/100;
+      const baseV = base[0]*wV, baseS=base[1]*wS, baseT=base[2]*wT, baseD=base[3]*wD;
+      // HP 가중치
+      const gHP = [4*wV,1*wS,1*wT,1*wD];
+      const gATK= [0.1*wV,1*wS,0.1*wT,0.05*wD];
+      const gDEF= [0.1*wV,0.1*wS,1*wT,0.05*wD];
+      const gAGI= [0,0,0,1*wD];
+
+      function extremes(g){
+        const minW = Math.min(...g), maxW=Math.max(...g);
+        const iMin = g.indexOf(minW), iMax=g.indexOf(maxW);
+        // 보너스 10을 전부 iMax에 → 최대, 전부 iMin에 → 최소
+        const bMin=[0,0,0,0]; bMin[iMin]=10;
+        const bMax=[0,0,0,0]; bMax[iMax]=10;
+        function val(b){
+          const V = baseV + b[0]*wV;
+          const S = baseS + b[1]*wS;
+          const T = baseT + b[2]*wT;
+          const D = baseD + b[3]*wD;
+          return toDisp(V,S,T,D);
+        }
+        return {min:val(bMin), max:val(bMax)};
+      }
+      return {
+        HP:  extremes(gHP),
+        ATK: extremes(gATK),
+        DEF: extremes(gDEF),
+        AGI: extremes(gAGI),
+      };
+    }
+
+    function scoreCandidate(init, targetInit, base, eps0){
+      const bd=boundsInitial(init, base);
+      const [h,a,d,g]=targetInit;
+      const inside = (x,lo,hi)=> x>=lo-eps0 && x<=hi+eps0;
+      const ok = inside(h,bd.HP.min[0], bd.HP.max[0]) &&
+                 inside(a,bd.ATK.min[1],bd.ATK.max[1]) &&
+                 inside(d,bd.DEF.min[2],bd.DEF.max[2]) &&
+                 inside(g,bd.AGI.min[3],bd.AGI.max[3]);
+      if(!ok) return -1;
+      // 간단한 중심거리 점수(높을수록 적합)
+      const cen=[
+        (bd.HP.min[0]+bd.HP.max[0])/2,
+        (bd.ATK.min[1]+bd.ATK.max[1])/2,
+        (bd.DEF.min[2]+bd.DEF.max[2])/2,
+        (bd.AGI.min[3]+bd.AGI.max[3])/2,
+      ];
+      const err = Math.hypot(h-cen[0],a-cen[1],d-cen[2],g-cen[3]);
+      return 1/(1+err);
+    }
+
+    function runSolve(){
+      const hp0=parseFloat(in_hp_f.value); const atk0=parseFloat(in_atk_f.value); const def0=parseFloat(in_def_f.value); const agi0=parseFloat(in_agi_f.value);
+      const ghp=parseFloat(g_hp.value); const gatk=parseFloat(g_atk.value); const gdef=parseFloat(g_def.value); const gagi=parseFloat(g_agi.value);
+      if([hp0,atk0,def0,agi0,ghp,gatk,gdef,gagi].some(x=>!Number.isFinite(x))){alert('모든 입력을 채워주세요.');return;}
+      const initRound=initRoundSel.value; const [initLo,initHi]=parseRange(initRange.value,10,40); const span=parseInt(baseSpan.value,10)||5; const eps0=parseFloat(eps0Inp.value)||0.03;
+      const targetInit=[hp0,atk0,def0,agi0]; const targetGrow=[ghp,gatk,gdef,gagi];
+      const ranks = (rankMode.value==='auto')? Object.values(RANKS): [RANKS[rankMode.value]];
+
+      const tbody=document.getElementById('tbody'); tbody.innerHTML='';
+      status.textContent='후보 계산 중…';
+      const rows=[];
+
+      for(const rk of ranks){
+        const approx = approxBaseFromGrowth(targetGrow, rk); // 실수 근사
+        // 각 스탯 근방 정수만 스캔
+        const grids = approx.map(x=>{const lo=Math.floor(x)-span, hi=Math.ceil(x)+span; const arr=[]; for(let v=lo;v<=hi;v++) arr.push(v); return arr;});
+        for(const b0 of grids[0]) for(const b1 of grids[1]) for(const b2 of grids[2]) for(const b3 of grids[3]){
+          const base=[b0,b1,b2,b3];
+          for(let init=initLo; init<=initHi; init++){
+            const s=scoreCandidate(init, targetInit, base, eps0);
+            if(s>0){
+              rows.push({rank:rk.name, Bmin:rk.Bmin,Bmax:rk.Bmax, base, initnum:init, score:s});
+            }
+          }
+        }
+      }
+
+      rows.sort((a,b)=> b.score-a.score || a.initnum-b.initnum);
+      // 중복 제거(같은 rank/base/initnum)
+      const uniq=[]; const seen=new Set();
+      for(const r of rows){
+        const key = r.rank+'|'+r.base.join(',')+'|'+r.initnum;
+        if(!seen.has(key)){seen.add(key); uniq.push(r);} }
+
+      let i=1; for(const r of uniq.slice(0,600)){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i++}</td>
+          <td><input type="checkbox" class="pick" checked/></td>
+          <td><span class="tag">${r.rank}</span></td>
+          <td>[${r.base.join(', ')}]</td>
+          <td>${r.initnum}</td>
+          <td>${r.score.toFixed(4)}</td>`;
+        tr.dataset.payload = JSON.stringify(r);
+        tbody.appendChild(tr);
+      }
+      status.textContent=`후보 ${uniq.length}건 (상위 600 표시)`;
+
+      // 저장 버튼 핸들러
+      document.getElementById('btnSave').onclick = ()=>{
+        const picks=[...document.querySelectorAll('#tbody tr')].filter(tr=> tr.querySelector('.pick').checked).map(tr=> JSON.parse(tr.dataset.payload));
+        if(!picks.length){alert('선택된 후보가 없습니다.');return;}
+        const payload={
+          savedAt: Date.now(),
+          initRound,
+          targetInit,
+          targetGrow,
+          candidates: picks
+        };
+        localStorage.setItem('stoneage_rev_candidates', JSON.stringify(payload));
+        alert(`저장 완료! 후보 ${picks.length}건이 단계B에서 사용됩니다.`);
+      };
+    }
+
+    // DOM
+    const in_hp_f=document.getElementById('in_hp_f');
+    const in_atk_f=document.getElementById('in_atk_f');
+    const in_def_f=document.getElementById('in_def_f');
+    const in_agi_f=document.getElementById('in_agi_f');
+    const g_hp=document.getElementById('g_hp');
+    const g_atk=document.getElementById('g_atk');
+    const g_def=document.getElementById('g_def');
+    const g_agi=document.getElementById('g_agi');
+    const initRoundSel=document.getElementById('initRound');
+    const initRange=document.getElementById('initRange');
+    const baseSpan=document.getElementById('baseSpan');
+    const eps0Inp=document.getElementById('eps0');
+    const rankMode=document.getElementById('rankMode');
+    const status=document.getElementById('status');
+
+    document.getElementById('btnSolve').addEventListener('click', runSolve);
+  </script>
+</body>
+</html>

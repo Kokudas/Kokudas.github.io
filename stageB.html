@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StoneAge 단계B – S랭크 확률</title>
+  <style>
+    :root{--bg:#0b1020;--card:#121830;--ink:#e8ecff;--muted:#a8b2d1;--accent:#7aa2ff;--ok:#2ecc71;--warn:#f4c542;--err:#ff6b6b;--radius:16px}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630 60%,#0b1020);color:var(--ink);font:15px/1.6 system-ui,Segoe UI,Apple SD Gothic Neo,Noto Sans KR,Roboto,Arial,sans-serif}
+    h1,h2{margin:0 0 10px}
+    a{color:var(--accent)}
+    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px}
+    .card{background:var(--card);border:1px solid #283052;border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    label{display:block;font-weight:600;color:var(--muted);margin-bottom:6px}
+    .input{background:#0c1230;border:1px solid #2a335d;border-radius:12px;color:var(--ink);padding:10px 12px;outline:none;width:100%}
+    .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,162,255,.12)}
+    .btn{cursor:pointer;background:var(--accent);border:none;color:#0b1020;padding:12px 16px;border-radius:12px;font-weight:700}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid #283052}
+    th{color:#cdd7ff;text-align:left;position:sticky;top:0;background:var(--card)}
+    tr:hover td{background:rgba(122,162,255,.06)}
+    .kpi{display:flex;gap:12px;flex-wrap:wrap}
+    .chip{padding:10px 12px;border-radius:12px;background:#0c1230;border:1px solid #2a335d}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>단계B – <b>S랭크 확률</b></h1>
+    <p class="muted">단계A에서 저장한 후보 세트를 불러와, <b>정수 표기 초기치</b>를 기준으로 해피 서버식 <b>1회 레벨업 올S</b> 확률을 계산합니다.<br/>추가로 샴기르 스타일의 <b>P(MaxBase | 정수 초기치)</b>도 계산 가능합니다.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h2>입력</h2>
+        <div class="row">
+          <div style="flex:1 1 180px"><label>정수 – 내구(HP)</label><input id="in_hp_i" type="number" class="input" placeholder="예) 52"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 공격(ATK)</label><input id="in_atk_i" type="number" class="input" placeholder="예) 12"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 방어(DEF)</label><input id="in_def_i" type="number" class="input" placeholder="예) 7"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 순발(AGI)</label><input id="in_agi_i" type="number" class="input" placeholder="예) 6"/></div>
+        </div>
+
+        <div class="sep" style="height:1px;background:#283052;margin:12px 0"></div>
+        <details open>
+          <summary><b>옵션</b></summary>
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1 1 180px"><label>성장 S판정</label>
+              <select id="sRule" class="input">
+                <option value="round">라운딩 일치형(소수 둘째 자리)</option>
+                <option value="band">구간형(±0.01)</option>
+              </select>
+            </div>
+            <div style="flex:1 1 180px"><label>구간 폭(±)</label><input id="band" type="number" step="0.01" class="input" value="0.01"/></div>
+            <div style="flex:1 1 220px"><label>후보 가중 방식</label>
+              <select id="wMode" class="input">
+                <option value="uniform">균등</option>
+                <option value="score">단계A 점수 가중</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <div class="row" style="margin-top:14px;align-items:flex-end">
+          <button id="btnCalc" class="btn">S 확률 계산</button>
+          <button id="btnBaseProb" class="btn" style="background:#37d67a">P(MaxBase | 정수 초기치)</button>
+          <span id="status" class="muted small" style="margin-left:10px"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>요약</h2>
+        <div class="kpi" id="kpi"></div>
+        <div style="max-height:560px;overflow:auto;margin-top:8px">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>랭크</th>
+                <th>base[체,공,방,순]</th>
+                <th>initnum</th>
+                <th>p(S|cand)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h2>설명 (요약)</h2>
+      <p class="muted small">• 후보는 단계A에서 저장한 (rank, base[4], initnum). 각 후보에 대해 성장 A(보너스 분배 286개, 다항확률)×B(랭크 균등)를 전수합산해 1회 올S 확률을 계산합니다.<br/>• 최종 표시는 후보별 p를 가중 평균하여 
+        <b>평균</b>과 <b>범위[min~max]</b>를 제공합니다.</p>
+    </div>
+  </div>
+
+  <script>
+    const precise = x=> Math.round(x*1e12)/1e12;
+    function toDisp(v,s,t,d){
+      const hp  = precise(4*v + s + t + d);
+      const atk = precise(0.1*v + s + 0.1*t + 0.05*d);
+      const def = precise(0.1*v + 0.1*s + t + 0.05*d);
+      const agi = precise(d);
+      return [hp,atk,def,agi];
+    }
+    const RANKS={
+      R1:{Bmin:450,Bmax:500},R2:{Bmin:470,Bmax:520},R3:{Bmin:490,Bmax:540},
+      R4:{Bmin:510,Bmax:560},R5:{Bmin:530,Bmax:580},R6:{Bmin:550,Bmax:600}
+    };
+
+    // A(보너스) 상태 286개 생성 + 다항확률
+    const A_STATES = (()=>{
+      const arr=[]; const fact=[1,1,2,6,24,120,720,5040,40320,362880,3628800];
+      for(let a=0;a<=10;a++) for(let b=0;b<=10-a;b++) for(let c=0;c<=10-a-b;c++){
+        const d=10-a-b-c; const ways = fact[10]/(fact[a]*fact[b]*fact[c]*fact[d]);
+        const p = ways * Math.pow(0.25,10); // 각 스탯 동일 확률 가정
+        arr.push({hp:a,atk:b,def:c,agi:d,p});
+      }
+      return arr;
+    })();
+
+    function calcGrowthOnce(base, A, B){
+      // 순수 성장
+      const upV = precise((base[0]+A.hp) * B / 10000);
+      const upS = precise((base[1]+A.atk)* B / 10000);
+      const upT = precise((base[2]+A.def)* B / 10000);
+      const upD = precise((base[3]+A.agi)* B / 10000);
+      return toDisp(upV,upS,upT,upD);
+    }
+
+    function okS(disp, targetGrow, rule, band){
+      if(rule==='band'){
+        return Math.abs(disp[0]-targetGrow[0])<=band &&
+               Math.abs(disp[1]-targetGrow[1])<=band &&
+               Math.abs(disp[2]-targetGrow[2])<=band &&
+               Math.abs(disp[3]-targetGrow[3])<=band;
+      } else {
+        const r=x=> Number(x.toFixed(2));
+        return r(disp[0])===r(targetGrow[0]) && r(disp[1])===r(targetGrow[1]) && r(disp[2])===r(targetGrow[2]) && r(disp[3])===r(targetGrow[3]);
+      }
+    }
+
+    function initialIntPossible(initnum, base, targetInt, initRound){
+      // 보너스 전수 286개로 실제 정수 표기 초기치가 가능한지 검사
+      for(const A of A_STATES){
+        const V= precise(initnum*(base[0]+A.hp)/100);
+        const S= precise(initnum*(base[1]+A.atk)/100);
+        const T= precise(initnum*(base[2]+A.def)/100);
+        const D= precise(initnum*(base[3]+A.agi)/100);
+        const disp= toDisp(V,S,T,D);
+        const f = (x)=> initRound==='floor'? Math.floor(x): Math.round(x);
+        if( f(disp[0])===targetInt[0] && f(disp[1])===targetInt[1] && f(disp[2])===targetInt[2] && f(disp[3])===targetInt[3]) return true;
+      }
+      return false;
+    }
+
+    function run(){
+      const payloadRaw=localStorage.getItem('stoneage_rev_candidates');
+      if(!payloadRaw){alert('단계A에서 후보를 먼저 저장해주세요.');return;}
+      const payload=JSON.parse(payloadRaw);
+      const targetGrow=payload.targetGrow; const initRound=payload.initRound;
+
+      const iHP=parseInt(in_hp_i.value,10), iATK=parseInt(in_atk_i.value,10), iDEF=parseInt(in_def_i.value,10), iAGI=parseInt(in_agi_i.value,10);
+      if([iHP,iATK,iDEF,iAGI].some(x=>!Number.isFinite(x))){alert('정수 표기 초기치 4개를 입력해주세요.');return;}
+      const targetInt=[iHP,iATK,iDEF,iAGI];
+
+      const sRule=document.getElementById('sRule').value; const band=parseFloat(document.getElementById('band').value)||0.01; const wMode=document.getElementById('wMode').value;
+      const tbody=document.getElementById('tbody'); const kpi=document.getElementById('kpi'); tbody.innerHTML=''; kpi.innerHTML='';
+      status.textContent='계산 중…';
+
+      const details=[];
+      for(const cand of payload.candidates){
+        const rank = cand.rank; const Bmin=RANKS[rank].Bmin, Bmax=RANKS[rank].Bmax; const base=cand.base; const initnum=cand.initnum;
+        // 해당 후보가 입력 정수 표기를 만들 수 있는지 확인
+        if(!initialIntPossible(initnum, base, targetInt, initRound)) continue;
+        // 전수 합산
+        let p=0;
+        for(let B=Bmin; B<=Bmax; B++){
+          for(const A of A_STATES){
+            const disp = calcGrowthOnce(base, A, B);
+            if(okS(disp, targetGrow, sRule, band)) p += A.p * (1/(Bmax-Bmin+1));
+          }
+        }
+        details.push({cand, p});
+      }
+
+      if(!details.length){
+        status.textContent='일치 후보가 없습니다. (정수 표기 초기치가 단계A 후보들과 양립하지 않음)';
+        return;
+      }
+
+      // 가중 평균 및 범위
+      const weights = details.map(d=> (wMode==='score'? (d.cand.score||1): 1));
+      const sumW = weights.reduce((a,b)=>a+b,0);
+      const pAvg = details.reduce((acc,d,i)=> acc + d.p*weights[i], 0)/sumW;
+      const pMin = Math.min(...details.map(d=>d.p));
+      const pMax = Math.max(...details.map(d=>d.p));
+
+      kpi.innerHTML = `
+        <div class="chip">평균 p(S) = <b>${(pAvg*100).toFixed(3)}%</b></div>
+        <div class="chip">범위 = <b>${(pMin*100).toFixed(3)}% ~ ${(pMax*100).toFixed(3)}%</b></div>
+        <div class="chip">후보 수 = <b>${details.length}</b></div>
+      `;
+
+      let i=1; for(const d of details.sort((a,b)=> b.p-a.p).slice(0,300)){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i++}</td>
+          <td>${d.cand.rank}</td>
+          <td>[${d.cand.base.join(', ')}]</td>
+          <td>${d.cand.initnum}</td>
+          <td>${(d.p*100).toFixed(3)}%</td>`;
+        tbody.appendChild(tr);
+      }
+
+      status.textContent='완료';
+    }
+
+    function runMaxBase(){
+      // 간단 근사: 후보별 base 합이 큰 조합을 MaxBase에 가깝다고 보고, 입력 정수 표기를 만드는 경우 중 그 비율을 계산
+      const payloadRaw=localStorage.getItem('stoneage_rev_candidates');
+      if(!payloadRaw){alert('단계A에서 후보를 먼저 저장해주세요.');return;}
+      const payload=JSON.parse(payloadRaw);
+      const initRound=payload.initRound;
+      const iHP=parseInt(in_hp_i.value,10), iATK=parseInt(in_atk_i.value,10), iDEF=parseInt(in_def_i.value,10), iAGI=parseInt(in_agi_i.value,10);
+      if([iHP,iATK,iDEF,iAGI].some(x=>!Number.isFinite(x))){alert('정수 표기 초기치 4개를 입력해주세요.');return;}
+      const targetInt=[iHP,iATK,iDEF,iAGI];
+
+      let total=0, maxbase=0, maxSum=-1;
+      // 먼저 전체 후보들 중 base 합의 최대를 구함
+      for(const cand of payload.candidates){
+        const s=cand.base[0]+cand.base[1]+cand.base[2]+cand.base[3];
+        if(s>maxSum) maxSum=s;
+      }
+      for(const cand of payload.candidates){
+        const base=cand.base, initnum=cand.initnum;
+        for(const A of A_STATES){
+          const V= precise(initnum*(base[0]+A.hp)/100);
+          const S= precise(initnum*(base[1]+A.atk)/100);
+          const T= precise(initnum*(base[2]+A.def)/100);
+          const D= precise(initnum*(base[3]+A.agi)/100);
+          const disp= toDisp(V,S,T,D);
+          const f = (x)=> initRound==='floor'? Math.floor(x): Math.round(x);
+          if( f(disp[0])===targetInt[0] && f(disp[1])===targetInt[1] && f(disp[2])===targetInt[2] && f(disp[3])===targetInt[3]){
+            total += 1;
+            if(base[0]+base[1]+base[2]+base[3]===maxSum) maxbase += 1;
+          }
+        }
+      }
+      if(total===0){alert('해당 정수 초기치를 만들 수 있는 경우가 없습니다.');return;}
+      const p = maxbase/total;
+      alert(`P(MaxBase | 정수 초기치) ≈ ${(p*100).toFixed(3)}%  (근사)`);
+    }
+
+    const in_hp_i=document.getElementById('in_hp_i');
+    const in_atk_i=document.getElementById('in_atk_i');
+    const in_def_i=document.getElementById('in_def_i');
+    const in_agi_i=document.getElementById('in_agi_i');
+    const status=document.getElementById('status');
+
+    document.getElementById('btnCalc').addEventListener('click', run);
+    document.getElementById('btnBaseProb').addEventListener('click', runMaxBase);
+  </script>
+</body>
+</html>
