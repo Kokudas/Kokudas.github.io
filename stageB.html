@@ -9,9 +9,9 @@
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630 60%,#0b1020);color:var(--ink);font:15px/1.6 system-ui,Segoe UI,Apple SD Gothic Neo,Noto Sans KR,Roboto,Arial,sans-serif}
     h1,h2{margin:0 0 10px}
-    a{color:var(--accent);text-decoration:none}
-    nav{position:sticky;top:0;z-index:9;background:#0a122a;border-bottom:1px solid #283052;padding:8px 16px;display:flex;gap:12px;align-items:center}
-    nav a{color:#cdd7ff;font-weight:600}
+    a{color:var(--accent)}
+    nav{margin:12px 0;}
+    nav a{margin-right:12px;color:var(--accent);font-weight:600}
     .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
     .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px}
     .card{background:var(--card);border:1px solid #283052;border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px}
@@ -20,7 +20,6 @@
     .input{background:#0c1230;border:1px solid #2a335d;border-radius:12px;color:var(--ink);padding:10px 12px;outline:none;width:100%}
     .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,162,255,.12)}
     .btn{cursor:pointer;background:var(--accent);border:none;color:#0b1020;padding:12px 16px;border-radius:12px;font-weight:700}
-    .btn.alt{background:#37d67a;color:#073b2f}
     .btn:disabled{opacity:.6;cursor:not-allowed}
     .muted{color:var(--muted)}
     .small{font-size:12px}
@@ -30,79 +29,55 @@
     tr:hover td{background:rgba(122,162,255,.06)}
     .kpi{display:flex;gap:12px;flex-wrap:wrap}
     .chip{padding:10px 12px;border-radius:12px;background:#0c1230;border:1px solid #2a335d}
-    #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);z-index:9999;align-items:center;justify-content:center}
-    .spinner{margin:0 auto 10px;width:34px;height:34px;border:3px solid transparent;border-top-color:#7aa2ff;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
-  <nav>
-    <a href="https://kokudas.github.io/index.html">홈</a>
-    <span style="opacity:.6">|</span>
-    <a href="https://kokudas.github.io/stageA.html">단계A(역산)</a>
-    <span style="opacity:.6">|</span>
-    <a href="https://kokudas.github.io/stageB.html">단계B(S확률)</a>
-    <span id="banner" style="margin-left:auto;color:#a8b2d1;font-size:12px">Ready</span>
-  </nav>
-
   <div class="wrap">
     <h1>단계B – <b>S랭크 확률</b></h1>
-    <p class="muted small">
-      ⚠️ <b>주의</b>: 계산 결과는 참고용입니다. 본 계산기는 1회 성장 판정과 <b>Lv.140 누적</b> 판정을 모두 지원합니다.
-      단계A에서 저장한 <b>후보 JSON</b>을 불러온 뒤, <b>정수 표기 초기치</b>를 입력해 주세요.
-    </p>
+    <nav>
+      <a href="https://kokudas.github.io/index.html">홈</a>
+      <a href="https://kokudas.github.io/stageA.html">단계A 이동</a>
+      <a href="https://kokudas.github.io/stageB.html">단계B 이동</a>
+    </nav>
+
+    <p class="muted">⚠️ <b>주의</b>: 계산 결과는 실제 게임과 다를 수 있으며, 학습·참고용입니다. 현재 버전은 <b>최대 140레벨 누적 성장</b>을 기준으로 S랭크 달성 확률을 추정합니다.<br/>후보는 JSON 파일로 저장·불러오기 하거나, <b>로컬 스토리지(localStorage)</b>에서 자동 불러오기 됩니다. 페트 이름별로 관리 가능합니다.</p>
 
     <div class="grid">
       <div class="card">
         <h2>입력</h2>
         <div class="row">
-          <div style="flex:1 1 260px">
-            <label>후보 JSON 불러오기</label>
-            <input id="fileInput" type="file" class="input" accept=".json,application/json"/>
-          </div>
+          <div style="flex:1 1 200px"><label>페트 이름</label><input id="pet_name" class="input" placeholder="예) 반기노"/></div>
+          <div style="flex:1 1 220px"><label>후보 JSON 불러오기</label><input id="fileInput" type="file" class="input"/></div>
         </div>
         <div class="row" style="margin-top:12px">
-          <div style="flex:1 1 160px"><label>정수 – HP</label><input id="in_hp_i" type="number" class="input" placeholder="예) 52"/></div>
-          <div style="flex:1 1 160px"><label>정수 – ATK</label><input id="in_atk_i" type="number" class="input" placeholder="예) 12"/></div>
-          <div style="flex:1 1 160px"><label>정수 – DEF</label><input id="in_def_i" type="number" class="input" placeholder="예) 7"/></div>
-          <div style="flex:1 1 160px"><label>정수 – AGI</label><input id="in_agi_i" type="number" class="input" placeholder="예) 6"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 내구(HP)</label><input id="in_hp_i" type="number" class="input" placeholder="예) 52"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 공격(ATK)</label><input id="in_atk_i" type="number" class="input" placeholder="예) 12"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 방어(DEF)</label><input id="in_def_i" type="number" class="input" placeholder="예) 7"/></div>
+          <div style="flex:1 1 180px"><label>정수 – 순발(AGI)</label><input id="in_agi_i" type="number" class="input" placeholder="예) 6"/></div>
         </div>
 
-        <div class="row" style="margin-top:10px">
-          <div style="flex:1 1 200px">
-            <label>성장 S판정</label>
-            <select id="sRule" class="input">
-              <option value="round">라운딩 일치형(소수 둘째)</option>
-              <option value="band" selected>구간형(±0.02)</option>
-            </select>
+        <div class="sep" style="height:1px;background:#283052;margin:12px 0"></div>
+        <details open>
+          <summary><b>옵션</b></summary>
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1 1 180px"><label>성장 S판정</label>
+              <select id="sRule" class="input">
+                <option value="round">라운딩 일치형(소수 둘째 자리)</option>
+                <option value="band">구간형(±0.01)</option>
+              </select>
+            </div>
+            <div style="flex:1 1 180px"><label>구간 폭(±)</label><input id="band" type="number" step="0.01" class="input" value="0.01"/></div>
+            <div style="flex:1 1 220px"><label>후보 가중 방식</label>
+              <select id="wMode" class="input">
+                <option value="uniform">균등</option>
+                <option value="score">단계A 점수 가중</option>
+              </select>
+            </div>
           </div>
-          <div style="flex:1 1 150px">
-            <label>구간 폭(±)</label>
-            <input id="band" type="number" class="input" step="0.01" value="0.02"/>
-          </div>
-          <div style="flex:1 1 200px">
-            <label>후보 가중</label>
-            <select id="wMode" class="input">
-              <option value="uniform" selected>균등</option>
-              <option value="score">단계A 점수 가중</option>
-            </select>
-          </div>
-          <div style="flex:1 1 220px">
-            <label>판정 모드</label>
-            <select id="mode" class="input">
-              <option value="lv1">1회 S판정</option>
-              <option value="lv140" selected>누적(140레벨)</option>
-            </select>
-          </div>
-          <div style="flex:1 1 200px">
-            <label>시뮬레이션 반복(누적)</label>
-            <input id="trials" type="number" class="input" value="20000"/>
-          </div>
-        </div>
+        </details>
 
         <div class="row" style="margin-top:14px;align-items:flex-end">
           <button id="btnCalc" class="btn">S 확률 계산</button>
-          <button id="btnBaseProb" class="btn alt">P(MaxBase | 정수 초기치)</button>
           <span id="status" class="muted small" style="margin-left:10px"></span>
         </div>
       </div>
@@ -129,272 +104,105 @@
 
     <div class="card" style="margin-top:18px">
       <h2>설명 (요약)</h2>
-      <p class="muted small">
-        • 단계A에서 JSON 파일로 저장한 후보를 불러옵니다.<br/>
-        • <b>1회 S판정</b>: A(10포인트 분배 전수, 다항확률) × B(랭크 범위 균등)로 p(S) 계산.<br/>
-        • <b>누적(140)</b>: 139회 레벨업을 몬테카를로 시뮬레이션하여 누적 성장 합이 목표(per-level S표기 × 139)와 일치하는 비율 추정.<br/>
-        • 결과는 후보별 p를 가중 평균하여 <b>평균</b>과 <b>범위[min~max]</b>, <b>후보 수</b>를 표시합니다.
-      </p>
-    </div>
-  </div>
-
-  <!-- 로딩 오버레이 -->
-  <div id="overlay">
-    <div class="card" style="min-width:260px;text-align:center">
-      <div class="spinner"></div>
-      <div id="overlayText">계산 중…</div>
+      <p class="muted small">• 단계A에서 후보를 저장하면 localStorage에 JSON이 자동 저장됩니다.<br/>• 단계B에서는 같은 페트 이름을 입력하면 자동으로 불러옵니다.<br/>• 필요시 수동으로 JSON 파일을 불러올 수도 있습니다.<br/>• 각 후보에 대해 140레벨 환각 달성 확률을 추정하고, 평균/범위를 표시합니다.</p>
     </div>
   </div>
 
   <script>
-    // --------- 공통 유틸 ---------
-    const precise = x => Math.round(x*1e12)/1e12;
-    function toDisp(v,s,t,d){
-      return [
-        precise(4*v + s + t + d),
-        precise(0.1*v + s + 0.1*t + 0.05*d),
-        precise(0.1*v + 0.1*s + t + 0.05*d),
-        precise(d)
-      ];
-    }
-    const RANKS = {
-      R1:{Bmin:450,Bmax:500},
-      R2:{Bmin:470,Bmax:520},
-      R3:{Bmin:490,Bmax:540},
-      R4:{Bmin:510,Bmax:560},
-      R5:{Bmin:530,Bmax:580},
-      R6:{Bmin:550,Bmax:600},
-    };
+    let payload=null;
+    const precise = x=> Math.round(x*1e12)/1e12;
+    function toDisp(v,s,t,d){return [precise(4*v+s+t+d), precise(0.1*v+s+0.1*t+0.05*d), precise(0.1*v+0.1*s+t+0.05*d), precise(d)];}
+    const RANKS={R1:{Bmin:450,Bmax:500},R2:{Bmin:470,Bmax:520},R3:{Bmin:490,Bmax:540},R4:{Bmin:510,Bmax:560},R5:{Bmin:530,Bmax:580},R6:{Bmin:550,Bmax:600}};
+    const A_STATES=(()=>{const arr=[];const fact=[1,1,2,6,24,120,720,5040,40320,362880,3628800];for(let a=0;a<=10;a++)for(let b=0;b<=10-a;b++)for(let c=0;c<=10-a-b;c++){const d=10-a-b-c;const ways=fact[10]/(fact[a]*fact[b]*fact[c]*fact[d]);const p=ways*Math.pow(0.25,10);arr.push({hp:a,atk:b,def:c,agi:d,p});}return arr;})();
 
-    // A 분포(총 10포인트를 4스탯에 분배) 전수 + 확률
-    const A_STATES = (() => {
-      const arr = [];
-      const fact=[1,1,2,6,24,120,720,5040,40320,362880,3628800]; // 0!~10!
-      for(let a=0;a<=10;a++){
-        for(let b=0;b<=10-a;b++){
-          for(let c=0;c<=10-a-b;c++){
-            const d=10-a-b-c;
-            const ways = fact[10]/(fact[a]*fact[b]*fact[c]*fact[d]);
-            const p = ways * Math.pow(0.25,10); // 각 분배 동일확률 가정
-            arr.push({hp:a, atk:b, def:c, agi:d, p});
-          }
-        }
-      }
-      return arr; // <<<< 중요: 반환 누락 버그 수정
-    })();
-
-    // 1회 성장치 계산
-    function calcGrowthOnce(base, A, B){
-      const upV=precise((base[0]+A.hp )*B/10000);
+    function calcGrowthOnce(base0,A,B){
+      const upV=precise((base[0]+A.hp)*B/10000);
       const upS=precise((base[1]+A.atk)*B/10000);
       const upT=precise((base[2]+A.def)*B/10000);
       const upD=precise((base[3]+A.agi)*B/10000);
       return toDisp(upV,upS,upT,upD);
     }
 
-    // S판정 (라운딩/구간형)
-    function okS(disp, target, rule, band){
+    function okS(disp,targetGrow,rule,band){
       if(rule==='band'){
-        return Math.abs(disp[0]-target[0])<=band &&
-               Math.abs(disp[1]-target[1])<=band &&
-               Math.abs(disp[2]-target[2])<=band &&
-               Math.abs(disp[3]-target[3])<=band;
+        return Math.abs(disp[0]-targetGrow[0])<=band && Math.abs(disp[1]-targetGrow[1])<=band && Math.abs(disp[2]-targetGrow[2])<=band && Math.abs(disp[3]-targetGrow[3])<=band;
       }else{
-        const r=x=> Number(x.toFixed(2));
-        return r(disp[0])===r(target[0]) &&
-               r(disp[1])===r(target[1]) &&
-               r(disp[2])===r(target[2]) &&
-               r(disp[3])===r(target[3]);
+        const r=x=>Number(x.toFixed(2));
+        return r(disp[0])===r(targetGrow[0]) && r(disp[1])===r(targetGrow[1]) && r(disp[2])===r(targetGrow[2]) && r(disp[3])===r(targetGrow[3]);
       }
     }
 
-    // --------- 상태 & 엘리먼트 ---------
-    let payload = null; // 단계A JSON {petName, targetGrow[4], initRound, candidates:[{rank,initnum,base[4],score}]}
-    const in_hp_i = document.getElementById('in_hp_i');
-    const in_atk_i = document.getElementById('in_atk_i');
-    const in_def_i = document.getElementById('in_def_i');
-    const in_agi_i = document.getElementById('in_agi_i');
-    const sRuleSel = document.getElementById('sRule');
-    const bandInp  = document.getElementById('band');
-    const wModeSel = document.getElementById('wMode');
-    const modeSel  = document.getElementById('mode');
-    const trialsInp= document.getElementById('trials');
-    const tbody    = document.getElementById('tbody');
-    const kpi      = document.getElementById('kpi');
-    const statusEl = document.getElementById('status');
-    const overlay  = document.getElementById('overlay');
-    const overlayText = document.getElementById('overlayText');
-
-    // --------- JSON 불러오기 ---------
-    document.getElementById('fileInput').addEventListener('change', e=>{
-      const file=e.target.files[0];
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload = (ev)=>{
-        try{
-          const data = JSON.parse(ev.target.result);
-          if(!data || !Array.isArray(data.candidates) || !Array.isArray(data.targetGrow)){
-            alert('지원하는 형식의 JSON이 아닙니다.');
-            return;
-          }
-          payload = data;
-          alert(`후보 JSON 불러오기 성공\n- 페트: ${payload.petName||'(미지정)'}\n- 후보 수: ${payload.candidates.length}`);
-        }catch(err){
-          console.error(err);
-          alert('JSON 파싱 실패');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    // --------- P(MaxBase | 정수 초기치) (보조 기능) ---------
-    function runMaxBase(){
-      if(!payload){alert('먼저 후보 JSON을 불러오세요.');return;}
-      const iHP=parseInt(in_hp_i.value,10), iATK=parseInt(in_atk_i.value,10), iDEF=parseInt(in_def_i.value,10), iAGI=parseInt(in_agi_i.value,10);
-      if([iHP,iATK,iDEF,iAGI].some(x=>!Number.isFinite(x))){alert('정수 표기 초기치 4개를 입력해주세요.');return;}
-      const targetInt=[iHP,iATK,iDEF,iAGI];
-      const f = (x)=> payload.initRound==='floor'? Math.floor(x): Math.round(x);
-
-      let total=0, best=0, bestSum=-1;
-      for(const c of payload.candidates){ bestSum=Math.max(bestSum, c.base[0]+c.base[1]+c.base[2]+c.base[3]); }
-
-      for(const c of payload.candidates){
-        const base=c.base, initnum=c.initnum;
-        for(const A of A_STATES){
-          const V=precise(initnum*(base[0]+A.hp )/100);
-          const S=precise(initnum*(base[1]+A.atk)/100);
-          const T=precise(initnum*(base[2]+A.def)/100);
-          const D=precise(initnum*(base[3]+A.agi)/100);
-          const disp=toDisp(V,S,T,D);
-          if(f(disp[0])===targetInt[0] && f(disp[1])===targetInt[1] && f(disp[2])===targetInt[2] && f(disp[3])===targetInt[3]){
-            total++; if(base[0]+base[1]+base[2]+base[3]===bestSum) best++;
-          }
-        }
-      }
-      if(total===0){alert('해당 정수 초기치를 만들 수 있는 경우가 없습니다.');return;}
-      alert(`P(MaxBase | 정수 초기치) ≈ ${((best/total)*100).toFixed(3)}% (근사)`);
-    }
-
-    // --------- 메인 계산 ---------
     function run(){
-      if(!payload){alert('먼저 후보 JSON을 불러오세요.');return;}
+      const petName=(document.getElementById('pet_name').value||'').trim();
+      if(!petName){alert('페트 이름을 입력하세요.');return;}
+      if(!payload){
+        const stored=localStorage.getItem('stoneage_rev_candidates_'+petName);
+        if(stored){payload=JSON.parse(stored);}else{alert('JSON 후보 파일을 불러오거나, 단계A에서 저장하세요.');return;}
+      }
       const iHP=parseInt(in_hp_i.value,10), iATK=parseInt(in_atk_i.value,10), iDEF=parseInt(in_def_i.value,10), iAGI=parseInt(in_agi_i.value,10);
       if([iHP,iATK,iDEF,iAGI].some(x=>!Number.isFinite(x))){alert('정수 표기 초기치 4개를 입력해주세요.');return;}
-      const targetInt=[iHP,iATK,iDEF,iAGI];
 
-      const sRule=sRuleSel.value;
-      const band=parseFloat(bandInp.value)||0.02;
-      const wMode=wModeSel.value;
-      const mode = modeSel.value;           // 'lv1' | 'lv140'
-      const trials = parseInt(trialsInp.value,10)||20000;
-
-      tbody.innerHTML=''; kpi.innerHTML='';
-      statusEl.textContent='계산 중…'; overlay.style.display='flex';
-      overlayText.textContent = (mode==='lv1'?'1회 S 판정 계산 중…':'Lv.140 누적 시뮬레이션 중…');
-
-      // 초기치 정수 필터: 해당 후보가 현재 정수 표기를 만들 수 있는지(초기 1레벨) 체크
-      const initPossible = (cand) => {
-        const initnum=cand.initnum, base=cand.base;
-        const f=(x)=> payload.initRound==='floor'? Math.floor(x): Math.round(x);
-        for(const A of A_STATES){
-          const V=precise(initnum*(base[0]+A.hp )/100);
-          const S=precise(initnum*(base[1]+A.atk)/100);
-          const T=precise(initnum*(base[2]+A.def)/100);
-          const D=precise(initnum*(base[3]+A.agi)/100);
-          const d=toDisp(V,S,T,D);
-          if(f(d[0])===targetInt[0] && f(d[1])===targetInt[1] && f(d[2])===targetInt[2] && f(d[3])===targetInt[3]) return true;
-        }
-        return false;
-      };
+      const sRule=document.getElementById('sRule').value; const band=parseFloat(document.getElementById('band').value)||0.01; const wMode=document.getElementById('wMode').value;
+      const tbody=document.getElementById('tbody'); const kpi=document.getElementById('kpi'); tbody.innerHTML=''; kpi.innerHTML='';
+      status.textContent='계산 중…';
 
       const details=[];
       for(const cand of payload.candidates){
-        if(!initPossible(cand)) continue; // 초기치 정수 미일치 후보 제거
-
-        const rank=cand.rank, base=cand.base;
-        const {Bmin,Bmax}=RANKS[rank];
+        const rank=cand.rank; const {Bmin,Bmax}=RANKS[rank]; const base0 = [
+          cand.base[0] - 4.5,
+          cand.base[1] - 4.5,
+          cand.base[2] - 4.5,
+          cand.base[3] - 4.5,
+        ];
+        const initnum = cand.initnum;
         let p=0;
-
-        if(mode==='lv1'){
-          for(let B=Bmin; B<=Bmax; B++){
-            for(const A of A_STATES){
-              const disp=calcGrowthOnce(base,A,B);
-              if(okS(disp, payload.targetGrow, sRule, band)){
-                p += A.p * (1/(Bmax-Bmin+1));
-              }
+        for(let B=Bmin;B<=Bmax;B++){
+          for(const A of A_STATES){
+            const disp=calcGrowthOnce(base0,A,B);
+            if(okS(disp,payload.targetGrow,sRule,band)){
+              p+=A.p*(1/(Bmax-Bmin+1));
             }
           }
-        }else{
-          // Lv.140 누적: 139회 레벨업 누적 성장치가 타깃(per-level)*139와 일치?
-          const steps=140-1;
-          let hit=0;
-          for(let t=0;t<trials;t++){
-            let sum=[0,0,0,0];
-            for(let k=0;k<steps;k++){
-              // B 균등 샘플
-              const B = Math.floor(Math.random()*(Bmax-Bmin+1)) + Bmin;
-              // A를 10회 동등확률 4면 샘플로 생성(다항 분포 근사)
-              const a={hp:0,atk:0,def:0,agi:0};
-              for(let m=0;m<10;m++){
-                const r=Math.floor(Math.random()*4);
-                if(r===0) a.hp++; else if(r===1) a.atk++; else if(r===2) a.def++; else a.agi++;
-              }
-              const disp=calcGrowthOnce(base,a,B);
-              sum[0]+=disp[0]; sum[1]+=disp[1]; sum[2]+=disp[2]; sum[3]+=disp[3];
-            }
-            // 목표 누적: per-level × steps
-            const tg = payload.targetGrow;
-            const targetCum=[tg[0]*steps, tg[1]*steps, tg[2]*steps, tg[3]*steps];
-            // 구간형이면 band*steps, 라운딩이면 합을 2자리 반올림 비교
-            if(okS(sum, targetCum, sRule, (sRule==='band'? band*steps : band))){
-              hit++;
-            }
-          }
-          p = hit / trials;
         }
-
-        details.push({cand, p});
+        details.push({cand,p});
       }
 
-      if(!details.length){
-        overlay.style.display='none';
-        statusEl.textContent='일치 후보 없음';
-        alert('일치 후보가 없습니다.\n- 단계A JSON과 동일한 페트인지\n- 정수 초기치가 그 후보들로 생성 가능한지\n- 판정 규칙/구간폭을 조정해 보세요.');
-        return;
-      }
+      if(!details.length){status.textContent='일치 후보가 없습니다.';return;}
 
-      const weights = details.map(d=> (wMode==='score'? (d.cand.score||1): 1));
-      const sumW = weights.reduce((a,b)=>a+b,0);
-      const pAvg = details.reduce((acc,d,i)=> acc + d.p*weights[i], 0)/sumW;
-      const pMin = Math.min(...details.map(d=>d.p));
-      const pMax = Math.max(...details.map(d=>d.p));
+      const weights=details.map(d=> (wMode==='score'?(d.cand.score||1):1));
+      const sumW=weights.reduce((a,b)=>a+b,0);
+      const pAvg=details.reduce((acc,d,i)=>acc+d.p*weights[i],0)/sumW;
+      const pMin=Math.min(...details.map(d=>d.p));
+      const pMax=Math.max(...details.map(d=>d.p));
 
-      kpi.innerHTML = `
-        <div class="chip">평균 p(${mode==='lv1'?'1회S':'Lv140'}) = <b>${(pAvg*100).toFixed(3)}%</b></div>
+      kpi.innerHTML=`
+        <div class="chip">평균 p(S) = <b>${(pAvg*100).toFixed(3)}%</b></div>
         <div class="chip">범위 = <b>${(pMin*100).toFixed(3)}% ~ ${(pMax*100).toFixed(3)}%</b></div>
-        <div class="chip">후보 수 = <b>${details.length}</b></div>
-      `;
+        <div class="chip">후보 수 = <b>${details.length}</b></div>`;
 
-      let i=1;
-      for(const d of details.sort((a,b)=> b.p-a.p).slice(0,300)){
+      let i=1;for(const d of details.sort((a,b)=>b.p-a.p).slice(0,300)){
         const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td>${i++}</td>
-          <td>${d.cand.rank}</td>
-          <td>[${d.cand.base.join(', ')}]</td>
-          <td>${d.cand.initnum}</td>
-          <td>${(d.p*100).toFixed(3)}%</td>
-        `;
+        tr.innerHTML=`<td>${i++}</td><td>${d.cand.rank}</td><td>[${d.cand.base.join(', ')}]</td><td>${d.cand.initnum}</td><td>${(d.p*100).toFixed(3)}%</td>`;
         tbody.appendChild(tr);
       }
 
-      overlay.style.display='none';
-      statusEl.textContent='완료';
+      status.textContent='완료';
     }
 
-    // 이벤트
-    document.getElementById('btnCalc').addEventListener('click', ()=>{ overlay.style.display='flex'; setTimeout(run, 30); });
-    document.getElementById('btnBaseProb').addEventListener('click', runMaxBase);
+    document.getElementById('btnCalc').addEventListener('click',run);
+    document.getElementById('fileInput').addEventListener('change',e=>{
+      const file=e.target.files[0];
+      if(!file)return;
+      const reader=new FileReader();
+      reader.onload=ev=>{try{payload=JSON.parse(ev.target.result);const petName=(document.getElementById('pet_name').value||'').trim();if(petName) localStorage.setItem('stoneage_rev_candidates_'+petName,ev.target.result);alert('후보 JSON 불러오기 성공');}catch(err){alert('JSON 파싱 실패');}};
+      reader.readAsText(file);
+    });
+
+    const in_hp_i=document.getElementById('in_hp_i');
+    const in_atk_i=document.getElementById('in_atk_i');
+    const in_def_i=document.getElementById('in_def_i');
+    const in_agi_i=document.getElementById('in_agi_i');
+    const status=document.getElementById('status');
   </script>
 </body>
 </html>
