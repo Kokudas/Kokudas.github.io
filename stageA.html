@@ -33,22 +33,23 @@
   td.name,th.name{text-align:left}
   .ok{color:var(--ok)} .bad{color:var(--warn)}
   .hint{font-size:12px;color:#8aa0c5}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#172554;border:1px solid #1e3a8a;color:#c7d2fe;font-size:12px}
 </style>
 </head>
 <body>
 <nav>
   <a href="https://kokudas.github.io/">홈</a>
   <span style="opacity:.6">|</span>
-  <a href="https://kokudas.github.io/stageA.html">단계A(역산)</a>
+  <a href="./stageA.html">단계A(역산)</a>
   <span style="opacity:.6">|</span>
-  <a href="https://kokudas.github.io/stageB.html">단계B(S확률)</a>
+  <a href="./stageB.html">단계B(S확률)</a>
   <span id="banner">Ready</span>
 </nav>
 
 <main>
   <div class="card">
     <h1>단계A · 소숫점 표기(초기·성장) → 후보 역산</h1>
-    <div class="mut">입력한 <b>표기 성장치</b>로 성장 베이스를 역산하고, 입력한 <b>표기 초기 소숫점</b>으로 후보를 정렬합니다. 저장 후 단계B에서 확률을 계산하세요.</div>
+    <div class="mut">입력한 <b>표기 성장</b>과 <b>표기 초기</b>(소숫점)를 바탕으로 성장베이스(S기준)를 역산합니다. 저장 후 단계B에서 확률을 구하세요.</div>
   </div>
 
   <div class="card">
@@ -57,41 +58,17 @@
     <input id="petName" placeholder="예: 반기노"/>
 
     <div class="row">
-      <div>
-        <label>표기 성장 (체)</label>
-        <input id="g_hp" type="number" step="0.01" placeholder="예: 9.97">
-      </div>
-      <div>
-        <label>표기 성장 (공)</label>
-        <input id="g_atk" type="number" step="0.01" placeholder="예: 2.41">
-      </div>
-      <div>
-        <label>표기 성장 (방)</label>
-        <input id="g_def" type="number" step="0.01" placeholder="예: 1.43">
-      </div>
-      <div>
-        <label>표기 성장 (순)</label>
-        <input id="g_agi" type="number" step="0.01" placeholder="예: 1.21">
-      </div>
+      <div><label>표기 성장 (체)</label><input id="g_hp" type="number" step="0.01" placeholder="예: 9.97"></div>
+      <div><label>표기 성장 (공)</label><input id="g_atk" type="number" step="0.01" placeholder="예: 2.41"></div>
+      <div><label>표기 성장 (방)</label><input id="g_def" type="number" step="0.01" placeholder="예: 1.43"></div>
+      <div><label>표기 성장 (순)</label><input id="g_agi" type="number" step="0.01" placeholder="예: 1.21"></div>
     </div>
 
     <div class="row">
-      <div>
-        <label>표기 초기 (체) 소숫점</label>
-        <input id="i_hp" type="number" step="0.01" placeholder="예: 52.39">
-      </div>
-      <div>
-        <label>표기 초기 (공) 소숫점</label>
-        <input id="i_atk" type="number" step="0.01" placeholder="예: 12.64">
-      </div>
-      <div>
-        <label>표기 초기 (방) 소숫점</label>
-        <input id="i_def" type="number" step="0.01" placeholder="예: 7.49">
-      </div>
-      <div>
-        <label>표기 초기 (순) 소숫점</label>
-        <input id="i_agi" type="number" step="0.01" placeholder="예: 6.37">
-      </div>
+      <div><label>표기 초기 (체) 소숫점</label><input id="i_hp" type="number" step="0.01" placeholder="예: 52.39"></div>
+      <div><label>표기 초기 (공) 소숫점</label><input id="i_atk" type="number" step="0.01" placeholder="예: 12.64"></div>
+      <div><label>표기 초기 (방) 소숫점</label><input id="i_def" type="number" step="0.01" placeholder="예: 7.49"></div>
+      <div><label>표기 초기 (순) 소숫점</label><input id="i_agi" type="number" step="0.01" placeholder="예: 6.37"></div>
     </div>
 
     <div class="row3">
@@ -105,7 +82,14 @@
       </div>
       <div>
         <label>초기치 정수 사전필터 (선택)</label>
-        <input id="pre_hp_atk_def_agi" placeholder="예: 52,12,7,6 (비우면 미적용)">
+        <input id="preInts" placeholder="예: 52,12,7,6 (비우면 미적용)">
+        <div class="mut">정수필터 모드:
+          <select id="preMode">
+            <option value="fast" selected>빠름(샘플)</option>
+            <option value="normal">보통</option>
+            <option value="strong">강함(느림)</option>
+          </select>
+        </div>
       </div>
       <div>
         <label>성장 일치 허용오차</label>
@@ -120,268 +104,287 @@
 
     <div class="btns">
       <button class="btn alt" id="btnSolve">후보 역산</button>
-      <button class="btn" id="btnExport" disabled>JSON로 내보내기</button>
+      <button class="btn" id="btnExport" disabled>JSON 내보내기</button>
       <button class="btn alt" id="btnSend" disabled>단계B로 전송</button>
+      <span class="pill" id="statusPill">대기</span>
       <span class="mut" id="stat"></span>
     </div>
-    <div class="hint">※ S-저장 규칙: 역산된 성장베이스는 내부적으로 <b>“S기준”</b>으로 저장됩니다.<br>
-      &nbsp;&nbsp;• 성장 합성용: <code>baseForGrowth = base(S) - 2.5</code> &nbsp;• 초기치 필터용: <code>baseForInit = base(S) - 4.5</code></div>
+    <div class="hint">• 저장되는 베이스는 <b>S기준</b>입니다. 성장합성 시 <code>base(S)-2.5</code>, 초기 정수필터 시 <code>base(S)-4.5</code>를 사용합니다.</div>
   </div>
 
   <div class="card">
-    <h2>후보(상위 300개)</h2>
+    <h2>후보(상위 300)</h2>
     <table id="tbl">
       <thead>
-        <tr>
-          <th class="name"># / Rank</th>
-          <th>initnum</th>
-          <th>base(S) 체</th>
-          <th>base(S) 공</th>
-          <th>base(S) 방</th>
-          <th>base(S) 순</th>
-          <th>일치스코어↑</th>
-          <th>성장일치</th>
-          <th>초기정수가능</th>
-        </tr>
+      <tr>
+        <th class="name"># / Rank</th>
+        <th>initnum</th>
+        <th>base(S) 체</th>
+        <th>base(S) 공</th>
+        <th>base(S) 방</th>
+        <th>base(S) 순</th>
+        <th>일치스코어↑</th>
+        <th>성장 일치</th>
+        <th>초기정수 가능</th>
+      </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
   <div class="card">
-    <h2>주의/안내</h2>
+    <h2>안내/주의</h2>
     <ul class="mut">
-      <li>이 계산기는 유저 편의를 위한 도구이며 결과의 정확성을 보장하지 않습니다.</li>
-      <li>성장·초기 소숫점이 실제와 0.01 단위로만 달라도 후보가 달라질 수 있습니다.</li>
-      <li>초기 정수 사전필터는 경량 탐색(대표 패턴)으로 <b>보수적</b>입니다. 너무 엄격하면 유효 후보가 제거될 수 있습니다.</li>
+      <li>브라우저 멈춤 방지를 위해 정수필터는 기본 <b>빠름(샘플링)</b> 입니다. 필요 시 <b>보통/강함</b>으로 올리세요.</li>
+      <li>“무반응”처럼 보이면 <b>입력 유효성</b> 또는 <b>사전필터 과도</b> 가능성이 큽니다. 필터를 비우거나 모드를 낮춰보세요.</li>
     </ul>
   </div>
 </main>
 
 <script>
-// ---------- 상수/행렬 ----------
+// ===== 공통 행렬/유틸 =====
 const M = [
-  [4,    1,    1,    1   ],
-  [0.1,  1,    0.1,  0.05],
-  [0.1,  0.1,  1,    0.05],
-  [0,    0,    0,    1   ]
+  [4,1,1,1],
+  [0.1,1,0.1,0.05],
+  [0.1,0.1,1,0.05],
+  [0,0,0,1]
 ];
-// 정확한 역행렬 (표기→실성장)
-function matInv4(){
-  return [
-    [ 0.2619047619047619, -0.2380952380952381, -0.2380952380952381, -0.2380952380952381],
-    [-0.0238095238095238,  1.0317460317460319, -0.0793650793650794, -0.0238095238095238],
-    [-0.0238095238095238, -0.0793650793650794,  1.0317460317460319, -0.0238095238095238],
-    [ 0.0000000000000000,  0.0000000000000000,  0.0000000000000000,  1.0000000000000000]
-  ];
-}
-const Minv = matInv4();
-const rankB = {
-  R1:[450,500], R2:[470,520], R3:[490,540],
-  R4:[510,560], R5:[530,580], R6:[550,600]
-};
-
-function dot4x4v(A,v){
-  return [
-    A[0][0]*v[0]+A[0][1]*v[1]+A[0][2]*v[2]+A[0][3]*v[3],
-    A[1][0]*v[0]+A[1][1]*v[1]+A[1][2]*v[2]+A[1][3]*v[3],
-    A[2][0]*v[0]+A[2][1]*v[1]+A[2][2]*v[2]+A[2][3]*v[3],
-    A[3][0]*v[0]+A[3][1]*v[1]+A[3][2]*v[2]+A[3][3]*v[3],
-  ];
-}
-function approx(a,b,tol){ return Math.abs(a-b)<=tol; }
-function rnd(x,n=6){ return Math.round(x*10**n)/10**n; }
-
-const petNameEl = document.getElementById('petName');
-const g_hp = document.getElementById('g_hp');
-const g_atk = document.getElementById('g_atk');
-const g_def = document.getElementById('g_def');
-const g_agi = document.getElementById('g_agi');
-const i_hp = document.getElementById('i_hp');
-const i_atk = document.getElementById('i_atk');
-const i_def = document.getElementById('i_def');
-const i_agi = document.getElementById('i_agi');
-const initRoundEl = document.getElementById('initRound');
-const preIntEl = document.getElementById('pre_hp_atk_def_agi');
-const growTolEl = document.getElementById('growTol');
-const tblBody = document.querySelector('#tbl tbody');
-const statEl = document.getElementById('stat');
-const btnExport = document.getElementById('btnExport');
-const btnSend = document.getElementById('btnSend');
-
-let lastCandidates = [];
-
-// 간단한 등급 추정(합 기준이 아니라 rankB 전 범위를 모두 시도해 스코어 좋은 것부터 뽑기)
+function matInv4(){return[
+  [ 0.2619047619047619,-0.2380952380952381,-0.2380952380952381,-0.2380952380952381],
+  [-0.0238095238095238, 1.0317460317460319,-0.0793650793650794,-0.0238095238095238],
+  [-0.0238095238095238,-0.0793650793650794, 1.0317460317460319,-0.0238095238095238],
+  [ 0,0,0,1]
+];}
+const Minv=matInv4();
+const rankB={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
 const ranks=['R1','R2','R3','R4','R5','R6'];
-const initnums = Array.from({length:28},(_,k)=>k+13); // 13~40 범용
+const initnums=Array.from({length:28},(_,k)=>k+13);
 
+const $=sel=>document.querySelector(sel);
+const tblBody=$("#tbl tbody");
+const statEl=$("#stat");
+const pill=$("#statusPill");
+const btnExport=$("#btnExport");
+const btnSend=$("#btnSend");
+
+function dot4(A,v){return[
+  A[0][0]*v[0]+A[0][1]*v[1]+A[0][2]*v[2]+A[0][3]*v[3],
+  A[1][0]*v[0]+A[1][1]*v[1]+A[1][2]*v[2]+A[1][3]*v[3],
+  A[2][0]*v[0]+A[2][1]*v[1]+A[2][2]*v[2]+A[2][3]*v[3],
+  A[3][0]*v[0]+A[3][1]*v[1]+A[3][2]*v[2]+A[3][3]*v[3],
+];}
+function approx(a,b,t){return Math.abs(a-b)<=t;}
 function parsePreInts(){
-  const s = preIntEl.value.trim();
+  const s=$("#preInts").value.trim();
   if(!s) return null;
-  const arr = s.split(',').map(x=>parseInt(x.trim(),10));
-  if(arr.length!==4 || arr.some(x=>Number.isNaN(x))) return null;
-  return arr; // [H,A,D,G]
+  const a=s.split(',').map(x=>parseInt(x.trim(),10));
+  if(a.length!==4 || a.some(Number.isNaN)){ alert('정수 필터는 "체,공,방,순" 형식'); return null; }
+  return a;
+}
+function applyRound(x,mode){
+  if(mode==='floor') return Math.floor(x);
+  if(mode==='ceil') return Math.ceil(x);
+  return Math.round(x);
 }
 
-// 경량 초기정수 가능성 체크(대표 패턴 탐색)
-function canMakeInitialInts(baseS, initnum, ints, roundMode){
-  if(!ints) return true; // 미사용
-  // 초기치용 base = baseS - 4.5
+// ===== 정수 사전필터(최적화) =====
+// 보너스 대표 패턴 (총합 10)
+const BASE_PATTERNS=[
+  [3,3,2,2],[4,3,2,1],[4,2,2,2],[6,2,1,1],[5,3,1,1],
+  [10,0,0,0],[0,10,0,0],[0,0,10,0],[0,0,0,10],
+  [5,5,0,0],[0,5,5,0],[0,0,5,5],[4,4,1,1]
+];
+// 전치 집합(중복 제거)
+let PERM_CACHE=null;
+function permsUnique(arr){
+  const out=new Set();
+  const used=Array(arr.length).fill(false);
+  const nums=arr.slice().sort((a,b)=>a-b);
+  const cur=[];
+  function dfs(){
+    if(cur.length===nums.length){ out.add(cur.join(',')); return; }
+    for(let i=0;i<nums.length;i++){
+      if(used[i]) continue;
+      if(i>0 && nums[i]===nums[i-1] && !used[i-1]) continue;
+      used[i]=true; cur.push(nums[i]); dfs(); cur.pop(); used[i]=false;
+    }
+  }
+  dfs();
+  return Array.from(out).map(s=>s.split(',').map(Number));
+}
+function buildPermCache(){
+  if(PERM_CACHE) return PERM_CACHE;
+  PERM_CACHE = BASE_PATTERNS.flatMap(permsUnique);
+  return PERM_CACHE;
+}
+// 샘플링용 랜덤 유틸
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+// 모드별 전략
+function canMakeInitialInts(baseS, initnum, ints, roundMode, mode='fast'){
+  if(!ints) return true;
   const base = baseS.map(v=>v-4.5);
-  // 대표 패턴: 랜덤(-2..2) 전체 + 보너스 분포 몇 개 샘플
-  const bonusPatterns = [
-    [3,3,2,2],[4,3,2,1],[4,2,2,2],[6,2,1,1],[5,3,1,1],
-    [10,0,0,0],[0,10,0,0],[0,0,10,0],[0,0,0,10],
-    [5,5,0,0],[0,5,5,0],[0,0,5,5],[4,4,1,1]
-  ];
-  const perms = (arr)=> {
-    const out=new Set();
-    function f(a,l){
-      if(l===a.length){ out.add(a.join(',')); return; }
-      for(let i=l;i<a.length;i++){ [a[l],a[i]]=[a[i],a[l]]; f(a.slice(),l+1); [a[l],a[i]]=[a[i],a[l]]; }
-    } f(arr.slice(),0);
-    return Array.from(out).map(s=>s.split(',').map(Number));
-  }
-  const bonusAll = bonusPatterns.flatMap(perms);
 
-  function applyRound(x){
-    if(roundMode==='floor') return Math.floor(x);
-    if(roundMode==='ceil') return Math.ceil(x);
-    return Math.round(x);
-  }
+  const tryOnce = (rH,rA,rD,rG,b)=>{
+    const h=initnum*(base[0]+rH+b[0])/100;
+    const a=initnum*(base[1]+rA+b[1])/100;
+    const d=initnum*(base[2]+rD+b[2])/100;
+    const g=initnum*(base[3]+rG+b[3])/100;
+    const H=applyRound(h*4+a+d+g,roundMode);
+    const A=applyRound(h*0.1+a+d*0.1+g*0.05,roundMode);
+    const D=applyRound(h*0.1+a*0.1+d+g*0.05,roundMode);
+    const G=applyRound(g,roundMode);
+    return (H===ints[0] && A===ints[1] && D===ints[2] && G===ints[3]);
+  };
 
-  for(let rH=-2;rH<=2;rH++){
-    for(let rA=-2;rA<=2;rA++){
-      for(let rD=-2;rD<=2;rD++){
-        for(let rG=-2;rG<=2;rG++){
-          for(const b of bonusAll){
-            const h=initnum*(base[0]+rH+b[0])/100;
-            const a=initnum*(base[1]+rA+b[1])/100;
-            const d=initnum*(base[2]+rD+b[2])/100;
-            const g=initnum*(base[3]+rG+b[3])/100;
-            const H = applyRound(h*4 + a + d + g);
-            const A = applyRound(h*0.1 + a + d*0.1 + g*0.05);
-            const D = applyRound(h*0.1 + a*0.1 + d + g*0.05);
-            const G = applyRound(g);
-            if(H===ints[0] && A===ints[1] && D===ints[2] && G===ints[3]) return true;
+  if(mode==='fast'){
+    // 랜덤 240샘플
+    for(let t=0;t<240;t++){
+      const rH=randInt(-2,2), rA=randInt(-2,2), rD=randInt(-2,2), rG=randInt(-2,2);
+      const b = pick(BASE_PATTERNS);
+      const bp = pick(permsUnique(b)); // 각 샘플에서만 전치
+      if(tryOnce(rH,rA,rD,rG,bp)) return true;
+    }
+    return false;
+  }else if(mode==='normal'){
+    const ALL=buildPermCache();
+    // 랜덤 120 * 전치(평균 ~12) 중 1개 = 약 120회
+    for(let t=0;t<120;t++){
+      const rH=randInt(-2,2), rA=randInt(-2,2), rD=randInt(-2,2), rG=randInt(-2,2);
+      const bp = pick(ALL);
+      if(tryOnce(rH,rA,rD,rG,bp)) return true;
+    }
+    return false;
+  }else{ // strong
+    const ALL=buildPermCache();
+    for(let rH=-2;rH<=2;rH++){
+      for(let rA=-2;rA<=2;rA++){
+        for(let rD=-2;rD<=2;rD++){
+          for(let rG=-2;rG<=2;rG++){
+            for(const bp of ALL){
+              if(tryOnce(rH,rA,rD,rG,bp)) return true;
+            }
           }
         }
       }
     }
+    return false;
   }
-  return false;
 }
 
-// 후보 산출
-document.getElementById('btnSolve').addEventListener('click', ()=>{
-  tblBody.innerHTML=''; lastCandidates=[];
-  statEl.textContent='계산 중...';
+// ===== 메인 로직 =====
+let lastCandidates=[];
 
-  const grow = [g_hp.value,g_atk.value,g_def.value,g_agi.value].map(x=>parseFloat(x));
-  if(grow.some(x=>Number.isNaN(x))){ alert('표기 성장 4개를 모두 입력해주세요.'); statEl.textContent=''; return; }
-  const initDec = [i_hp.value,i_atk.value,i_def.value,i_agi.value].map(x=>parseFloat(x));
-  if(initDec.some(x=>Number.isNaN(x))){ alert('표기 초기 소숫점 4개를 모두 입력해주세요.'); statEl.textContent=''; return; }
-  const tol = parseFloat(growTolEl.value);
-  const roundMode = initRoundEl.value;
-  const preInts = parsePreInts();
+document.getElementById('btnSolve').addEventListener('click', async ()=>{
+  try{
+    tblBody.innerHTML=''; lastCandidates=[]; btnExport.disabled=true; btnSend.disabled=true;
+    pill.textContent='계산 중...'; statEl.textContent='';
 
-  // 표기성장 → 실성장 per-level
-  const up = dot4x4v(Minv, grow); // length 4
+    const petName=$("#petName").value.trim();
+    const grow=[+$("#g_hp").value,+$("#g_atk").value,+$("#g_def").value,+$("#g_agi").value];
+    const initDec=[+$("#i_hp").value,+$("#i_atk").value,+$("#i_def").value,+$("#i_agi").value];
+    if(grow.some(x=>Number.isNaN(x))||initDec.some(x=>Number.isNaN(x))){
+      pill.textContent='오류'; alert('표기 성장/초기(소숫점) 4개 모두 입력해주세요.'); return;
+    }
+    const tol=+$("#growTol").value;
+    const roundMode=$("#initRound").value;
+    const pre=(()=>{ const p=parsePreInts(); return p; })();
+    const preMode=$("#preMode").value;
 
-  // 랭크/초기치 폭넓게 스캔
-  let pool=[];
-  for(const rk of ranks){
-    const [Bmin,Bmax]=rankB[rk];
-    const Bmid=(Bmin+Bmax)/2;
-    for(const initnum of initnums){
-      // baseGrowthMean = (10000/Bmid)*up - 2.5
-      const baseG = up.map(u => (10000/Bmid)*u - 2.5);
-      // 저장은 S기준(+2.5)
-      const baseS = baseG.map(v=>v+2.5);
-      // 성장 재합성 체크 (평균 Bmid, 평균 A=+2.5)
-      const upCheck = baseG.map(v => (v+2.5)*Bmid/10000);
-      const dispCheck = dot4x4v(M, upCheck);
-      const growHit = dispCheck.every((v,i)=>approx(v, grow[i], tol));
+    const up = dot4(Minv, grow);
 
-      // 초기 소숫점 체크 (라운딩은 입력 기준)
-      const baseInit = baseS.map(v=>v-4.5); // 초기 전용
-      const h=initnum*baseInit[0]/100, a=initnum*baseInit[1]/100, d=initnum*baseInit[2]/100, g=initnum*baseInit[3]/100;
-      const H = h*4+a+d+g;
-      const A = h*0.1+a+d*0.1+g*0.05;
-      const D = h*0.1+a*0.1+d+g*0.05;
-      const G = g;
-      const initHit = approx(H, initDec[0], .15) && approx(A, initDec[1], .15) && approx(D, initDec[2], .15) && approx(G, initDec[3], .15);
+    // 스캔
+    let pool=[];
+    for(const rk of ranks){
+      const [Bmin,Bmax]=rankB[rk];
+      const Bmid=(Bmin+Bmax)/2;
+      for(const initnum of initnums){
+        const baseG = up.map(u => (10000/Bmid)*u - 2.5);
+        const baseS = baseG.map(v=>v+2.5);
 
-      // 초기 정수 사전필터(선택)
-      let intOK = true;
-      if(preInts) intOK = canMakeInitialInts(baseS, initnum, preInts, roundMode);
+        // 성장 재합성 체크
+        const upChk = baseG.map(v => (v+2.5)*Bmid/10000);
+        const disp  = dot4(M, upChk);
+        const growHit = disp.every((v,i)=>approx(v, grow[i], tol));
 
-      if(growHit && initHit && intOK){
-        // 스코어: 성장·초기 소숫점 근접성
-        const se = dispCheck.reduce((acc, v, i)=>acc+(v-grow[i])**2, 0);
-        const si = (H-initDec[0])**2+(A-initDec[1])**2+(D-initDec[2])**2+(G-initDec[3])**2;
-        const score = 1/(1e-6 + se + 0.3*si);
-        pool.push({rank:rk, initnum, base:baseS, score, growHit:true, intOK});
+        // 초기 소숫점 근접
+        const bInit = baseS.map(v=>v-4.5);
+        const h=initnum*bInit[0]/100, a=initnum*bInit[1]/100, d=initnum*bInit[2]/100, gV=initnum*bInit[3]/100;
+        const H=h*4+a+d+gV, A=h*0.1+a+d*0.1+gV*0.05, D=h*0.1+a*0.1+d+gV*0.05, G=gV;
+        const initHit = approx(H,initDec[0],.15)&&approx(A,initDec[1],.15)&&approx(D,initDec[2],.15)&&approx(G,initDec[3],.15);
+
+        // 정수 사전필터(선택)
+        let intOK=true;
+        if(pre) intOK = canMakeInitialInts(baseS, initnum, pre, roundMode, preMode);
+
+        if(growHit && initHit && intOK){
+          const se = disp.reduce((acc,v,i)=>acc+(v-grow[i])**2,0);
+          const si = (H-initDec[0])**2+(A-initDec[1])**2+(D-initDec[2])**2+(G-initDec[3])**2;
+          const score=1/(1e-6+se+0.3*si);
+          pool.push({rank:rk,initnum,base:baseS,score,growHit,intOK});
+        }
       }
     }
+
+    pool.sort((a,b)=>b.score-a.score);
+    lastCandidates=pool.slice(0,300);
+
+    const frag=document.createDocumentFragment();
+    lastCandidates.forEach((c,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td class="name">${i+1}. <b>${c.rank}</b></td>
+        <td>${c.initnum}</td>
+        <td>${c.base[0].toFixed(3)}</td>
+        <td>${c.base[1].toFixed(3)}</td>
+        <td>${c.base[2].toFixed(3)}</td>
+        <td>${c.base[3].toFixed(3)}</td>
+        <td>${c.score.toFixed(6)}</td>
+        <td class="${c.growHit?'ok':'bad'}">${c.growHit?'✓':'×'}</td>
+        <td class="${c.intOK?'ok':'bad'}">${c.intOK?'가능':'불가'}</td>
+      `;
+      frag.appendChild(tr);
+    });
+    tblBody.appendChild(frag);
+
+    statEl.textContent=`후보 ${lastCandidates.length}건 (상위 300 표시)`;
+    pill.textContent= lastCandidates.length? '완료':'0건';
+    btnExport.disabled = lastCandidates.length===0;
+    btnSend.disabled   = lastCandidates.length===0;
+  }catch(err){
+    console.error(err);
+    pill.textContent='오류';
+    alert('역산 중 오류가 발생했습니다. 입력값과 필터 설정을 확인해주세요.');
   }
-
-  // 스코어 내림차순 상위 300
-  pool.sort((a,b)=>b.score-a.score);
-  const limited = pool.slice(0,300);
-  lastCandidates = limited;
-
-  // 표
-  const frag = document.createDocumentFragment();
-  limited.forEach((c,idx)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="name">${idx+1}. <b>${c.rank}</b></td>
-      <td>${c.initnum}</td>
-      <td>${c.base[0].toFixed(3)}</td>
-      <td>${c.base[1].toFixed(3)}</td>
-      <td>${c.base[2].toFixed(3)}</td>
-      <td>${c.base[3].toFixed(3)}</td>
-      <td>${c.score.toFixed(6)}</td>
-      <td class="${c.growHit?'ok':'bad'}">${c.growHit?'✓':'×'}</td>
-      <td class="${c.intOK?'ok':'bad'}">${c.intOK?'가능':'불가'}</td>
-    `;
-    frag.appendChild(tr);
-  });
-  tblBody.appendChild(frag);
-  statEl.textContent = `후보 ${limited.length}건 (총 ${pool.length}건 중 상위 300 표시)`;
-  btnExport.disabled = limited.length===0;
-  btnSend.disabled = limited.length===0;
 });
 
-// JSON 내보내기(디버깅용)
-btnExport.addEventListener('click', ()=>{
+// JSON 내보내기
+document.getElementById('btnExport').addEventListener('click', ()=>{
   if(!lastCandidates.length){ alert('후보가 없습니다.'); return; }
-  const data = {
-    petName: (petNameEl.value.trim()||''),
-    targetGrow: [parseFloat(g_hp.value), parseFloat(g_atk.value), parseFloat(g_def.value), parseFloat(g_agi.value)],
-    initRound: initRoundEl.value,
-    candidates: lastCandidates.map(c=>({rank:c.rank, initnum:c.initnum, base:c.base, score:c.score}))
+  const data={
+    petName: $("#petName").value.trim(),
+    targetGrow: [+$("#g_hp").value,+$("#g_atk").value,+$("#g_def").value,+$("#g_agi").value],
+    initRound: $("#initRound").value,
+    candidates: lastCandidates.map(c=>({rank:c.rank,initnum:c.initnum,base:c.base,score:c.score}))
   };
-  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'candidates.json';
-  a.click();
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='candidates.json'; a.click();
   URL.revokeObjectURL(a.href);
 });
 
 // 단계B로 전송(localStorage)
-btnSend.addEventListener('click', ()=>{
+document.getElementById('btnSend').addEventListener('click', ()=>{
   if(!lastCandidates.length){ alert('전송할 후보가 없습니다.'); return; }
-  const data = {
-    petName: (petNameEl.value.trim()||''),
-    targetGrow: [parseFloat(g_hp.value), parseFloat(g_atk.value), parseFloat(g_def.value), parseFloat(g_agi.value)],
-    initRound: initRoundEl.value,
-    candidates: lastCandidates.map(c=>({rank:c.rank, initnum:c.initnum, base:c.base, score:c.score}))
+  const data={
+    petName: $("#petName").value.trim(),
+    targetGrow: [+$("#g_hp").value,+$("#g_atk").value,+$("#g_def").value,+$("#g_agi").value],
+    initRound: $("#initRound").value,
+    candidates: lastCandidates.map(c=>({rank:c.rank,initnum:c.initnum,base:c.base,score:c.score}))
   };
   localStorage.setItem('kokudas:candidates', JSON.stringify(data));
-  location.href = 'https://kokudas.github.io/stageB.html';
+  location.href='./stageB.html';
 });
 </script>
 </body>
