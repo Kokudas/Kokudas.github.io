@@ -3,265 +3,303 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StageA v0.1 — 페트 후보 역산기</title>
+  <title>StageA v0.1 · 후보 역산 (→ StageB 연동)</title>
   <style>
-    :root{--bg:#0b1220;--card:#121a2b;--ink:#e7eefc;--muted:#9bb0d8;--acc:#6aa1ff;--good:#27c93f;--warn:#ffbd2e;--bad:#ff5f56}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,'Noto Sans KR',Pretendard,Helvetica,Arial}
-    a{color:var(--acc);text-decoration:none}
-    header{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#0b1220 70%,rgba(11,18,32,.8));border-bottom:1px solid #1e2a44}
-    .bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
-    .brand{font-weight:700;letter-spacing:.2px}
-    .sp{flex:1}
-    .btn{background:#1b2740;border:1px solid #253250;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:hover{border-color:#415e9c}
-    .pill{padding:6px 10px;border-radius:999px;background:#1b2740;border:1px solid #2b3d63}
-    .wrap{max-width:1080px;margin:18px auto;padding:0 16px 80px}
-    .card{background:var(--card);border:1px solid #223054;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-    .col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-12{grid-column:span 12}
-    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-    input,select{width:100%;background:#0e1526;border:1px solid #253250;color:var(--ink);padding:10px 12px;border-radius:10px}
-    input::placeholder{color:#5b719f}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .hint{font-size:12px;color:var(--muted)}
+    :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#e7eef8}
+    header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
+    header .wrap{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto;padding:12px 16px}
+    header a{color:var(--pri);text-decoration:none;font-weight:600}
+    .pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff}
+    main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+    @media (max-width:980px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1e2a44;font-size:18px;color:#d8e6ff}
+    .card .body{padding:16px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
+    input::placeholder{color:#6f87ad}
+    button{cursor:pointer;font-weight:700}
+    .btn{background:#132347;border-color:#2a3a5e}
+    .btn:hover{background:#162a55}
+    .btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d}
+    .muted{color:var(--muted);font-size:13px}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #203055}
-    th{color:#bcd1ff;text-align:left;font-size:13px}
-    .right{text-align:right}
+    th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right}
+    th{text-align:center;color:#bcd1ff}
+    td:nth-child(1),th:nth-child(1){text-align:center}
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a3a5e;background:#0f1a2f;color:#cfe0ff;font-size:12px}
     .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-    .footer{opacity:.8;font-size:12px}
   </style>
 </head>
 <body>
   <header>
-    <div class="bar">
-      <div class="brand">StageA v0.1</div>
-      <span class="pill">후보 역산</span>
-      <div class="sp"></div>
-      <a class="btn" href="https://kokudas.github.io/">홈</a>
-      <a class="btn" href="stageB.html">StageB</a>
-      <a class="btn" href="index.html">Index</a>
+    <div class="wrap">
+      <strong>StageA v0.1 · 후보 역산</strong>
+      <a class="pill" href="./stageB.html">➡️ StageB로 이동</a>
+      <a class="pill" href="./index.html">📖 Index</a>
     </div>
   </header>
 
-  <div class="wrap">
-    <div class="card">
-      <h2 style="margin:0 0 6px">입력</h2>
-      <div class="hint">※ 자동 기입값 제거. 보유 펫의 <b>표기 초기치(소수 둘째)</b>와 <b>표기 성장률(소수 둘째)</b>을 그대로 넣어 주세요. 라운딩 규칙은 <b>Floor</b>(버림) 또는 <b>Round</b>(반올림)를 서버 규칙에 맞게 선택.</div>
-      <div class="grid" style="margin-top:10px">
-        <div class="col-4">
-          <label>펫 이름</label>
-          <input id="petName" placeholder="예) 반기노" />
-        </div>
-        <div class="col-4">
-          <label>라운딩 규칙</label>
-          <select id="initRound">
-            <option value="floor">Floor (버림)</option>
-            <option value="round">Round (반올림)</option>
-          </select>
-        </div>
-        <div class="col-4">
-          <label>initnum 탐색범위</label>
-          <input id="initRange" value="20-36" />
-          <div class="hint">예) 20-36</div>
-        </div>
-        <div class="col-12">
-          <label>표기 초기치 [HP/ATK/DEF/AGI] (소수 둘째)</label>
-          <div class="row">
-            <input id="initHp"  placeholder="예) 52.39" />
-            <input id="initAtk" placeholder="예) 12.64" />
-            <input id="initDef" placeholder="예) 7.49" />
-            <input id="initAgi" placeholder="예) 6.37" />
+  <main>
+    <!-- 좌: 입력 -->
+    <section class="card">
+      <h2>입력 · 1레벨 표기 초기치(소수2자리) + 표기 성장률(소수2자리)</h2>
+      <div class="body">
+        <div class="row">
+          <div>
+            <label>페트 이름</label>
+            <input id="petName" placeholder="예: 오가로스" />
+          </div>
+          <div>
+            <label>라운딩 규칙(1레벨 표기 → 정수)</label>
+            <select id="initRound">
+              <option value="floor">바닥(Floor) – 해피/샴기르 정석</option>
+              <option value="round">반올림(Round)</option>
+              <option value="ceil">올림(Ceil)</option>
+            </select>
           </div>
         </div>
-        <div class="col-12">
-          <label>표기 성장률 [HP/ATK/DEF/AGI] (소수 둘째)</label>
-          <div class="row">
-            <input id="growHp"  placeholder="예) 9.97" />
-            <input id="growAtk" placeholder="예) 2.41" />
-            <input id="growDef" placeholder="예) 1.43" />
-            <input id="growAgi" placeholder="예) 1.21" />
-          </div>
-        </div>
-        <div class="col-12">
-          <label>초기치 정수 사전필터 (선택, StageB 속도향상 전용)</label>
-          <div class="row">
-            <input id="iHp"  placeholder="예) 52" />
-            <input id="iAtk" placeholder="예) 12" />
-            <input id="iDef" placeholder="예) 7" />
-            <input id="iAgi" placeholder="예) 6" />
-          </div>
-          <div class="hint">보유 펫의 실제 1레벨 정수치(Int). 입력 시 해당 Int를 만들 수 있는 후보만 남겨 StageB 속도 대폭 개선(역산 자체에는 영향 없음).</div>
-        </div>
-        <div class="col-12">
-          <button class="btn" id="btnSolve">후보 역산</button>
-          <button class="btn" id="btnSaveLocal">StageB로 저장(로컬)</button>
-          <button class="btn" id="btnExport">JSON 내보내기</button>
-          <span id="busy" class="hint" style="margin-left:8px"></span>
-        </div>
-      </div>
-    </div>
 
-    <div class="card" id="resultCard" style="display:none">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h3 style="margin:0">후보 요약</h3>
-        <div class="hint" id="meta"></div>
-      </div>
-      <div style="overflow:auto;margin-top:8px">
-        <table class="mono" id="tbl">
-          <thead><tr>
-            <th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th class="right">Δ(오차)</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
+        <div class="row4" style="margin-top:10px">
+          <div>
+            <label>표기 초기 · 체력 (예: 55.80)</label>
+            <input id="initH" type="number" step="0.01" placeholder="55.80" />
+          </div>
+          <div>
+            <label>표기 초기 · 공격 (예: 11.84)</label>
+            <input id="initA" type="number" step="0.01" placeholder="11.84" />
+          </div>
+          <div>
+            <label>표기 초기 · 방어 (예: 9.89)</label>
+            <input id="initD" type="number" step="0.01" placeholder="9.89" />
+          </div>
+          <div>
+            <label>표기 초기 · 순발 (예: 5.88)</label>
+            <input id="initG" type="number" step="0.01" placeholder="5.88" />
+          </div>
+        </div>
 
-    <div class="card footer">
-      <b>라운딩 규칙 설명</b><br>
-      • <b>Floor</b>: 내부 계산 후 표기에서 버림. 샴기르/일부 서버가 채택.<br>
-      • <b>Round</b>: 일반 반올림. 서버 표기와 다르면 후보가 안 나올 수 있습니다.
-    </div>
-  </div>
+        <div class="row4" style="margin-top:10px">
+          <div>
+            <label>표기 성장 · 체성 (예: 10.11)</label>
+            <input id="growH" type="number" step="0.01" placeholder="10.11" />
+          </div>
+          <div>
+            <label>표기 성장 · 공성 (예: 2.15)</label>
+            <input id="growA" type="number" step="0.01" placeholder="2.15" />
+          </div>
+          <div>
+            <label>표기 성장 · 방성 (예: 1.79)</label>
+            <input id="growD" type="number" step="0.01" placeholder="1.79" />
+          </div>
+          <div>
+            <label>표기 성장 · 순성 (예: 1.07)</label>
+            <input id="growG" type="number" step="0.01" placeholder="1.07" />
+          </div>
+        </div>
+
+        <div class="row3" style="margin-top:10px">
+          <div>
+            <label>initnum 탐색 범위</label>
+            <input id="initnumRange" placeholder="예: 20-36" />
+          </div>
+          <div>
+            <label>랭크 선택</label>
+            <select id="rankMode">
+              <option value="auto">자동(성장계수합 추정)</option>
+              <option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option>
+              <option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option>
+            </select>
+          </div>
+          <div>
+            <label>최대 후보 수(상위)</label>
+            <input id="maxCand" type="number" value="120" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn-ok" id="btnSolve">후보 역산</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btnSaveLS">StageB로 저장(로컬)</button>
+            <button class="btn" id="btnDownload">JSON 내보내기</button>
+          </div>
+        </div>
+
+        <div class="muted" style="margin-top:10px">
+          ※ StageA는 “소수 2자리의 표기 초기치 + 표기 성장률”로부터 가능한 <b>initnum / rank / baseS(H/A/D/G)</b> 후보를 역산합니다.<br>
+          ※ <b>정수 초기치 필터</b>는 StageB에서 적용합니다(여기선 후보를 최대한 넓게 보존).
+        </div>
+      </div>
+    </section>
+
+    <!-- 우: 결과 -->
+    <section class="card">
+      <h2>후보 · 상위 N (유사도 오차↓) <span class="muted" id="summary"></span></h2>
+      <div class="body">
+        <div class="muted" style="margin-bottom:8px">StageB에서 정수초기/성장 난수까지 포함해 검증합니다.</div>
+        <div style="overflow:auto;max-height:60vh;border:1px solid #1e2a44;border-radius:10px">
+          <table id="tbl"><thead><tr>
+            <th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th>추정 성장합</th><th>오차↓</th>
+          </tr></thead><tbody></tbody></table>
+        </div>
+        <div class="muted" id="lsKeyBox" style="margin-top:8px">저장 키: <span class="mono" id="lsKey">(미저장)</span></div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    const byId = (id)=>document.getElementById(id);
-    const busy = (msg)=> byId('busy').textContent = msg||'';
-    const KEY = (name)=>`sa_candidates::${name}`;
+    // ---- 상수/유틸 ----
+    const RANK_B = { R1:[450,500], R2:[470,520], R3:[490,540], R4:[510,560], R5:[530,580], R6:[550,600] };
+    const AVG = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+    const roundBy=(m,x)=> m==='floor'?Math.floor(x):m==='ceil'?Math.ceil(x):Math.round(x);
 
-    const RANK_RULES = [
-      {name:'R1', B:[450,500]},
-      {name:'R2', B:[470,520]},
-      {name:'R3', B:[490,540]},
-      {name:'R4', B:[510,560]},
-      {name:'R5', B:[530,580]},
-      {name:'R6', B:[550,600]},
-    ];
-
-    function parseRange(str){
-      const m = (str||'').match(/\\s*(\\d+)\\s*[-~]\\s*(\\d+)\\s*/); if(!m) return [20,36];
-      const a = +m[1], b = +m[2]; return [Math.min(a,b), Math.max(a,b)];
-    }
-    const toNum = v => { const n = Number(v); return Number.isFinite(n)? n : NaN; };
-
-    function simulateInit(initnum, base, roundMode){
-      const hp  = initnum * base[0] / 100;
-      const atk = initnum * base[1] / 100;
-      const def = initnum * base[2] / 100;
-      const agi = initnum * base[3] / 100;
-      const shown = [
-        (hp*4) + atk + def + agi,
-        (hp*0.1)+ atk + (def*0.1)+ (agi*0.05),
-        (hp*0.1)+ (atk*0.1)+ def + (agi*0.05),
-        agi
-      ];
-      return roundMode==='floor' ? shown.map(Math.floor) : shown.map(v=>Math.round(v));
+    function displayFromRaw(h,a,d,g){
+      return [h*4+a+d+g, h*0.1+a+d*0.1+g*0.05, h*0.1+a*0.1+d+g*0.05, g];
     }
 
-    function solveCandidates({init,grow,roundMode,initRange}){
-      const [lo,hi] = initRange;
-      const tI = init.map(v=>Math.floor(v));
-      const out=[];
-      for(let m=lo;m<=hi;m++){
-        for(const rk of RANK_RULES){
-          const Bavg=(rk.B[0]+rk.B[1])/2, K=Bavg/10000;
-          const bH=Math.max(1,(grow[0]/K)-2.5);
-          const bA=Math.max(1,(grow[1]/K)-2.5);
-          const bD=Math.max(1,(grow[2]/K)-2.5);
-          const bG=Math.max(1,(grow[3]/K)-2.5);
-          const iv=simulateInit(m,[bH,bA,bD,bG],roundMode);
-          const err=Math.abs(iv[0]-tI[0])+Math.abs(iv[1]-tI[1])+Math.abs(iv[2]-tI[2])+Math.abs(iv[3]-tI[3]);
-          if(err<=2){ out.push({rank:rk.name, initnum:m, base:[+bH.toFixed(3),+bA.toFixed(3),+bD.toFixed(3),+bG.toFixed(3)], score:1/(1+err)}); }
+    // 성장 표기 → baseS 근사 역산 (랭크별 평균 B를 사용한 선형 근사 + 미세탐색)
+    function invertBaseFromGrow(growDisp, rank){
+      const Bavg = AVG(RANK_B[rank]);
+      const scale = Bavg/10000; // ≈ 0.05대
+      const Aavg = 2.5;
+
+      // 순발을 기준으로 역산 시작
+      const baseG0 = clamp((growDisp[3]/scale) - Aavg, 5, 85);
+      // 성장 비 비율 기반 초깃값
+      const rH = Math.max(0.2, growDisp[0]), rA = Math.max(0.05, growDisp[1]), rD = Math.max(0.03, growDisp[2]), rG = Math.max(0.03, growDisp[3]);
+      const s = (rH+rA+rD+rG)/baseG0;
+      let bH = clamp((rH/s),5,85), bA=clamp((rA/s),5,85), bD=clamp((rD/s),5,85), bG=baseG0;
+
+      let best=[bH,bA,bD,bG], bestErr=1e9;
+      for(let dh=-3; dh<=3; dh++){
+        for(let da=-3; da<=3; da++){
+          for(let dd=-3; dd<=3; dd++){
+            for(let dg=-3; dg<=3; dg++){
+              const H=clamp(bH+dh,5,85), A=clamp(bA+da,5,85), D=clamp(bD+dd,5,85), G=clamp(bG+dg,5,85);
+              const upH=(H+Aavg)*scale, upA=(A+Aavg)*scale, upD=(D+Aavg)*scale, upG=(G+Aavg)*scale;
+              const disp=displayFromRaw(upH,upA,upD,upG);
+              const err=Math.abs(disp[0]-growDisp[0])+Math.abs(disp[1]-growDisp[1])+Math.abs(disp[2]-growDisp[2])+Math.abs(disp[3]-growDisp[3]);
+              if(err<bestErr){best=[H,A,D,G]; bestErr=err;}
+            }
+          }
         }
       }
-      out.sort((a,b)=> b.score - a.score);
-      return out;
+      return best;
     }
 
-    function preFilterByInt(cands, int4, roundMode){
-      if (int4.some(v=>Number.isNaN(v))) return cands;
-      return cands.filter(c=>{
-        const iv = simulateInit(c.initnum, c.base, roundMode);
-        return iv[0]===int4[0] && iv[1]===int4[1] && iv[2]===int4[2] && iv[3]===int4[3];
-      });
+    function scoreInitConsistency(initDisp, initnum, baseS, roundMode){
+      const Aavg=2.5;
+      // “정석” 쪽으로 좀 더 넓게 잡아, 후보가 0개가 되지 않도록 완화
+      const baseBase = baseS.map(v=>v + Aavg + 2);
+      const h=(initnum*baseBase[0])/100, a=(initnum*baseBase[1])/100, d=(initnum*baseBase[2])/100, g=(initnum*baseBase[3])/100;
+      const disp=displayFromRaw(h,a,d,g);
+      const errF = Math.abs(disp[0]-initDisp[0])+Math.abs(disp[1]-initDisp[1])+Math.abs(disp[2]-initDisp[2])+Math.abs(disp[3]-initDisp[3]);
+      // 정수와의 차이는 ‘거들기’만 (너무 빡빡하게 두지 않음)
+      const r=[roundBy(roundMode,disp[0]), roundBy(roundMode,disp[1]), roundBy(roundMode,disp[2]), roundBy(roundMode,disp[3])];
+      const errI = Math.abs(r[0]-Math.floor(initDisp[0]))+Math.abs(r[1]-Math.floor(initDisp[1]))+Math.abs(r[2]-Math.floor(initDisp[2]))+Math.abs(r[3]-Math.floor(initDisp[3]));
+      return errF + errI*0.1;
     }
 
-    function render(cands, meta){
-      const card = byId('resultCard'); card.style.display='block';
-      byId('meta').textContent = meta;
-      const tb = byId('tbl').querySelector('tbody');
-      tb.innerHTML='';
+    function parseRange(s){
+      if(!s) return [20,36];
+      const m = s.match(/(\d+)\s*[-~]\s*(\d+)/);
+      if(m){const a=parseInt(m[1]), b=parseInt(m[2]); return [Math.min(a,b), Math.max(a,b)]}
+      const v = parseInt(s); if(!isNaN(v)) return [v,v];
+      return [20,36];
+    }
+
+    // ---- DOM ----
+    const els = {
+      petName: document.getElementById('petName'),
+      initRound: document.getElementById('initRound'),
+      initH: document.getElementById('initH'), initA: document.getElementById('initA'), initD: document.getElementById('initD'), initG: document.getElementById('initG'),
+      growH: document.getElementById('growH'), growA: document.getElementById('growA'), growD: document.getElementById('growD'), growG: document.getElementById('growG'),
+      initnumRange: document.getElementById('initnumRange'), rankMode: document.getElementById('rankMode'), maxCand: document.getElementById('maxCand'),
+      btnSolve: document.getElementById('btnSolve'), btnSaveLS: document.getElementById('btnSaveLS'), btnDownload: document.getElementById('btnDownload'),
+      tbl: document.getElementById('tbl').querySelector('tbody'),
+      summary: document.getElementById('summary'), lsKey: document.getElementById('lsKey')
+    };
+
+    let currentCandidates = [];
+
+    function readInputs(){
+      const petName = (els.petName.value||'').trim();
+      const roundMode = els.initRound.value;
+      const initDisp=[parseFloat(els.initH.value),parseFloat(els.initA.value),parseFloat(els.initD.value),parseFloat(els.initG.value)];
+      const growDisp=[parseFloat(els.growH.value),parseFloat(els.growA.value),parseFloat(els.growD.value),parseFloat(els.growG.value)];
+      if(initDisp.some(x=>isNaN(x))||growDisp.some(x=>isNaN(x))) throw new Error('입력 누락: 초기치/성장 값을 모두 채워주세요.');
+      const [iniA,iniB]=parseRange(els.initnumRange.value);
+      const rankSel = els.rankMode.value;
+      const maxCand = Math.max(10, parseInt(els.maxCand.value)||120);
+      return {petName, roundMode, initDisp, growDisp, iniA, iniB, rankSel, maxCand};
+    }
+
+    function solve(){
+      const s = readInputs();
+      const ranks = s.rankSel==='auto' ? ['R1','R2','R3','R4','R5','R6'] : [s.rankSel];
+      const bag=[];
+      for(let initnum=s.iniA; initnum<=s.iniB; initnum++){
+        for(const rk of ranks){
+          const baseS = invertBaseFromGrow(s.growDisp, rk);
+          const err = scoreInitConsistency(s.initDisp, initnum, baseS, s.roundMode);
+          bag.push({
+            rank: rk, initnum,
+            base: baseS.map(v=>Number(v.toFixed(3))),
+            sum: Number(baseS.reduce((a,b)=>a+b,0).toFixed(3)),
+            score: Number(err.toFixed(6))
+          });
+        }
+      }
+      bag.sort((a,b)=>a.score-b.score);
+      currentCandidates = bag.slice(0, s.maxCand);
+      render(currentCandidates);
+    }
+
+    function render(cands){
+      els.tbl.innerHTML='';
       cands.forEach((c,i)=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td>
-          <td>[${c.base.map(v=>v.toFixed(3)).join(' / ')}]</td>
-          <td class="right">${(1/c.score-1).toFixed(2)}</td>`;
-        tb.appendChild(tr);
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td><span class="tag">${c.rank}</span></td>
+          <td>${c.initnum}</td>
+          <td class="mono">[${c.base[0].toFixed(3)} / ${c.base[1].toFixed(3)} / ${c.base[2].toFixed(3)} / ${c.base[3].toFixed(3)}]</td>
+          <td>${c.sum.toFixed(3)}</td>
+          <td class="mono">${c.score.toFixed(6)}</td>`;
+        els.tbl.appendChild(tr);
       });
+      els.summary.textContent = cands.length? `· ${cands.length}개 후보 (상위)` : '· (후보 없음)';
     }
 
-    function saveLocal(petName, payload){
-      if(!petName){ alert('펫 이름을 먼저 입력하세요.'); return; }
-      const key = KEY(petName);
+    function saveToLocal(){
+      const s = readInputs();
+      if(!s.petName) {alert('페트 이름을 입력해주세요.');return;}
+      if(!currentCandidates.length){alert('먼저 "후보 역산"을 수행해주세요.');return;}
+      const payload = { petName: s.petName, targetGrow: s.growDisp, initRound: s.roundMode, candidates: currentCandidates };
+      const key = `sa_candidates::${s.petName}`;  // ★ StageB와 키 통일
       localStorage.setItem(key, JSON.stringify(payload));
-      alert(`로컬 저장 완료: ${key}`);
+      els.lsKey.textContent = key;
+      alert('로컬 저장 완료! StageB에서 드롭다운으로 선택하세요.');
     }
 
-    document.getElementById('btnSolve').addEventListener('click', ()=>{
-      try{
-        busy('계산 중...');
-        const petName = byId('petName').value.trim();
-        const roundMode = byId('initRound').value;
-        const initRange = parseRange(byId('initRange').value);
-        const init = [toNum(byId('initHp').value),toNum(byId('initAtk').value),toNum(byId('initDef').value),toNum(byId('initAgi').value)];
-        const grow = [toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
-        if(init.some(Number.isNaN)||grow.some(Number.isNaN)) throw new Error('숫자를 모두 입력해 주세요.');
+    function downloadJSON(){
+      if(!currentCandidates.length){alert('먼저 "후보 역산"을 수행해주세요.');return;}
+      const s = readInputs();
+      const blob = new Blob([JSON.stringify({ petName:s.petName||'', targetGrow:s.growDisp, initRound:s.roundMode, candidates:currentCandidates }, null, 2)], {type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(s.petName?`${s.petName}_candidates.json`:'candidates.json'); a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 0);
+    }
 
-        const cands = solveCandidates({init,grow,roundMode,initRange});
-        let filtered = cands;
-        const i4 = [toNum(byId('iHp').value),toNum(byId('iAtk').value),toNum(byId('iDef').value),toNum(byId('iAgi').value)];
-        if(!i4.some(Number.isNaN)) filtered = preFilterByInt(cands, i4, roundMode);
-
-        const payload = {petName, targetGrow:grow, initRound:roundMode, candidates:filtered};
-        render(filtered, `${petName||'(미정)'} · 후보 ${filtered.length}개`);
-        if(petName){ saveLocal(petName, payload); }
-        busy('완료');
-      }catch(e){ console.error(e); alert(e.message||'오류가 발생했습니다.'); }
-      finally{ setTimeout(()=>busy(''), 800); }
-    });
-
-    document.getElementById('btnSaveLocal').addEventListener('click', ()=>{
-      const petName = byId('petName').value.trim(); if(!petName){ alert('펫 이름을 먼저 입력하세요.'); return; }
-      const initRound = byId('initRound').value;
-      const grow=[toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
-      const rows=[...document.querySelectorAll('#tbl tbody tr')];
-      const candidates = rows.map(tr=>{
-        const tds=tr.querySelectorAll('td');
-        const rank=tds[1].textContent.trim();
-        const initnum=Number(tds[2].textContent.trim());
-        const baseS=tds[3].textContent.match(/\[(.*)\]/)[1].split('/').map(s=>Number(s.replace(/[^\d\.-]/g,'')));
-        return {rank, initnum, base:baseS, score:1};
-      });
-      const payload={petName, targetGrow:grow, initRound, candidates};
-      saveLocal(petName, payload);
-    });
-
-    document.getElementById('btnExport').addEventListener('click', ()=>{
-      const petName = byId('petName').value.trim()||'unknown_pet';
-      const rows=[...document.querySelectorAll('#tbl tbody tr')];
-      const initRound = byId('initRound').value;
-      const grow=[toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
-      const candidates = rows.map(tr=>{
-        const tds=tr.querySelectorAll('td');
-        const rank=tds[1].textContent.trim();
-        const initnum=Number(tds[2].textContent.trim());
-        const baseS=tds[3].textContent.match(/\[(.*)\]/)[1].split('/').map(s=>Number(s.replace(/[^\d\.-]/g,'')));
-        return {rank, initnum, base:baseS, score:1};
-      });
-      const payload = {petName, targetGrow:grow, initRound, candidates};
-      const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${petName}_candidates.json`; a.click(); URL.revokeObjectURL(a.href);
-    });
+    // 이벤트
+    els.btnSolve.addEventListener('click', ()=>{ try{ solve(); }catch(e){ alert(e.message||String(e)); } });
+    els.btnSaveLS.addEventListener('click', saveToLocal);
+    els.btnDownload.addEventListener('click', downloadJSON);
   </script>
 </body>
 </html>
