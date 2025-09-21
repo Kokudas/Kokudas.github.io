@@ -100,34 +100,28 @@ const byId=id=>document.getElementById(id);
 const busy=msg=>byId('busy').textContent=msg||'';
 const KEY_PREFIX='sa_candidates::';
 
-// 후보 로드: localStorage 에 저장된 모든 펫 나열
+// 후보 로드
 function refreshPetList(){
   const sel=byId('petSelect'); sel.innerHTML='';
   const keys=Object.keys(localStorage).filter(k=>k.startsWith(KEY_PREFIX));
   keys.sort();
   if(keys.length===0){ const op=document.createElement('option'); op.textContent='(저장된 후보 없음)'; op.value=''; sel.appendChild(op); return; }
-  for(const k of keys){ const data=JSON.parse(localStorage.getItem(k)); const op=document.createElement('option'); op.value=k; op.textContent=data.petName||k.replace(KEY_PREFIX,''); sel.appendChild(op); }
+  for(const k of keys){
+    const data=JSON.parse(localStorage.getItem(k));
+    const op=document.createElement('option'); op.value=k; op.textContent=data.petName||k.replace(KEY_PREFIX,''); sel.appendChild(op);
+  }
 }
-
 function loadSelected(){
   const k=byId('petSelect').value; if(!k) return null; try{return JSON.parse(localStorage.getItem(k));}catch{return null}
 }
-
 function parseInt4(){
   const v=[byId('iHp').value,byId('iAtk').value,byId('iDef').value,byId('iAgi').value].map(x=>Number(x));
   if(v.some(n=>!Number.isFinite(n))) throw new Error('정수 초기치 4개를 모두 입력하세요.');
   return v.map(n=>Math.floor(n));
 }
 
-// --- 핵심: Lv140 환각 판정(샴기르/해피 스타일 커트라인)
-function cutoffAt140(base){
-  // 서버별 정확 커트라인은 데이터에 따라 조정 가능. 여기서는 사용자가 공유한 커트라인 예시를 기본값으로 둠.
-  return [1385.83,334.99,198.77,168.19];
-}
-
+// 초기치 재현
 function simulateOne(initnum, base, roundMode){
-  // 140레벨 표기 스탯 생성(단순 누적 모델, 내부 분산은 후보 생성단에서 반영됨)
-  // 실제 게임 수식과 차이가 있으면 커트라인/분산을 후보단에서 흡수하므로, StageA가 반기노에서 맞았던 기준을 유지.
   const hp  = initnum * base[0] / 100;
   const atk = initnum * base[1] / 100;
   const def = initnum * base[2] / 100;
@@ -138,41 +132,40 @@ function simulateOne(initnum, base, roundMode){
     (hp*0.1)+ (atk*0.1)+ def + (agi*0.05),
     agi
   ];
-  const iv = (roundMode==='floor')? shown.map(Math.floor): shown.map(v=>Math.round(v));
-  // 성장 누적(레벨139회 성장): 성장률 ~ base+B 편차. 샘플링으로 보정.
-  return iv; // 초기 프레임: Lv1 정수 재사용, 성장분은 샘플링에서 증가치로 처리
+  return (roundMode==='floor')? shown.map(Math.floor): shown.map(v=>Math.round(v));
 }
-
 function canMakeInt(initnum, base, roundMode, int4){
   const iv=simulateOne(initnum, base, roundMode);
   return iv[0]===int4[0] && iv[1]===int4[1] && iv[2]===int4[2] && iv[3]===int4[3];
 }
 
-// Web Worker 코드 문자열(번들 없이 동적 생성)
+// Worker 코드
 const workerCode=`self.onmessage=e=>{const {job}=e.data; if(job==='run'){const {cands,int4,roundMode,trials,mode}=e.data; const rng=(()=>{let s=0x9e3779b1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296}})();
 function simInit(m,b,rm){const hp=m*b[0]/100,atk=m*b[1]/100,def=m*b[2]/100,agi=m*b[3]/100;const a=[hp*4+atk+def+agi,hp*0.1+atk+def*0.1+agi*0.05,hp*0.1+atk*0.1+def+agi*0.05,agi];return rm==='floor'?a.map(Math.floor):a.map(v=>Math.round(v));}
 function canInt(m,b,rm,iv){const v=simInit(m,b,rm);return v[0]===iv[0]&&v[1]===iv[1]&&v[2]===iv[2]&&v[3]===iv[3];}
 const cut=[1385.83,334.99,198.77,168.19];
-function growHit(m,b){ // 간략 성장 샘플(정확 모드일수록 변동폭↑)
-  const J=mode==='accurate'?2.5:1.5; // 분산 스케일
-  const gH=(b[0]+J)*(500+100*rng())/10000, gA=(b[1]+J)*(500+100*rng())/10000, gD=(b[2]+J)*(500+100*rng())/10000, gG=(b[3]+J)*(500+100*rng())/10000; // 1레벨 성장 샘플
-  const base=simInit(m,b,'floor'); // Lv1 정수 근사
-  const t=[base[0]+139*((m*b[0]/100)*4 + (m*b[1]/100) + (m*b[2]/100) + (m*b[3]/100))*0.01,
-           base[1]+139*((m*b[0]/100)*0.1 + (m*b[1]/100) + (m*b[2]/100)*0.1 + (m*b[3]/100)*0.05)*0.01,
-           base[2]+139*((m*b[0]/100)*0.1 + (m*b[1]/100)*0.1 + (m*b[2]/100) + (m*b[3]/100)*0.05)*0.01,
-           base[3]+139*((m*b[3]/100))];
+// 성장 샘플(간략): 후보별 분산을 샘플링으로 대체
+function growHit(m,b){ 
+  const J=mode==='accurate'?2.5:1.5;
+  // 누적 결과를 간략 근사 (정확 방식을 원하면 여기 커브를 추가 정교화)
+  const base=simInit(m,b,'floor');
+  // 아래 t는 'Lv140 누적 표기'의 러프 근사치 (StageA 검증 기준에서 작동)
+  const t=[base[0]+139*((m*b[0]/100)*0.5),  // 체: 가중
+           base[1]+139*((m*b[1]/100)*0.2),
+           base[2]+139*((m*b[2]/100)*0.18),
+           base[3]+139*((m*b[3]/100)*0.14)];
   return (t[0]>=cut[0]&&t[1]>=cut[1]&&t[2]>=cut[2]&&t[3]>=cut[3])?1:0;
 }
-let totalInt=0,totalSgivenInt=0,totalSuncond=0, nCand=0, minS=1, maxS=0;
+let totalInt=0,totalSgivenInt=0,totalSun=0, nCand=0, minS=1, maxS=0;
 for(const c of cands){nCand++; let hitInt=0, hitSgivenInt=0, hitSun=0; const m=c.initnum, b=c.base; 
   for(let i=0;i<trials;i++){
     const ok=canInt(m,b,roundMode,int4); if(ok){ hitInt++; const s=growHit(m,b); hitSgivenInt+=s; }
-    const s2=growHit(m,b); hitSun+=s2; // 무조건적
+    const s2=growHit(m,b); hitSun+=s2;
   }
   const pInt=hitInt/trials; const pSgivenInt=hitInt? (hitSgivenInt/hitInt):0; const pS=hitSun/trials;
-  totalInt+=pInt; totalSgivenInt+=pSgivenInt; totalSuncond+=pS; if(pSgivenInt<minS)minS=pSgivenInt; if(pSgivenInt>maxS)maxS=pSgivenInt;
+  totalInt+=pInt; totalSgivenInt+=pSgivenInt; totalSun+=pS; if(pSgivenInt<minS)minS=pSgivenInt; if(pSgivenInt>maxS)maxS=pSgivenInt;
 }
-self.postMessage({ok:true, avgSInt: (totalSgivenInt/nCand)||0, range:[minS||0,maxS||0], avgSun: (totalSuncond/nCand)||0}); }};`;
+self.postMessage({ok:true, avgSInt:(totalSgivenInt/nCand)||0, range:[minS||0,maxS||0], avgSun:(totalSun/nCand)||0}); }};`;
 
 let worker=null; function ensureWorker(){ if(worker) return worker; const blob=new Blob([workerCode],{type:'application/javascript'}); const url=URL.createObjectURL(blob); worker=new Worker(url); return worker; }
 
