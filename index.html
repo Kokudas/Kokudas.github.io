@@ -2,44 +2,55 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>StoneAge 페트 계산기 – 안내</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>kokudas · StoneAge 펫 계산기</title>
 <style>
-:root{--bg:#0b1020;--card:#121830;--ink:#e8ecff;--muted:#a8b2d1;--accent:#7aa2ff;--radius:16px}
-*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1630 60%,#0b1020);color:var(--ink);font:16px/1.7 system-ui,Segoe UI,Apple SD Gothic Neo,Noto Sans KR,Roboto,Arial,sans-serif}
-.wrap{max-width:900px;margin:40px auto;padding:0 16px}
-.card{background:#121830;border:1px solid #283052;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:20px}
-h1{margin:0 0 10px} h2{margin:18px 0 10px}
-a.btn{display:inline-block;margin-right:12px;margin-top:6px;background:#7aa2ff;color:#0b1020;text-decoration:none;padding:12px 16px;border-radius:12px;font-weight:700}
-small{color:#a8b2d1}
-ul{margin:8px 0 0 18px}
+  :root{--bg:#0b1220;--panel:#0c1426;--ink:#e5e7eb;--mut:#9aa7bd;--acc:#60a5fa}
+  *{box-sizing:border-box;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+  body{margin:0;background:var(--bg);color:var(--ink)}
+  header{padding:24px 16px;border-bottom:1px solid #1f2937;background:#0a1020}
+  main{max-width:840px;margin:24px auto;padding:0 16px}
+  h1{margin:0 0 6px 0}
+  .mut{color:var(--mut)}
+  .card{background:linear-gradient(180deg,var(--panel),#0b152a 55%);border:1px solid #1f2937;border-radius:14px;padding:16px;margin-bottom:16px}
+  a.btn{display:inline-block;padding:12px 16px;border-radius:12px;border:1px solid #334155;background:#0d1b31;color:#dbeafe;text-decoration:none;margin-right:10px}
+  a.btn:hover{background:#112244}
+  ul{margin:8px 0 0 20px;line-height:1.65}
+  code{background:#0b1a33;padding:2px 6px;border-radius:6px;border:1px solid #183255}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>StoneAge 페트 계산기</h1>
-      <p><b>두 단계로 사용</b>합니다. A에서 후보를 역산·저장하고, B에서 정수표기 초기치로 <b>Lv.140 환각(올S)</b> 달성 확률을 계산합니다.</p>
-      <p>
-        <a class="btn" href="./stageA.html">단계A (역산/후보 저장)</a>
-        <a class="btn" href="./stageB.html">단계B (S확률 계산)</a>
-      </p>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <h2>주의사항</h2>
-      <ul>
-        <li>결과는 <b>참고용</b>이며 실제 게임과 다를 수 있습니다.</li>
-        <li>서버·버전에 따라 라운딩/보정 규칙이 다를 수 있어요. 옵션을 조정해 보세요.</li>
-        <li>브라우저 저장소(localStorage)를 사용합니다. <b>다른 브라우저/기기</b>에서는 <b>JSON 내보내기/불러오기</b>로 이동하세요.</li>
-      </ul>
-      <h2>안내</h2>
-      <ul>
-        <li>단계A: <b>페트 이름</b>과 <b>소수 둘째 자리 초기치/성장치</b>를 입력 → 후보 자동 선별/저장.</li>
-        <li>단계B: <b>같은 이름</b>과 <b>정수 초기치</b>를 입력 → 1회S/누적(140) 모드 중 선택해 확률 계산.</li>
-      </ul>
-      <p><small>© kokudas.github.io – 비공식 팬메이드 도구</small></p>
-    </div>
+<header>
+  <h1>StoneAge 펫 성장 · 랭크 계산기</h1>
+  <div class="mut">kokudas.github.io</div>
+</header>
+<main>
+  <div class="card">
+    <h2>빠른 이동</h2>
+    <p>
+      <a class="btn" href="./stageA.html">단계A · 역산(후보 산출)</a>
+      <a class="btn" href="./stageB.html">단계B · Lv140 환각(S) 확률</a>
+    </p>
   </div>
+
+  <div class="card">
+    <h2>사용 흐름</h2>
+    <ol>
+      <li><b>단계A</b>에서 해당 펫의 <b>표기 성장(소숫점)</b>과 <b>표기 초기(소숫점)</b>을 입력하고 후보를 역산합니다.</li>
+      <li>(선택) <b>초기치 정수 사전필터</b>에 1레벨 표기 정수(예: <code>52,12,7,6</code>)를 입력하면 후보를 더 줄일 수 있습니다.</li>
+      <li><b>단계B로 전송</b>을 누르면 후보가 <code>localStorage</code>에 저장됩니다.</li>
+      <li><b>단계B</b>에서 1→140레벨을 몬테카를로로 시뮬레이션하여 환각(S) 달성 확률을 계산합니다.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>주의 / 안내</h2>
+    <ul>
+      <li>본 계산기는 <b>참고용</b>입니다. 서버/버전/난수 로직 차이에 따라 실제와 다를 수 있습니다.</li>
+      <li>사전필터는 연산량이 큽니다. 브라우저 멈춤을 방지하기 위해 기본값은 <b>빠름(샘플링)</b>이며, 더 엄격하게 보려면 모드를 올리세요.</li>
+      <li><code>localStorage</code> 저장을 사용하므로 같은 브라우저/기기에서 이어 사용하길 권장합니다.</li>
+    </ul>
+  </div>
+</main>
 </body>
 </html>
