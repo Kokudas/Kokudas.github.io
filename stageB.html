@@ -148,8 +148,8 @@
       <h2>설명 (요약)</h2>
       <p class="muted small">
         • 단계A에서 저장한 후보 JSON을 불러옵니다(표기 성장 타깃 포함).<br/>
-        • <b>초기치 정수 필터</b>: 입력 정수 초기치를 실제로 만들 수 있는 후보만 남깁니다(전수 286분배 검사).<br/>
-        • <b>1회 S판정</b>: A(다항) × B(랭크범위 균등)로 p(S)를 정확 계산.<br/>
+        • <b>초기치 정수 필터</b>: 입력 정수 초기치를 실제로 만들 수 있는 후보만 남깁니다(전수 178,750가지 검사: 편차 625 × 보너스 286).<br/>
+        • <b>1회 S판정</b>: A(다항) × B(랭크범위 균등)로 p(S) 정확 계산.<br/>
         • <b>누적(140)</b>: 139회 성장 누적을 몬테카를로(기본 3,000회)로 근사.<br/>
         • 계산이 무거우면 “후보 처리 상한”을 줄이거나 trials를 줄여주세요.
       </p>
@@ -278,7 +278,7 @@
       reader.readAsText(file);
     });
 
-    // 보조: P(MaxBase | 정수 초기치)
+    // P(MaxBase | 정수 초기치) — 참고용
     function runMaxBase(){
       if(!payload){alert('먼저 후보 JSON을 불러오세요.');return;}
       const iHP=parseInt(in_hp_i.value,10), iATK=parseInt(in_atk_i.value,10), iDEF=parseInt(in_def_i.value,10), iAGI=parseInt(in_agi_i.value,10);
@@ -289,17 +289,36 @@
       let total=0, best=0, bestSum=-1;
       for(const c of payload.candidates){ bestSum=Math.max(bestSum, c.base[0]+c.base[1]+c.base[2]+c.base[3]); }
 
-      for(const c of payload.candidates){
-        const initnum=c.initnum;
-        const base0=[c.base[0]-4.5, c.base[1]-4.5, c.base[2]-4.5, c.base[3]-4.5];
-        for(const A of A_STATES){
-          const V=precise(initnum*(base0[0]+A.hp )/100);
-          const S=precise(initnum*(base0[1]+A.atk)/100);
-          const T=precise(initnum*(base0[2]+A.def)/100);
-          const D=precise(initnum*(base0[3]+A.agi)/100);
-          const disp=toDisp(V,S,T,D);
-          if(f(disp[0])===targetInt[0] && f(disp[1])===targetInt[1] && f(disp[2])===targetInt[2] && f(disp[3])===targetInt[3]){
-            total++; if((c.base[0]+c.base[1]+c.base[2]+c.base[3])===bestSum) best++;
+      // -2..+2 편차 + 10포인트 보너스 전수
+      const bonusStates = [];
+      for (let a=0; a<=10; a++){
+        for (let b=0; b<=10-a; b++){
+          for (let c=0; c<=10-a-b; c++){
+            const d=10-a-b-c; bonusStates.push({hp:a, atk:b, def:c, agi:d});
+          }
+        }
+      }
+
+      for(const cand of payload.candidates){
+        const initnum=cand.initnum;
+        const base0=[cand.base[0]-4.5, cand.base[1]-4.5, cand.base[2]-4.5, cand.base[3]-4.5];
+        for(let dv=-2; dv<=2; dv++){
+          for(let ds=-2; ds<=2; ds++){
+            for(let dt=-2; dt<=2; dt++){
+              for(let dd=-2; dd<=2; dd++){
+                for(const B of bonusStates){
+                  const V=precise(initnum*(base0[0]+dv+B.hp )/100);
+                  const S=precise(initnum*(base0[1]+ds+B.atk)/100);
+                  const T=precise(initnum*(base0[2]+dt+B.def)/100);
+                  const D=precise(initnum*(base0[3]+dd+B.agi)/100);
+                  const disp=toDisp(V,S,T,D);
+                  if(f(disp[0])===targetInt[0] && f(disp[1])===targetInt[1] && f(disp[2])===targetInt[2] && f(disp[3])===targetInt[3]){
+                    total++;
+                    if((cand.base[0]+cand.base[1]+cand.base[2]+cand.base[3])===bestSum) best++;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -307,17 +326,40 @@
       alert(`P(MaxBase | 정수 초기치) ≈ ${((best/total)*100).toFixed(3)}% (근사)`);
     }
 
+    // 초기치 정수 가능성 검사(전수) — 편차(-2..+2) 포함
     function initPossible(cand, targetInt, roundMode){
-      const initnum=cand.initnum;
-      const base0=[cand.base[0]-4.5, cand.base[1]-4.5, cand.base[2]-4.5, cand.base[3]-4.5];
-      const f=(x)=> roundMode==='floor'? Math.floor(x): Math.round(x);
-      for(const A of A_STATES){
-        const V=precise(initnum*(base0[0]+A.hp )/100);
-        const S=precise(initnum*(base0[1]+A.atk)/100);
-        const T=precise(initnum*(base0[2]+A.def)/100);
-        const D=precise(initnum*(base0[3]+A.agi)/100);
-        const d=toDisp(V,S,T,D);
-        if(f(d[0])===targetInt[0] && f(d[1])===targetInt[1] && f(d[2])===targetInt[2] && f(d[3])===targetInt[3]) return true;
+      const initnum = cand.initnum;
+      const base0 = [cand.base[0]-4.5, cand.base[1]-4.5, cand.base[2]-4.5, cand.base[3]-4.5];
+      const F = (x)=> roundMode==='floor'? Math.floor(x) : Math.round(x);
+
+      // 보너스 전수(286)
+      const bonusStates = [];
+      for (let a=0; a<=10; a++){
+        for (let b=0; b<=10-a; b++){
+          for (let c=0; c<=10-a-b; c++){
+            const d=10-a-b-c; bonusStates.push({hp:a, atk:b, def:c, agi:d});
+          }
+        }
+      }
+
+      // 편차(-2..+2) × 보너스 전수
+      for(let dv=-2; dv<=2; dv++){
+        for(let ds=-2; ds<=2; ds++){
+          for(let dt=-2; dt<=2; dt++){
+            for(let dd=-2; dd<=2; dd++){
+              for(const B of bonusStates){
+                const V=precise(initnum*(base0[0]+dv+B.hp )/100);
+                const S=precise(initnum*(base0[1]+ds+B.atk)/100);
+                const T=precise(initnum*(base0[2]+dt+B.def)/100);
+                const D=precise(initnum*(base0[3]+dd+B.agi)/100);
+                const disp=toDisp(V,S,T,D);
+                if(F(disp[0])===targetInt[0] && F(disp[1])===targetInt[1] && F(disp[2])===targetInt[2] && F(disp[3])===targetInt[3]){
+                  return true;
+                }
+              }
+            }
+          }
+        }
       }
       return false;
     }
@@ -354,7 +396,7 @@
           if(pool.length===0){
             overlay.style.display='none';
             statusEl.textContent='일치 후보 없음';
-            alert('초기치 정수 필터 결과, 일치 후보가 없습니다.\n- 정수 입력을 재확인\n- 단계A JSON(페트/성장) 일치 확인\n- 구간폭/라운딩 규칙 조정');
+            alert('초기치 정수 필터 결과, 일치 후보가 없습니다.\n- 정수 입력 재확인\n- 단계A JSON(페트/성장) 일치 확인\n- 구간폭/라운딩 규칙 조정');
             return;
           }
         }
@@ -408,7 +450,7 @@
 
           details.push({cand, p});
           doneJobs++;
-          if(doneJobs % 2 === 0){ // 가벼운 주기적 yield
+          if(doneJobs % 2 === 0){
             overlayText.textContent = `${doneJobs}/${totalJobs} 후보 처리…`;
             await new Promise(r=>setTimeout(r, 0));
           }
