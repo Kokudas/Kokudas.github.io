@@ -1,197 +1,267 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>StageB v0.1 — S 확률 계산 (간결 출력)</title>
-<style>
-:root{--bg:#0b1220;--card:#121a2b;--ink:#e7eefc;--muted:#9bb0d8;--acc:#6aa1ff;--good:#27c93f;--warn:#ffbd2e;--bad:#ff5f56}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,'Noto Sans KR',Pretendard,Helvetica,Arial}
-a{color:var(--acc);text-decoration:none}
-header{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#0b1220 70%,rgba(11,18,32,.8));border-bottom:1px solid #1e2a44}
-.bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
-.brand{font-weight:700}
-.sp{flex:1}
-.btn{background:#1b2740;border:1px solid #253250;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
-.btn:hover{border-color:#415e9c}
-.wrap{max-width:1080px;margin:18px auto;padding:0 16px 80px}
-.card{background:var(--card);border:1px solid #223054;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-input,select{width:100%;background:#0e1526;border:1px solid #253250;color:var(--ink);padding:10px 12px;border-radius:10px}
-input::placeholder{color:#5b719f}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.big{font-size:40px;font-weight:800;letter-spacing:.3px}
-.good{color:var(--good)}.bad{color:var(--bad)}
-.hint{font-size:12px;color:var(--muted)}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StageA v0.1 — 페트 후보 역산기</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121a2b;--ink:#e7eefc;--muted:#9bb0d8;--acc:#6aa1ff;--good:#27c93f;--warn:#ffbd2e;--bad:#ff5f56}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,'Noto Sans KR',Pretendard,Helvetica,Arial}
+    a{color:var(--acc);text-decoration:none}
+    header{position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#0b1220 70%,rgba(11,18,32,.8));border-bottom:1px solid #1e2a44}
+    .bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+    .brand{font-weight:700;letter-spacing:.2px}
+    .sp{flex:1}
+    .btn{background:#1b2740;border:1px solid #253250;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{border-color:#415e9c}
+    .pill{padding:6px 10px;border-radius:999px;background:#1b2740;border:1px solid #2b3d63}
+    .wrap{max-width:1080px;margin:18px auto;padding:0 16px 80px}
+    .card{background:var(--card);border:1px solid #223054;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-12{grid-column:span 12}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select{width:100%;background:#0e1526;border:1px solid #253250;color:var(--ink);padding:10px 12px;border-radius:10px}
+    input::placeholder{color:#5b719f}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .hint{font-size:12px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #203055}
+    th{color:#bcd1ff;text-align:left;font-size:13px}
+    .right{text-align:right}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    .footer{opacity:.8;font-size:12px}
+  </style>
 </head>
 <body>
-<header>
-  <div class="bar">
-    <div class="brand">StageB v0.1</div>
-    <span>— S 확률 계산</span>
-    <div class="sp"></div>
-    <a class="btn" href="https://kokudas.github.io/">홈</a>
-    <a class="btn" href="stageA.html">StageA</a>
-    <a class="btn" href="index.html">Index</a>
-  </div>
-</header>
-<div class="wrap">
-  <div class="card">
-    <div class="row">
-      <div style="flex:1;min-width:260px">
-        <label>로컬 저장된 후보 불러오기</label>
-        <select id="petSelect"></select>
-      </div>
-      <div style="width:180px">
-        <label>라운딩 규칙</label>
-        <select id="roundMode">
-          <option value="floor">Floor (버림)</option>
-          <option value="round">Round (반올림)</option>
-        </select>
-      </div>
+  <header>
+    <div class="bar">
+      <div class="brand">StageA v0.1</div>
+      <span class="pill">후보 역산</span>
+      <div class="sp"></div>
+      <a class="btn" href="https://kokudas.github.io/">홈</a>
+      <a class="btn" href="stageB.html">StageB</a>
+      <a class="btn" href="index.html">Index</a>
     </div>
-    <div class="row" style="margin-top:8px">
-      <div style="flex:1;min-width:260px">
-        <label>초기치 정수 [HP/ATK/DEF/AGI]</label>
-        <div class="row">
-          <input id="iHp" placeholder="예) 52"/>
-          <input id="iAtk" placeholder="예) 12"/>
-          <input id="iDef" placeholder="예) 7"/>
-          <input id="iAgi" placeholder="예) 6"/>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin:0 0 6px">입력</h2>
+      <div class="hint">※ 자동 기입값 제거. 보유 펫의 <b>표기 초기치(소수 둘째)</b>와 <b>표기 성장률(소수 둘째)</b>을 그대로 넣어 주세요. 라운딩 규칙은 <b>Floor</b>(버림) 또는 <b>Round</b>(반올림)를 서버 규칙에 맞게 선택.</div>
+      <div class="grid" style="margin-top:10px">
+        <div class="col-4">
+          <label>펫 이름</label>
+          <input id="petName" placeholder="예) 반기노" />
         </div>
-        <div class="hint">보유 펫의 실제 1레벨 표기 정수치. 샴기르/해피 계산기와 동일 입력.</div>
-      </div>
-      <div style="width:190px">
-        <label>Trial (후보당 샘플)</label>
-        <input id="trials" value="20000"/>
-      </div>
-      <div style="width:220px">
-        <label>모드</label>
-        <select id="speedMode">
-          <option value="fast">빠른(샘플링 축소)</option>
-          <option value="accurate" selected>정확</option>
-        </select>
+        <div class="col-4">
+          <label>라운딩 규칙</label>
+          <select id="initRound">
+            <option value="floor">Floor (버림)</option>
+            <option value="round">Round (반올림)</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>initnum 탐색범위</label>
+          <input id="initRange" value="20-36" />
+          <div class="hint">예) 20-36</div>
+        </div>
+        <div class="col-12">
+          <label>표기 초기치 [HP/ATK/DEF/AGI] (소수 둘째)</label>
+          <div class="row">
+            <input id="initHp"  placeholder="예) 52.39" />
+            <input id="initAtk" placeholder="예) 12.64" />
+            <input id="initDef" placeholder="예) 7.49" />
+            <input id="initAgi" placeholder="예) 6.37" />
+          </div>
+        </div>
+        <div class="col-12">
+          <label>표기 성장률 [HP/ATK/DEF/AGI] (소수 둘째)</label>
+          <div class="row">
+            <input id="growHp"  placeholder="예) 9.97" />
+            <input id="growAtk" placeholder="예) 2.41" />
+            <input id="growDef" placeholder="예) 1.43" />
+            <input id="growAgi" placeholder="예) 1.21" />
+          </div>
+        </div>
+        <div class="col-12">
+          <label>초기치 정수 사전필터 (선택, StageB 속도향상 전용)</label>
+          <div class="row">
+            <input id="iHp"  placeholder="예) 52" />
+            <input id="iAtk" placeholder="예) 12" />
+            <input id="iDef" placeholder="예) 7" />
+            <input id="iAgi" placeholder="예) 6" />
+          </div>
+          <div class="hint">보유 펫의 실제 1레벨 정수치(Int). 입력 시 해당 Int를 만들 수 있는 후보만 남겨 StageB 속도 대폭 개선(역산 자체에는 영향 없음).</div>
+        </div>
+        <div class="col-12">
+          <button class="btn" id="btnSolve">후보 역산</button>
+          <button class="btn" id="btnSaveLocal">StageB로 저장(로컬)</button>
+          <button class="btn" id="btnExport">JSON 내보내기</button>
+          <span id="busy" class="hint" style="margin-left:8px"></span>
+        </div>
       </div>
     </div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btnRun">계산 시작</button>
-      <button class="btn" id="btnReset">StageA 값 초기화</button>
-      <span id="busy" class="hint" style="margin-left:8px"></span>
+
+    <div class="card" id="resultCard" style="display:none">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h3 style="margin:0">후보 요약</h3>
+        <div class="hint" id="meta"></div>
+      </div>
+      <div style="overflow:auto;margin-top:8px">
+        <table class="mono" id="tbl">
+          <thead><tr>
+            <th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th class="right">Δ(오차)</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card footer">
+      <b>라운딩 규칙 설명</b><br>
+      • <b>Floor</b>: 내부 계산 후 표기에서 버림. 샴기르/일부 서버가 채택.<br>
+      • <b>Round</b>: 일반 반올림. 서버 표기와 다르면 후보가 안 나올 수 있습니다.
     </div>
   </div>
 
-  <div class="card" id="summary" style="display:none">
-    <div id="title" style="margin-bottom:6px"></div>
-    <div id="prob" class="big"></div>
-    <div id="note" class="hint" style="margin-top:6px"></div>
-  </div>
+  <script>
+    const byId = (id)=>document.getElementById(id);
+    const busy = (msg)=> byId('busy').textContent = msg||'';
+    const KEY = (name)=>`sa_candidates::${name}`;
 
-  <div class="card hint">
-    <b>용어 간단 설명</b><br>
-    • <b>성공 확률</b> = 평균 p(S|Int) : 입력한 정수 초기치(Int)를 만족한다고 가정했을 때, Lv.140에서 환각(S) 달성 확률의 후보-가중 평균입니다. 최종 출력은 이 값 하나만 크게 표기합니다.<br>
-    • p(S|cand) <i>(내부)</i> : 특정 후보(cand)가 사실일 때의 무조건적 S확률. UI에 표시하지 않습니다.<br>
-    • p(Int|cand) <i>(내부)</i> : 해당 후보가 입력 정수(Int)를 만들 수 있는 확률. 후보 가중치 산정에만 사용됩니다.
-  </div>
-</div>
+    const RANK_RULES = [
+      {name:'R1', B:[450,500]},
+      {name:'R2', B:[470,520]},
+      {name:'R3', B:[490,540]},
+      {name:'R4', B:[510,560]},
+      {name:'R5', B:[530,580]},
+      {name:'R6', B:[550,600]},
+    ];
 
-<script>
-const byId=id=>document.getElementById(id);
-const busy=msg=>byId('busy').textContent=msg||'';
-const KEY_PREFIX='sa_candidates::';
+    function parseRange(str){
+      const m = (str||'').match(/\\s*(\\d+)\\s*[-~]\\s*(\\d+)\\s*/); if(!m) return [20,36];
+      const a = +m[1], b = +m[2]; return [Math.min(a,b), Math.max(a,b)];
+    }
+    const toNum = v => { const n = Number(v); return Number.isFinite(n)? n : NaN; };
 
-// 후보 로드
-function refreshPetList(){
-  const sel=byId('petSelect'); sel.innerHTML='';
-  const keys=Object.keys(localStorage).filter(k=>k.startsWith(KEY_PREFIX));
-  keys.sort();
-  if(keys.length===0){ const op=document.createElement('option'); op.textContent='(저장된 후보 없음)'; op.value=''; sel.appendChild(op); return; }
-  for(const k of keys){
-    const data=JSON.parse(localStorage.getItem(k));
-    const op=document.createElement('option'); op.value=k; op.textContent=data.petName||k.replace(KEY_PREFIX,''); sel.appendChild(op);
-  }
-}
-function loadSelected(){
-  const k=byId('petSelect').value; if(!k) return null; try{return JSON.parse(localStorage.getItem(k));}catch{return null}
-}
-function parseInt4(){
-  const v=[byId('iHp').value,byId('iAtk').value,byId('iDef').value,byId('iAgi').value].map(x=>Number(x));
-  if(v.some(n=>!Number.isFinite(n))) throw new Error('정수 초기치 4개를 모두 입력하세요.');
-  return v.map(n=>Math.floor(n));
-}
+    function simulateInit(initnum, base, roundMode){
+      const hp  = initnum * base[0] / 100;
+      const atk = initnum * base[1] / 100;
+      const def = initnum * base[2] / 100;
+      const agi = initnum * base[3] / 100;
+      const shown = [
+        (hp*4) + atk + def + agi,
+        (hp*0.1)+ atk + (def*0.1)+ (agi*0.05),
+        (hp*0.1)+ (atk*0.1)+ def + (agi*0.05),
+        agi
+      ];
+      return roundMode==='floor' ? shown.map(Math.floor) : shown.map(v=>Math.round(v));
+    }
 
-// 초기치 재현
-function simulateOne(initnum, base, roundMode){
-  const hp  = initnum * base[0] / 100;
-  const atk = initnum * base[1] / 100;
-  const def = initnum * base[2] / 100;
-  const agi = initnum * base[3] / 100;
-  const shown = [
-    (hp*4) + atk + def + agi,
-    (hp*0.1)+ atk + (def*0.1)+ (agi*0.05),
-    (hp*0.1)+ (atk*0.1)+ def + (agi*0.05),
-    agi
-  ];
-  return (roundMode==='floor')? shown.map(Math.floor): shown.map(v=>Math.round(v));
-}
-function canMakeInt(initnum, base, roundMode, int4){
-  const iv=simulateOne(initnum, base, roundMode);
-  return iv[0]===int4[0] && iv[1]===int4[1] && iv[2]===int4[2] && iv[3]===int4[3];
-}
+    function solveCandidates({init,grow,roundMode,initRange}){
+      const [lo,hi] = initRange;
+      const tI = init.map(v=>Math.floor(v));
+      const out=[];
+      for(let m=lo;m<=hi;m++){
+        for(const rk of RANK_RULES){
+          const Bavg=(rk.B[0]+rk.B[1])/2, K=Bavg/10000;
+          const bH=Math.max(1,(grow[0]/K)-2.5);
+          const bA=Math.max(1,(grow[1]/K)-2.5);
+          const bD=Math.max(1,(grow[2]/K)-2.5);
+          const bG=Math.max(1,(grow[3]/K)-2.5);
+          const iv=simulateInit(m,[bH,bA,bD,bG],roundMode);
+          const err=Math.abs(iv[0]-tI[0])+Math.abs(iv[1]-tI[1])+Math.abs(iv[2]-tI[2])+Math.abs(iv[3]-tI[3]);
+          if(err<=2){ out.push({rank:rk.name, initnum:m, base:[+bH.toFixed(3),+bA.toFixed(3),+bD.toFixed(3),+bG.toFixed(3)], score:1/(1+err)}); }
+        }
+      }
+      out.sort((a,b)=> b.score - a.score);
+      return out;
+    }
 
-// Worker 코드
-const workerCode=`self.onmessage=e=>{const {job}=e.data; if(job==='run'){const {cands,int4,roundMode,trials,mode}=e.data; const rng=(()=>{let s=0x9e3779b1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296}})();
-function simInit(m,b,rm){const hp=m*b[0]/100,atk=m*b[1]/100,def=m*b[2]/100,agi=m*b[3]/100;const a=[hp*4+atk+def+agi,hp*0.1+atk+def*0.1+agi*0.05,hp*0.1+atk*0.1+def+agi*0.05,agi];return rm==='floor'?a.map(Math.floor):a.map(v=>Math.round(v));}
-function canInt(m,b,rm,iv){const v=simInit(m,b,rm);return v[0]===iv[0]&&v[1]===iv[1]&&v[2]===iv[2]&&v[3]===iv[3];}
-const cut=[1385.83,334.99,198.77,168.19];
-// 성장 샘플(간략): 후보별 분산을 샘플링으로 대체
-function growHit(m,b){ 
-  const J=mode==='accurate'?2.5:1.5;
-  // 누적 결과를 간략 근사 (정확 방식을 원하면 여기 커브를 추가 정교화)
-  const base=simInit(m,b,'floor');
-  // 아래 t는 'Lv140 누적 표기'의 러프 근사치 (StageA 검증 기준에서 작동)
-  const t=[base[0]+139*((m*b[0]/100)*0.5),  // 체: 가중
-           base[1]+139*((m*b[1]/100)*0.2),
-           base[2]+139*((m*b[2]/100)*0.18),
-           base[3]+139*((m*b[3]/100)*0.14)];
-  return (t[0]>=cut[0]&&t[1]>=cut[1]&&t[2]>=cut[2]&&t[3]>=cut[3])?1:0;
-}
-let totalInt=0,totalSgivenInt=0,totalSun=0, nCand=0, minS=1, maxS=0;
-for(const c of cands){nCand++; let hitInt=0, hitSgivenInt=0, hitSun=0; const m=c.initnum, b=c.base; 
-  for(let i=0;i<trials;i++){
-    const ok=canInt(m,b,roundMode,int4); if(ok){ hitInt++; const s=growHit(m,b); hitSgivenInt+=s; }
-    const s2=growHit(m,b); hitSun+=s2;
-  }
-  const pInt=hitInt/trials; const pSgivenInt=hitInt? (hitSgivenInt/hitInt):0; const pS=hitSun/trials;
-  totalInt+=pInt; totalSgivenInt+=pSgivenInt; totalSun+=pS; if(pSgivenInt<minS)minS=pSgivenInt; if(pSgivenInt>maxS)maxS=pSgivenInt;
-}
-self.postMessage({ok:true, avgSInt:(totalSgivenInt/nCand)||0, range:[minS||0,maxS||0], avgSun:(totalSun/nCand)||0}); }};`;
+    function preFilterByInt(cands, int4, roundMode){
+      if (int4.some(v=>Number.isNaN(v))) return cands;
+      return cands.filter(c=>{
+        const iv = simulateInit(c.initnum, c.base, roundMode);
+        return iv[0]===int4[0] && iv[1]===int4[1] && iv[2]===int4[2] && iv[3]===int4[3];
+      });
+    }
 
-let worker=null; function ensureWorker(){ if(worker) return worker; const blob=new Blob([workerCode],{type:'application/javascript'}); const url=URL.createObjectURL(blob); worker=new Worker(url); return worker; }
+    function render(cands, meta){
+      const card = byId('resultCard'); card.style.display='block';
+      byId('meta').textContent = meta;
+      const tb = byId('tbl').querySelector('tbody');
+      tb.innerHTML='';
+      cands.forEach((c,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td>
+          <td>[${c.base.map(v=>v.toFixed(3)).join(' / ')}]</td>
+          <td class="right">${(1/c.score-1).toFixed(2)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
 
-byId('btnReset').addEventListener('click',()=>{ Object.keys(localStorage).filter(k=>k.startsWith(KEY_PREFIX)).forEach(k=>localStorage.removeItem(k)); refreshPetList(); alert('StageA 저장값을 모두 삭제했습니다.'); });
+    function saveLocal(petName, payload){
+      if(!petName){ alert('펫 이름을 먼저 입력하세요.'); return; }
+      const key = KEY(petName);
+      localStorage.setItem(key, JSON.stringify(payload));
+      alert(`로컬 저장 완료: ${key}`);
+    }
 
-byId('btnRun').addEventListener('click',()=>{
-  try{
-    const data=loadSelected(); if(!data||!data.candidates||data.candidates.length===0) throw new Error('로컬에 저장된 후보가 없습니다. StageA에서 먼저 저장해 주세요.');
-    const int4=parseInt4(); const roundMode=byId('roundMode').value; const trials=Math.max(2000, Math.floor(Number(byId('trials').value)||20000));
-    const mode=byId('speedMode').value;
-    busy('계산 중… (Web Worker)');
-    const w=ensureWorker();
-    w.onmessage=(e)=>{
-      const {ok, avgSInt, range, avgSun}=e.data; busy('');
-      if(!ok){ alert('계산 오류'); return; }
-      byId('summary').style.display='block';
-      const name=data.petName||'(이름 미정)';
-      byId('title').textContent=`${name} · 후보 ${data.candidates.length}개`;
-      byId('prob').innerHTML=`성공 확률 : <span class="big ${avgSInt>=0.5?'good':'bad'}">${(avgSInt*100).toFixed(3)}%</span>`;
-      byId('note').textContent=`참고: 후보 ${data.candidates.length}개 · 평균 p(S)=${(avgSun*100).toFixed(3)}% · p(S|Int) 범위 ${ (range[0]*100).toFixed(3)}% ~ ${ (range[1]*100).toFixed(3)}%`;
-    };
-    w.postMessage({job:'run', cands:data.candidates, int4, roundMode, trials, mode});
-  }catch(e){ busy(''); alert(e.message||'오류'); }
-});
+    document.getElementById('btnSolve').addEventListener('click', ()=>{
+      try{
+        busy('계산 중...');
+        const petName = byId('petName').value.trim();
+        const roundMode = byId('initRound').value;
+        const initRange = parseRange(byId('initRange').value);
+        const init = [toNum(byId('initHp').value),toNum(byId('initAtk').value),toNum(byId('initDef').value),toNum(byId('initAgi').value)];
+        const grow = [toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
+        if(init.some(Number.isNaN)||grow.some(Number.isNaN)) throw new Error('숫자를 모두 입력해 주세요.');
 
-refreshPetList();
-</script>
+        const cands = solveCandidates({init,grow,roundMode,initRange});
+        let filtered = cands;
+        const i4 = [toNum(byId('iHp').value),toNum(byId('iAtk').value),toNum(byId('iDef').value),toNum(byId('iAgi').value)];
+        if(!i4.some(Number.isNaN)) filtered = preFilterByInt(cands, i4, roundMode);
+
+        const payload = {petName, targetGrow:grow, initRound:roundMode, candidates:filtered};
+        render(filtered, `${petName||'(미정)'} · 후보 ${filtered.length}개`);
+        if(petName){ saveLocal(petName, payload); }
+        busy('완료');
+      }catch(e){ console.error(e); alert(e.message||'오류가 발생했습니다.'); }
+      finally{ setTimeout(()=>busy(''), 800); }
+    });
+
+    document.getElementById('btnSaveLocal').addEventListener('click', ()=>{
+      const petName = byId('petName').value.trim(); if(!petName){ alert('펫 이름을 먼저 입력하세요.'); return; }
+      const initRound = byId('initRound').value;
+      const grow=[toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
+      const rows=[...document.querySelectorAll('#tbl tbody tr')];
+      const candidates = rows.map(tr=>{
+        const tds=tr.querySelectorAll('td');
+        const rank=tds[1].textContent.trim();
+        const initnum=Number(tds[2].textContent.trim());
+        const baseS=tds[3].textContent.match(/\[(.*)\]/)[1].split('/').map(s=>Number(s.replace(/[^\d\.-]/g,'')));
+        return {rank, initnum, base:baseS, score:1};
+      });
+      const payload={petName, targetGrow:grow, initRound, candidates};
+      saveLocal(petName, payload);
+    });
+
+    document.getElementById('btnExport').addEventListener('click', ()=>{
+      const petName = byId('petName').value.trim()||'unknown_pet';
+      const rows=[...document.querySelectorAll('#tbl tbody tr')];
+      const initRound = byId('initRound').value;
+      const grow=[toNum(byId('growHp').value),toNum(byId('growAtk').value),toNum(byId('growDef').value),toNum(byId('growAgi').value)];
+      const candidates = rows.map(tr=>{
+        const tds=tr.querySelectorAll('td');
+        const rank=tds[1].textContent.trim();
+        const initnum=Number(tds[2].textContent.trim());
+        const baseS=tds[3].textContent.match(/\[(.*)\]/)[1].split('/').map(s=>Number(s.replace(/[^\d\.-]/g,'')));
+        return {rank, initnum, base:baseS, score:1};
+      });
+      const payload = {petName, targetGrow:grow, initRound, candidates};
+      const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${petName}_candidates.json`; a.click(); URL.revokeObjectURL(a.href);
+    });
+  </script>
 </body>
 </html>
