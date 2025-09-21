@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>StageB v0.2 · 확률 계산</title>
+  <title>StageB v0.3 · 환각 확률 계산(커트라인 모델)</title>
   <style>
     :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545;--bad:#ff5c5c}
     *{box-sizing:border-box}
@@ -25,7 +25,7 @@
     .btn:hover{background:#162a55}
     .btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d;font-weight:700}
     .muted{color:var(--muted);font-size:13px}
-    .big{font-size:22px;font-weight:800}
+    .big{font-size:24px;font-weight:900}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right}
     th{text-align:center;color:#bcd1ff}
@@ -36,12 +36,13 @@
 <body>
 <header>
   <div class="wrap">
-    <strong>StageB v0.2 · 확률 계산</strong>
+    <strong>StageB v0.3 · 환각 확률 계산</strong>
     <a class="pill" href="./stageA.html">⬅️ StageA로</a>
   </div>
 </header>
 
 <main>
+  <!-- 데이터 불러오기 -->
   <section class="card">
     <h2>데이터 불러오기</h2>
     <div class="body">
@@ -55,28 +56,41 @@
           <button class="btn" id="btnLoad">불러오기</button>
         </div>
       </div>
-      <div class="muted" id="info"></div>
+      <div class="muted" id="info">StageA에서 저장한 항목을 선택해 주세요.</div>
     </div>
   </section>
 
+  <!-- 정수 초기치 + 커트라인 -->
   <section class="card">
-    <h2>정수 초기치 입력 (1레벨 표기 정수)</h2>
+    <h2>정수 초기치 & 커트라인</h2>
     <div class="body">
       <div class="row4">
-        <div><label>체력</label><input id="intH" type="number" placeholder="예: 52"/></div>
-        <div><label>공격</label><input id="intA" type="number" placeholder="예: 12"/></div>
-        <div><label>방어</label><input id="intD" type="number" placeholder="예: 7"/></div>
-        <div><label>순발</label><input id="intG" type="number" placeholder="예: 6"/></div>
+        <div><label>초기·체(정수)</label><input id="intH" type="number" placeholder="예: 52"></div>
+        <div><label>초기·공(정수)</label><input id="intA" type="number" placeholder="예: 12"></div>
+        <div><label>초기·방(정수)</label><input id="intD" type="number" placeholder="예: 7"></div>
+        <div><label>초기·순(정수)</label><input id="intG" type="number" placeholder="예: 6"></div>
       </div>
+
+      <div class="muted" id="roundNote" style="margin:8px 0 14px"></div>
+
+      <div class="row4">
+        <div><label>S 커트라인·체 누적</label><input id="cutH" type="number" step="0.01" value="1385.83"></div>
+        <div><label>S 커트라인·공 누적</label><input id="cutA" type="number" step="0.01" value="334.99"></div>
+        <div><label>S 커트라인·방 누적</label><input id="cutD" type="number" step="0.01" value="198.77"></div>
+        <div><label>S 커트라인·순 누적</label><input id="cutG" type="number" step="0.01" value="168.19"></div>
+      </div>
+
       <div class="row" style="margin-top:10px">
         <button class="btn-ok" id="btnCalc">계산 시작</button>
-        <div class="muted" id="roundNote"></div>
+        <div class="muted" id="calcNote">결과는 “성공 확률 : n%”로 요약 표시됩니다.</div>
       </div>
+
       <div class="big" id="headline" style="margin-top:12px">성공 확률 : —</div>
       <div class="muted" id="subline"></div>
     </div>
   </section>
 
+  <!-- 후보 요약(간단) -->
   <section class="card">
     <h2>후보 요약</h2>
     <div class="body">
@@ -91,50 +105,119 @@
 </main>
 
 <script>
-  const Aavg=2.5;
-  function roundBy(mode,x){
-    if(mode==='ceil') return Math.ceil(x);
-    if(mode==='round') return Math.round(x);
-    return Math.floor(x);
-  }
+  // ---------- 공통 수식 ----------
+  const Aavg = 2.5;
+  function roundBy(mode,x){ if(mode==='ceil')return Math.ceil(x); if(mode==='round')return Math.round(x); return Math.floor(x); }
   function displayFromRaw(h,a,d,g){
-    const H = (h*4)+a+d+g;
-    const A = (h*0.1)+a+(d*0.1)+(g*0.05);
-    const D = (h*0.1)+(a*0.1)+d+(g*0.05);
+    const H = (h*4) + a + d + g;
+    const A = (h*0.1) + a + (d*0.1) + (g*0.05);
+    const D = (h*0.1) + (a*0.1) + d + (g*0.05);
     const G = g;
     return [H,A,D,G];
   }
-  function canMakeInt(initnum, baseS, intHADG, roundMode){
-    const h=(initnum*(baseS[0]+Aavg))/100,
-          a=(initnum*(baseS[1]+Aavg))/100,
-          d=(initnum*(baseS[2]+Aavg))/100,
-          g=(initnum*(baseS[3]+Aavg))/100;
-    const disp = displayFromRaw(h,a,d,g).map(x=>roundBy(roundMode,x));
-    return (disp[0]===intHADG[0] && disp[1]===intHADG[1] && disp[2]===intHADG[2] && disp[3]===intHADG[3]);
+
+  // ---------- 보너스 분배 사전 계산 (합 10, 비음수 정수 4분할) ----------
+  const bonusPartitions = (()=>{ // 약 286개
+    const out=[];
+    for(let h=0; h<=10; h++){
+      for(let a=0; a<=10-h; a++){
+        for(let d=0; d<=10-h-a; d++){
+          const g = 10-h-a-d;
+          out.push([h,a,d,g]);
+        }
+      }
+    }
+    return out;
+  })();
+
+  // ---------- 정수초기치 생성 가능성 검증 & 카운트 ----------
+  function countIntMatchesForCand(cand, intHADG, roundMode){
+    // baseS 수정 없이 "초기 난수"를 base 계수에 더하는 모델:
+    // base' = baseS + (Δ + bonus)  (Δ∈{-2..2}, bonus는 10분배)
+    // raw = initnum * (base' + Aavg) / 100
+    // disp = M(raw) → roundBy(roundMode)
+    const {initnum, base} = cand;
+    let hit=0, tot=0;
+
+    // Δ 루프 (5^4 = 625)
+    for(let dh=-2; dh<=2; dh++){
+      for(let da=-2; da<=2; da++){
+        for(let dd=-2; dd<=2; dd++){
+          for(let dg=-2; dg<=2; dg++){
+            // 보너스 분배 286개
+            for(const b of bonusPartitions){
+              const bH=b[0], bA=b[1], bD=b[2], bG=b[3];
+
+              const bh = base[0] + dh + bH;
+              const ba = base[1] + da + bA;
+              const bd = base[2] + dd + bD;
+              const bg = base[3] + dg + bG;
+
+              const h = initnum*(bh + Aavg)/100;
+              const a = initnum*(ba + Aavg)/100;
+              const d = initnum*(bd + Aavg)/100;
+              const g = initnum*(bg + Aavg)/100;
+
+              const disp = displayFromRaw(h,a,d,g).map(x=>roundBy(roundMode,x));
+              tot++;
+              if(disp[0]===intHADG[0] && disp[1]===intHADG[1] && disp[2]===intHADG[2] && disp[3]===intHADG[3]){
+                hit++;
+              }
+            }
+          }
+        }
+      }
+    }
+    return {hit, tot};
   }
 
-  const sel = document.getElementById('selPets');
+  // ---------- 140레벨 누적 표기 계산 ----------
+  // 단순 누적: InitDisp(소수) + (LvMax-1)*GrowDisp(소수)
+  function initDecimalDisp(cand){
+    const {initnum, base} = cand;
+    const h = initnum*(base[0] + Aavg)/100;
+    const a = initnum*(base[1] + Aavg)/100;
+    const d = initnum*(base[2] + Aavg)/100;
+    const g = initnum*(base[3] + Aavg)/100;
+    return displayFromRaw(h,a,d,g);
+  }
+
+  function totalDispAt140(cand, growDisp){
+    const initDisp = initDecimalDisp(cand); // 소수 유지
+    const lvGain = 139; // 1→140
+    return [
+      initDisp[0] + lvGain*growDisp[0],
+      initDisp[1] + lvGain*growDisp[1],
+      initDisp[2] + lvGain*growDisp[2],
+      initDisp[3] + lvGain*growDisp[3],
+    ];
+  }
+
+  function isS(totalDisp, cut){
+    return (totalDisp[0] >= cut[0] && totalDisp[1] >= cut[1] && totalDisp[2] >= cut[2] && totalDisp[3] >= cut[3]);
+  }
+
+  // ---------- UI/로딩 ----------
+  const sel=document.getElementById('selPets');
   const btnRefresh=document.getElementById('btnRefresh');
   const btnLoad=document.getElementById('btnLoad');
   const info=document.getElementById('info');
-  const tblBody=document.getElementById('tbl').querySelector('tbody');
+  const roundNote=document.getElementById('roundNote');
   const candSummary=document.getElementById('candSummary');
+  const tblBody=document.getElementById('tbl').querySelector('tbody');
+
   const headline=document.getElementById('headline');
   const subline=document.getElementById('subline');
-  const roundNote=document.getElementById('roundNote');
 
   function refreshKeys(){
     sel.innerHTML='';
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('PETCANDS::') && k!=='PETCANDS::LAST_PET_NAME').sort();
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('StageA_')).sort();
     keys.forEach(k=>{
       const opt=document.createElement('option');
-      opt.value=k; opt.textContent=k.replace('PETCANDS::','');
+      opt.value=k; opt.textContent=k.replace('StageA_','');
       sel.appendChild(opt);
     });
-    const last = localStorage.getItem('PETCANDS::LAST_PET_NAME');
-    if(last && keys.includes(`PETCANDS::${last}`)) sel.value=`PETCANDS::${last}`;
   }
-
   btnRefresh.onclick=refreshKeys;
   window.addEventListener('load',refreshKeys);
 
@@ -142,31 +225,31 @@
 
   btnLoad.onclick=()=>{
     const key=sel.value;
-    if(!key){ alert('로컬 저장 목록이 비어 있습니다. StageA에서 저장해주세요.'); return; }
+    if(!key){ alert('목록에서 항목을 선택하세요.'); return; }
     try{
       payload = JSON.parse(localStorage.getItem(key)||'{}');
-      if(!payload || !payload.candidates){ alert('저장된 형식이 올바르지 않습니다.'); return; }
-      info.textContent = `불러옴: ${payload.petName} · 후보 ${payload.candidates.length}개 · 라운딩=${payload.initRound||'floor'}`;
+      if(!payload || !payload.candidates){ alert('저장 형식이 올바르지 않습니다.'); return; }
+      info.textContent = `불러옴: ${payload.petName} · 후보 ${payload.candidates.length}개`;
       roundNote.textContent = `라운딩 규칙: ${payload.initRound||'floor'}`;
       renderCandidates([], payload.candidates);
     }catch(e){ alert('불러오기 실패: '+e.message); }
   };
 
-  function renderCandidates(matches, all){
+  function renderCandidates(matchIdxs, all){
     tblBody.innerHTML='';
-    const list = all.map((c,i)=>{
-      const ok = matches.includes(i);
+    const matchedSet = new Set(matchIdxs);
+    all.forEach((c,i)=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td style="text-align:center">${ok?'✓':''}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.map(v=>Number(v).toFixed(3)).join(' / ')}]</td>`;
+      tr.innerHTML = `<td>${i+1}</td><td>${matchedSet.has(i)?'✓':''}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.map(v=>Number(v).toFixed(3)).join(' / ')}]</td>`;
       tblBody.appendChild(tr);
-      return ok;
     });
-    const cnt = list.filter(Boolean).length;
-    candSummary.textContent = `후보 ${all.length}개 · 정수초기치 일치 ${cnt}개`;
+    candSummary.textContent = `후보 ${all.length}개 · 정수초기치 일치 ${matchIdxs.length}개`;
   }
 
+  // ---------- 계산 시작 ----------
   document.getElementById('btnCalc').onclick=()=>{
     if(!payload){ alert('먼저 데이터를 불러오세요.'); return; }
+
     const ints=[
       parseInt(document.getElementById('intH').value,10),
       parseInt(document.getElementById('intA').value,10),
@@ -175,22 +258,50 @@
     ];
     if(ints.some(v=>isNaN(v))){ alert('정수 초기치를 모두 입력하세요.'); return; }
 
-    // 정수 초기치 가능 후보 필터 (★ StageA와 동일 라운딩 적용)
-    const mode = payload.initRound || 'floor';
-    const matches=[];
-    payload.candidates.forEach((c,i)=>{
-      if(canMakeInt(c.initnum, c.base, ints, mode)) matches.push(i);
-    });
+    const cut=[
+      parseFloat(document.getElementById('cutH').value),
+      parseFloat(document.getElementById('cutA').value),
+      parseFloat(document.getElementById('cutD').value),
+      parseFloat(document.getElementById('cutG').value),
+    ];
 
-    renderCandidates(matches, payload.candidates);
+    const roundMode = payload.initRound || 'floor';
+    const growDisp = payload.targetGrow; // [h,a,d,g] 소수 성장
+    const cands = payload.candidates || [];
 
-    // 여기서는 UI 요구에 맞춰 "성공 확률 = p(S|Int)"만 크게 표시
-    // (환각判定 로직은 기존과 동일 구성 가정; 여기선 일치 후보가 1개 이상이면 샘플링 결과를 종합해 보여주는 자리에 해당)
-    // 지금은 p(S|Int) 추정치 = 일치후보 수 / 전체후보 수 로 간단 표시(빠른 확인용)
-    // 실제 환각 커트라인/성장 시뮬레이션을 쓰는 상세 모델이 있다면 이 구간에 연결.
-    const pInt = matches.length / (payload.candidates.length||1);
-    headline.textContent = `성공 확률 : ${(pInt*100).toFixed(3)}%`;
-    subline.textContent = `정수초기치 생성 가능 후보 ${matches.length} / ${payload.candidates.length}`;
+    // 1) cand별 정수초기치 일치 횟수 계산 → p(Int|cand) 비례치
+    const weights = new Array(cands.length).fill(0);
+    const matchIdxs=[];
+    let wSum = 0;
+
+    for(let i=0;i<cands.length;i++){
+      const {hit, tot} = countIntMatchesForCand(cands[i], ints, roundMode);
+      if(hit>0){ matchIdxs.push(i); }
+      const w = hit / (tot||1);
+      weights[i]=w;
+      wSum += w;
+    }
+
+    renderCandidates(matchIdxs, cands);
+
+    if(wSum===0){
+      headline.textContent = '성공 확률 : 0.000%';
+      subline.textContent = '정수초기치를 만들 수 있는 후보가 없습니다.';
+      return;
+    }
+
+    // 2) cand별 S성공(결정) → totalDispAt140 >= cut ?
+    let num = 0;
+    for(let i=0;i<cands.length;i++){
+      if(weights[i]===0) continue;
+      const total = totalDispAt140(cands[i], growDisp);
+      const ok = isS(total, cut) ? 1 : 0;
+      num += weights[i] * ok;
+    }
+
+    const p = num / wSum;
+    headline.textContent = `성공 확률 : ${(p*100).toFixed(3)}%`;
+    subline.textContent = `일치 후보 ${matchIdxs.length}/${cands.length} · 가중치합=${wSum.toFixed(6)}`;
   };
 </script>
 </body>
