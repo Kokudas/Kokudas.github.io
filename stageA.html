@@ -1,526 +1,231 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>StageA — 초기치/성장 역산 (kokudas)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StageA – 후보 역산 (소수점 → baseS/initnum/rank)</title>
 <style>
   :root{
-    --bg:#0b1220; --card:#111a2b; --ink:#e7eefc; --sub:#a9b7d9;
-    --pri:#4ea1ff; --ok:#52c41a; --warn:#faad14; --bad:#ff4d4f;
-    --mut:#22304a; --pill:#0f274e;
+    --bg:#0b1220; --panel:#121a2b; --ink:#e9edf6; --muted:#a9b3c7; --accent:#5aa9ff;
   }
   *{box-sizing:border-box}
-  body{
-    margin:0; font-family: ui-sans-serif,system-ui,AppleSDGothicNeo,Segoe UI,Roboto,Helvetica,Arial,"맑은 고딕",sans-serif;
-    background:linear-gradient(180deg,#081020 0%,#0d1a33 100%); color:var(--ink);
-  }
-  header{
-    position:sticky; top:0; z-index:10; backdrop-filter: blur(8px);
-    background:rgba(8,16,32,.7); border-bottom:1px solid #15223a;
-  }
-  .bar{max-width:1100px; margin:0 auto; padding:10px 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .bar a{color:#cfe3ff; text-decoration:none; padding:6px 10px; border:1px solid #2a3b5f; border-radius:8px; background:#0b1a33}
-  .bar a:hover{background:#102246}
-  .container{max-width:1100px; margin:24px auto; padding:0 16px 80px}
-  h1{font-size:22px; margin:12px 0}
-  .card{
-    background:var(--card); border:1px solid #15223a; border-radius:14px; padding:16px; margin:12px 0 18px;
-    box-shadow: 0 12px 30px -18px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
-  }
-  .row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
-  .row-2{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
-  .row-3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
-  label{font-size:12px; color:var(--sub)}
-  input, select{
-    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #243453; background:#0b1426; color:var(--ink);
-    outline:none; transition:.15s border;
-  }
-  input::placeholder{color:#6d7fa6}
-  input:focus, select:focus{border-color:#3b65a8}
-  .btn{
-    padding:10px 14px; border-radius:10px; border:1px solid #224073; background:#0f2a54; color:#d8e8ff; cursor:pointer;
-  }
-  .btn:hover{filter:brightness(1.06)}
-  .btn.pri{background:linear-gradient(180deg,#1c4fa8,#103b84); border-color:#2c5fb0}
-  .btn.ghost{background:#0b1426; border-color:#2a3b5f}
-  .btn.ok{background:#0e3a1b; border-color:#1c7a36}
-  .btn.bad{background:#3a1414; border-color:#7a1c1c}
-  .mut{color:#8fa6d1}
-  .help{font-size:12px; color:#94a9d8}
-  .pill{
-    display:inline-block; padding:6px 10px; border-radius:999px; background:var(--pill); border:1px solid #214178;
-    font-size:12px; color:#9ec2ff
-  }
-  table{width:100%; border-collapse:separate; border-spacing:0 8px}
-  thead th{font-weight:600; font-size:12px; color:#9cb7e6; text-align:left; padding:6px 8px}
-  tbody tr{background:#0c162b; border:1px solid #1a2a49}
-  tbody td{padding:8px}
-  code.small{background:#0b1426; border:1px solid #263a61; padding:2px 6px; border-radius:6px}
-  .right{display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  .hr{height:1px; background:#1a2640; margin:10px 0}
-  .warn{color:#ffdd99}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Malgun Gothic", sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  header,main,footer{max-width:1100px;margin:0 auto;padding:16px}
+  .btn{background:#1b2742;color:var(--ink);border:1px solid #2a385a;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .btn:hover{background:#223255}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:280px}
+  .card{background:var(--panel);border:1px solid #1f2a45;border-radius:14px;padding:16px}
+  h1,h2,h3{margin:6px 0 12px}
+  small,.muted{color:var(--muted)}
+  input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #2a385a;background:#0e1628;color:var(--ink)}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-bottom:1px solid #223155;padding:10px;text-align:right}
+  th:first-child, td:first-child{text-align:left}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .pill{display:inline-block;border-radius:999px;padding:2px 8px;font-weight:600;border:1px solid #2a385a}
+  footer{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="bar">
-    <strong>StageA — 초기치/성장 역산</strong>
-    <span class="pill" id="pill">대기</span>
-    <span class="help">샘플: 반기노 성장(9.97/2.41/1.43/1.21), 초기(52.39/12.64/7.49/6.37)</span>
-    <div class="right" style="margin-left:auto">
-      <a href="https://kokudas.github.io/" target="_blank" title="홈으로">🏠 홈 (kokudas.github.io)</a>
-      <a href="./stageB.html" title="단계B로 이동">➡️ StageB</a>
-    </div>
-  </div>
+<header class="row" style="align-items:center">
+  <a class="btn" href="https://kokudas.github.io/">홈으로</a>
+  <a class="btn" href="https://kokudas.github.io/stageB">StageB (정수초기치+환각)</a>
+  <h3 style="margin-left:auto">StageA – 후보 역산</h3>
 </header>
 
-<div class="container">
-
-  <div class="card">
-    <h1>입력</h1>
-    <div class="row-3">
-      <div>
-        <label>페트 이름</label>
-        <input id="petName" placeholder="예: 반기노"/>
+<main class="row">
+  <section class="col card">
+    <h2>입력(소수점 2자리)</h2>
+    <div class="row">
+      <div class="col">
+        <label>페트 이름(선택)</label>
+        <input id="petName" placeholder="예: 반기노" />
       </div>
-      <div>
-        <label>표기 성장 (체/공/방/순, 소숫점 2자리)</label>
-        <input id="grow" placeholder="예: 9.97, 2.41, 1.43, 1.21"/>
-      </div>
-      <div>
-        <label>표기 초기 (체/공/방/순, 소숫점 2자리)</label>
-        <input id="initDec" placeholder="예: 52.39, 12.64, 7.49, 6.37"/>
-      </div>
-    </div>
-
-    <div class="row-3" style="margin-top:10px">
-      <div>
-        <label>초기치 정수 사전필터 (선택, H/A/D/G)</label>
-        <input id="initInts" placeholder="예: 52,12,7,6 (없으면 비워두세요)"/>
-        <div class="help">정수필터 모드:
-          <select id="intMode">
-            <option value="fast">빠름</option>
-            <option value="normal">보통</option>
-            <option value="strong">강함(전수, 느림)</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>초기치 반올림 규칙</label>
-        <select id="roundMode">
-          <option value="floor">내림 (floor)</option>
-          <option value="round">반올림 (round)</option>
-          <option value="ceil">올림 (ceil)</option>
+      <div class="col">
+        <label>초기치 반올림 방식</label>
+        <select id="initRound">
+          <option value="floor">내림(floor)</option>
+          <option value="round">반올림(round)</option>
         </select>
-        <div class="help">서버 표기 규칙에 맞춰 선택 (샘플은 보통 <code class="small">floor</code>)</div>
-      </div>
-      <div>
-        <label>initnum 범위</label>
-        <div class="row">
-          <input id="initMin" type="number" value="20" min="8" max="60" />
-          <input id="initMax" type="number" value="35" min="8" max="60" />
-          <select id="rankScan">
-            <option value="auto">랭크 전부 스캔</option>
-            <option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option>
-            <option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option>
-          </select>
-          <button class="btn ghost" id="btnReset">초기화</button>
-        </div>
       </div>
     </div>
 
-    <div class="hr"></div>
-    <div class="right">
+    <h3 style="margin-top:10px">① 표기 초기치 (소수점)</h3>
+    <div class="row">
+      <div class="col"><input id="initH" placeholder="예: 52.39 (체)" /></div>
+      <div class="col"><input id="initA" placeholder="예: 12.64 (공)" /></div>
+      <div class="col"><input id="initD" placeholder="예: 7.49 (방)" /></div>
+      <div class="col"><input id="initG" placeholder="예: 6.37 (순)" /></div>
+    </div>
+
+    <h3 style="margin-top:10px">② 표기 성장 (레벨당, 소수점)</h3>
+    <div class="row">
+      <div class="col"><input id="growH" placeholder="예: 9.97 (체성)" /></div>
+      <div class="col"><input id="growA" placeholder="예: 2.41 (공성)" /></div>
+      <div class="col"><input id="growD" placeholder="예: 1.43 (방성)" /></div>
+      <div class="col"><input id="growG" placeholder="예: 1.21 (순성)" /></div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnSolve">후보 역산</button>
-      <button class="btn ghost" id="btnExport" disabled>JSON 저장</button>
-      <button class="btn pri" id="btnSend" disabled>단계B로 전송</button>
+      <button class="btn" id="btnSaveLS">후보 저장(로컬)</button>
+      <button class="btn" id="btnExport">JSON 다운로드</button>
     </div>
-    <div id="statMsg" class="help" style="margin-top:8px"></div>
-  </div>
+    <div id="msg" class="muted" style="margin-top:8px"></div>
+  </section>
 
-  <div class="card">
-    <h1>후보 (상위 300개)</h1>
-    <div class="help">※ StageB에서는 <code class="small">base</code>에서 자동으로 <strong>4.5를 차감</strong>해 사용합니다.</div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>랭크</th><th>initnum</th>
-          <th>base (H/A/D/G)</th>
-          <th>score↓</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
+  <section class="col card">
+    <h2>후보 출력</h2>
+    <div class="muted">rank, initnum, baseS(표기 기준)와 점수(적합도)를 제공합니다.</div>
+    <div style="overflow:auto;margin-top:8px">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th>score</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
 
-  <div class="card">
-    <h1>안내/주의</h1>
-    <ul class="help">
-      <li>이 단계는 “표기 성장(소수2) + 표기 초기(소수2)”로부터 <em>initnum·랭크·base(가중치)</em> 후보를 역산합니다.</li>
-      <li>후보의 <code class="small">base</code>는 “게임 표기 보정(+2 + 2.5)”가 포함된 형태이며, StageB에서 <strong>4.5 차감</strong> 후 시뮬레이션에 사용합니다.</li>
-      <li>정수 사전필터는 고속(확률적) / 강함(전수) 제공. 먼저 비워 실행 → 필요 시 정수 넣고 <em>보통/강함</em>으로 좁혀주세요.</li>
-      <li>진행 중 “계산 중...”이 오래 지속되면 입력값/범위/정수필터 모드를 낮춰 재시도하세요.</li>
-    </ul>
-  </div>
-
-</div>
+<footer>
+  <div>ⓘ StageA는 <b>소수점</b> 초기치·성장을 입력받아 후보(<code>rank, initnum, baseS</code>)를 역산합니다. 정수 초기치 검증은 StageB에서 수행합니다.</div>
+</footer>
 
 <script>
-// =============================
-// 공통 유틸
-// =============================
-const $ = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
-const pill = $('#pill');
-const statEl = $('#statMsg');
-const tbody = $('#tbody');
-const btnExport = $('#btnExport');
-const btnSend = $('#btnSend');
+// ===== 간단한 역산 스켈레톤(휴리스틱) =====
+// 실제 게임 로직의 모든 변동/난수과정(±2, 보너스10, rank보정 등)을
+// 정확히 재현하기 어려운 상황에서, 관측된 소수점 초기/성장과 가장
+// 일관되게 맞는 (initnum, baseS, rank) 후보를 여러 개 생성합니다.
 
-// 반올림 규칙
-function applyRound(v, mode){
-  if(mode==='ceil') return Math.ceil(v);
-  if(mode==='round') return Math.round(v);
-  return Math.floor(v); // default floor
+const BRANGE = {
+  R1:[450,500], R2:[470,520], R3:[490,540],
+  R4:[510,560], R5:[530,580], R6:[550,600],
+};
+
+// 가시표기 변환
+function visFromInternal(h,a,d,g){
+  return [
+    4*h + a + d + g,
+    0.1*h + a + 0.1*d + 0.05*g,
+    0.1*h + 0.1*a + d + 0.05*g,
+    g
+  ];
 }
 
-// 근사 비교
-function approx(a,b,tol){ return Math.abs(a-b) <= tol; }
-
-// 숫자배열 파싱
-function parseNums(s){
-  return s.split(',').map(x=>parseFloat(x.trim())).filter(x=>Number.isFinite(x));
+// 아주 단순화: baseS와 initnum의 곱으로 소수점 초기치를 근사
+function computeInitFromBaseS(initnum, baseS){
+  const ih = initnum * baseS[0] / 100;
+  const ia = initnum * baseS[1] / 100;
+  const id = initnum * baseS[2] / 100;
+  const ig = initnum * baseS[3] / 100;
+  const vis = visFromInternal(ih, ia, id, ig);
+  return vis; // 소수점 표기 초기치(가시계산)
 }
 
-// =============================
-// 전치(보너스 분배) 캐시 — 1회 생성
-// =============================
-const BASE_PATTERNS = [
-  [3,3,2,2],[4,3,2,1],[4,2,2,2],[6,2,1,1],[5,3,1,1],
-  [10,0,0,0],[0,10,0,0],[0,0,10,0],[0,0,0,10],
-  [5,5,0,0],[0,5,5,0],[0,0,5,5],[4,4,1,1]
-];
-
-// 중복 없는 전치
-function permsUnique(arr){
-  const out = new Set();
-  const used = Array(arr.length).fill(false);
-  const nums = arr.slice().sort((a,b)=>a-b);
-  const cur=[];
-  function dfs(){
-    if(cur.length===nums.length){ out.add(cur.join(',')); return; }
-    for(let i=0;i<nums.length;i++){
-      if(used[i]) continue;
-      if(i>0 && nums[i]===nums[i-1] && !used[i-1]) continue;
-      used[i]=true; cur.push(nums[i]); dfs(); cur.pop(); used[i]=false;
-    }
-  }
-  dfs();
-  return Array.from(out).map(s=>s.split(',').map(Number));
+// 성장도도 baseS에서 내부 s=(baseS-4.5)와 평균 B로 선형 근사
+function computeGrowFromBaseS(baseS, rankKey){
+  const s = baseS.map(x=>x-4.5);
+  const br = BRANGE[rankKey]||[490,540];
+  const B = (br[0]+br[1])/2;
+  const gh = s[0] * B / 10000;
+  const ga = s[1] * B / 10000;
+  const gd = s[2] * B / 10000;
+  const gg = s[3] * B / 10000;
+  return visFromInternal(gh,ga,gd,gg);
 }
 
-const PERM_CACHE = BASE_PATTERNS.flatMap(permsUnique);
-const PERM_POOL = (() => {
-  const arr = PERM_CACHE.slice();
-  for(let i=arr.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-})();
-let permIdx = 0;
-function nextPerm(){
-  const p = PERM_POOL[permIdx++];
-  if(permIdx >= PERM_POOL.length) permIdx = 0;
-  return p;
-}
+function solveCandidates(targetInit, targetGrow, initRound){
+  // 탐색 공간(간단): initnum 20~35, rank R1~R6, baseS를 비율 형태로 스캔
+  const ranks = ['R1','R2','R3','R4','R5','R6'];
+  const out=[];
+  for (let initnum=20; initnum<=35; initnum++){
+    for (const rk of ranks){
+      // 비율은 체/공/방/순의 합 ~ 98±? 를 기준으로 반기노류 대역 가정
+      for (let h=24; h<=36; h+=2){
+        for (let a=34; a<=50; a+=2){
+          for (let d=14; d<=24; d+=2){
+            for (let g=18; g<=28; g+=2){
+              const baseS = [h,a,d,g].map(x=>x/1); // 그대로 사용(표기기준)
+              const initPred = computeInitFromBaseS(initnum, baseS);
+              const growPred = computeGrowFromBaseS(baseS, rk);
 
-// =============================
-// 정수 사전필터 (최적화 버전)
-// baseS: StageA가 출력하는 base(= s + 4.5), StageB에서 4.5 차감 가정
-// =============================
-function canMakeInitialInts(baseS, initnum, ints, roundMode, mode='fast'){
-  if(!ints) return true;
-  const base = baseS.map(v=>v-4.5);
+              const sInit = diff2(initPred, targetInit);
+              const sGrow = diff2(growPred, targetGrow);
 
-  const tryOnce = (rH,rA,rD,rG,b)=>{
-    const h=initnum*(base[0]+rH+b[0])/100;
-    const a=initnum*(base[1]+rA+b[1])/100;
-    const d=initnum*(base[2]+rD+b[2])/100;
-    const g=initnum*(base[3]+rG+b[3])/100;
-    const H=applyRound(h*4+a+d+g,roundMode);
-    const A=applyRound(h*0.1+a+d*0.1+g*0.05,roundMode);
-    const D=applyRound(h*0.1+a*0.1+d+g*0.05,roundMode);
-    const G=applyRound(g,roundMode);
-    return (H===ints[0] && A===ints[1] && D===ints[2] && G===ints[3]);
-  };
+              // 간단 가중 합
+              const score = 1e6/(1 + sInit*4 + sGrow*1);
 
-  if(mode==='fast'){
-    for(let t=0;t<160;t++){
-      const rH = (Math.random()*5|0)-2;
-      const rA = (Math.random()*5|0)-2;
-      const rD = (Math.random()*5|0)-2;
-      const rG = (Math.random()*5|0)-2;
-      const b  = nextPerm();
-      if(tryOnce(rH,rA,rD,rG,b)) return true;
-    }
-    return false;
-  }else if(mode==='normal'){
-    for(let t=0;t<300;t++){
-      const rH = (Math.random()*5|0)-2;
-      const rA = (Math.random()*5|0)-2;
-      const rD = (Math.random()*5|0)-2;
-      const rG = (Math.random()*5|0)-2;
-      const b  = nextPerm();
-      if(tryOnce(rH,rA,rD,rG,b)) return true;
-    }
-    return false;
-  }else{ // strong
-    for(let rH=-2;rH<=2;rH++){
-      for(let rA=-2;rA<=2;rA++){
-        for(let rD=-2;rD<=2;rD++){
-          for(let rG=-2;rG<=2;rG++){
-            for(const b of PERM_CACHE){
-              if(tryOnce(rH,rA,rD,rG,b)) return true;
+              out.push({rank:rk, initnum, base:baseS, score});
             }
           }
         }
       }
     }
-    return false;
   }
+  // 상위만 반환
+  return out.sort((a,b)=>b.score-a.score).slice(0,120);
+}
+function diff2(a,b){ // L2 norm^2
+  let s=0; for (let i=0;i<4;i++){ const d=(a[i]-b[i]); s+=d*d; } return s;
 }
 
-// =============================
-// 랭크별 B 중간값
-// (설명서 기준 구간 중간값 사용)
-// R1:450~500→475, R2:470~520→495, R3:490~540→515,
-// R4:510~560→535, R5:530~580→555, R6:550~600→575
-// =============================
-const RANK_BMID = {R1:475, R2:495, R3:515, R4:535, R5:555, R6:575};
-const RANKS = ['R1','R2','R3','R4','R5','R6'];
+const $ = s=>document.getElementById(s);
+const tbody = $("tbody");
+const msg = $("msg");
 
-// 성장→(s+A)*B/10000 = up  관계에서
-// y = M * up,  M은 보너스 합성 행렬
-// M 정의: 
-// [4,   1,   1,   1  ]
-// [0.1, 1,   0.1, 0.05]
-// [0.1, 0.1, 1,   0.05]
-// [0,   0,   0,   1  ]
-// 역행렬을 직접 풀기 (마지막 행은 g= y4)
-function invMapVisibleToUp(y1,y2,y3,y4){
-  const g = y4;
-  const A1 = y2 - 0.05*g;
-  const A2 = y3 - 0.05*g;
-  const H3 = y1 - g;
-  const t = (A1 - A2)/0.9;       // a - d
-  const h = -(A2 - 0.55*H3 + 0.45*t)/2.1;
-  const d = (H3 - 4*h - t)/2;
-  const a = d + t;
-  return [h,a,d,g]; // up
-}
-
-// 점수(작을수록 좋음)
-function scoreCandidate(initFitErr, growFitErr){
-  // 성장 우선, 초기는 보조 — 가중치
-  return growFitErr*1.0 + initFitErr*0.35;
-}
-
-// 초기 소숫점 근사 허용오차 (완화)
-const INIT_TOL = 0.6;
-
-// 상태표시
-function setStatus(msg){ statEl.textContent = msg; }
-
-// localStorage 키
-function keyLS(pet){ return `petCalc_candidates_${(pet||'').trim()}`; }
-const KEY_STAGEA_PAYLOAD = 'petCalc_stageA_payload';
-
-// =============================
-// 메인: 후보 역산
-// =============================
-let lastCandidates = [];
-
-$('#btnReset').addEventListener('click', ()=>{
-  $('#petName').value='';
-  $('#grow').value='';
-  $('#initDec').value='';
-  $('#initInts').value='';
-  $('#roundMode').value='floor';
-  $('#initMin').value=20; $('#initMax').value=35;
-  $('#rankScan').value='auto'; $('#intMode').value='fast';
-  tbody.innerHTML=''; lastCandidates=[]; btnExport.disabled=true; btnSend.disabled=true;
-  pill.textContent='대기'; setStatus('입력을 채운 뒤 “후보 역산”을 눌러주세요.');
-});
-
-$('#btnSolve').addEventListener('click', async ()=>{
-  tbody.innerHTML=''; lastCandidates=[]; btnExport.disabled=true; btnSend.disabled=true;
-  pill.textContent='계산 중...'; setStatus('초기값 검사 및 후보 스캔 중…');
-
-  const petName = $('#petName').value.trim() || 'unknown';
-  const growArr = parseNums($('#grow').value||'');
-  const initArr = parseNums($('#initDec').value||'');
-  if(growArr.length!==4 || initArr.length!==4){
-    pill.textContent='오류';
-    alert('“표기 성장”과 “표기 초기”는 각각 4개 값을 소숫점으로 입력해주세요.');
-    return;
-  }
-  const roundMode = $('#roundMode').value;
-  const initMin = parseInt($('#initMin').value||'20',10);
-  const initMax = parseInt($('#initMax').value||'35',10);
-  const rankSel = $('#rankScan').value;
-  const intMode = $('#intMode').value;
-
-  // 정수 사전필터 입력(선택)
-  let ints = null;
-  const intsRaw = $('#initInts').value.trim();
-  if(intsRaw){
-    const v = intsRaw.split(',').map(s=>parseInt(s.trim(),10));
-    if(v.length!==4 || v.some(x=>!Number.isFinite(x))){
-      pill.textContent='오류';
-      alert('정수 사전필터는 "H,A,D,G" 4개의 정수로 입력해주세요. (예: 52,12,7,6)');
-      return;
-    }
-    ints = v;
-  }
-
+$("btnSolve").addEventListener('click', ()=>{
   try{
-    const A = 2.5; // 성장 랜덤 A의 평균
-    const ranks = (rankSel==='auto') ? RANKS : [rankSel];
+    const petName = $("petName").value.trim();
+    const initRound = $("initRound").value;
 
-    // 후보 버퍼
-    const candBuf = [];
+    const tInit = [+$("initH").value, +$("initA").value, +$("initD").value, +$("initG").value];
+    const tGrow = [+$("growH").value, +$("growA").value, +$("growD").value, +$("growG").value];
+    if (tInit.some(isNaN)||tGrow.some(isNaN)){ alert('소수점 초기치/성장을 모두 숫자로 입력하세요.'); return; }
 
-    // 성장 → up 역산
-    const upVis = growArr; // 표기 성장 (H,A,D,G)
-    const up = invMapVisibleToUp(upVis[0],upVis[1],upVis[2],upVis[3]); // per-stat up(vis 이전)
-    // 각 rank의 Bmid에 대해 base s ≈ up*(10000/B) - A
-    // StageA 출력은 baseS = s + 4.5   (StageB에서 4.5를 뺌)
-    for(const rk of ranks){
-      const B = RANK_BMID[rk];
-      if(!B) continue;
-
-      // up은 “표기 전(up)” 이므로, base s 계산
-      const s = up.map(x => (x*10000.0/B) - A);
-      // baseS (표기용) : +4.5
-      const baseS = s.map(x => x + 4.5);
-
-      // initnum 스캔
-      for(let initnum=initMin; initnum<=initMax; initnum++){
-        // 초기 소숫점 근사 평가 — 평균 분배 2.5와 랜덤=0, 보너스 대표 [3,3,2,2] 가정
-        const avgBonus = [3,3,2,2]; // 대표 패턴
-        const r= [0,0,0,0];
-
-        const h = initnum*( (baseS[0]-4.5) + r[0] + avgBonus[0] )/100;
-        const a = initnum*( (baseS[1]-4.5) + r[1] + avgBonus[1] )/100;
-        const d = initnum*( (baseS[2]-4.5) + r[2] + avgBonus[2] )/100;
-        const g = initnum*( (baseS[3]-4.5) + r[3] + avgBonus[3] )/100;
-
-        const H = h*4 + a + d + g;
-        const Aatk = 0.1*h + a + 0.1*d + 0.05*g;
-        const Ddef = 0.1*h + 0.1*a + d + 0.05*g;
-        const Gagi = g;
-        const initErr =
-          Math.abs(H - initArr[0]) +
-          Math.abs(Aatk - initArr[1]) +
-          Math.abs(Ddef - initArr[2]) +
-          Math.abs(Gagi - initArr[3]);
-
-        // 사전 정수 필터 (있다면) — 고속/전수
-        let passInt=true;
-        if(ints){
-          passInt = canMakeInitialInts(baseS, initnum, ints, roundMode, intMode);
-        }
-
-        // 성장 오차(이론 up로부터 재조합 → 다시 표기 성장)
-        // (여기선 역산해온 grow를 그대로 쓰므로 오차는 거의 0, 안전상 소수 노이즈만)
-        const growErr = 0.0001;
-
-        if(passInt){
-          const score = scoreCandidate(initErr, growErr);
-          candBuf.push({
-            rank: rk,
-            initnum,
-            base: baseS.map(v => Math.round(v*1e12)/1e12),
-            score
-          });
-        }
-      }
-    }
-
-    // 정렬/상위 300
-    candBuf.sort((a,b)=> a.score - b.score);
-    lastCandidates = candBuf.slice(0,300);
-
-    // 테이블 출력
-    tbody.innerHTML='';
-    lastCandidates.forEach((c,i)=>{
-      const tr=document.createElement('tr');
-      const td=(t)=>{const x=document.createElement('td'); x.textContent=t; return x;}
-      tr.appendChild(td(String(i+1)));
-      tr.appendChild(td(c.rank));
-      tr.appendChild(td(String(c.initnum)));
-      tr.appendChild(td(`${c.base[0].toFixed(3)}, ${c.base[1].toFixed(3)}, ${c.base[2].toFixed(3)}, ${c.base[3].toFixed(3)}`));
-      tr.appendChild(td(c.score.toFixed(6)));
+    const cand = solveCandidates(tInit, tGrow, initRound);
+    tbody.innerHTML = '';
+    cand.forEach((c,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td>${c.rank}</td>
+        <td>${c.initnum}</td>
+        <td class="mono">[${c.base.map(v=>v.toFixed(3)).join(' / ')}]</td>
+        <td>${c.score.toFixed(3)}</td>
+      `;
       tbody.appendChild(tr);
     });
 
-    btnExport.disabled = lastCandidates.length===0;
-    btnSend.disabled = lastCandidates.length===0;
+    // StageB 전달용으로 저장할 오브젝트
+    const payload = { petName, targetGrow: tGrow, initRound, candidates: cand };
+    window._lastPayload = payload;
+    msg.innerHTML = `후보 ${cand.length}개. <span class="pill">StageB에서 정수 초기치로 검증하세요.</span>`;
 
-    pill.textContent = lastCandidates.length ? '완료' : '0건';
-    setStatus(
-      lastCandidates.length
-        ? `후보 ${lastCandidates.length}건. “JSON 저장” 또는 “단계B로 전송”으로 진행하세요.`
-        : '조건에 맞는 후보가 없습니다. initnum 범위/정수필터 모드/초기 오차를 조정해 재시도하세요.'
-    );
-
-  }catch(err){
-    console.error(err);
-    pill.textContent='오류';
-    alert('역산 중 오류가 발생했습니다. 입력/범위를 확인한 뒤 다시 시도해주세요.');
+  }catch(e){
+    console.error(e);
+    alert('역산 중 오류: '+e.message);
   }
 });
 
-// JSON 저장
-$('#btnExport').addEventListener('click', ()=>{
-  if(!lastCandidates.length) return;
-  const petName = $('#petName').value.trim() || 'unknown';
-  const payload = {
-    petName,
-    targetGrow: parseNums($('#grow').value||''),
-    initRound: $('#roundMode').value,
-    candidates: lastCandidates
-  };
-  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
+$("btnSaveLS").addEventListener('click', ()=>{
+  if (!window._lastPayload){ alert('먼저 후보를 생성하세요.'); return; }
+  localStorage.setItem('petCalcCandidates', JSON.stringify(window._lastPayload));
+  msg.textContent = '로컬 저장소에 저장 완료 (petCalcCandidates). StageB에서 자동 불러올 수 있습니다.';
+});
+
+$("btnExport").addEventListener('click', ()=>{
+  if (!window._lastPayload){ alert('먼저 후보를 생성하세요.'); return; }
+  const blob = new Blob([JSON.stringify(window._lastPayload)], {type:'application/json'});
   const a = document.createElement('a');
-  a.href = url; a.download = `${petName||'pet'}-stageA-candidates.json`;
-  a.click(); URL.revokeObjectURL(url);
+  a.href = URL.createObjectURL(blob);
+  a.download = (window._lastPayload.petName||'pet') + '_candidates.json';
+  a.click();
 });
-
-// 단계B로 전송(localStorage)
-$('#btnSend').addEventListener('click', ()=>{
-  if(!lastCandidates.length) return;
-  const petName = $('#petName').value.trim() || 'unknown';
-  const payload = {
-    petName,
-    targetGrow: parseNums($('#grow').value||''),
-    initRound: $('#roundMode').value,
-    candidates: lastCandidates
-  };
-  // 개별 페트별 저장
-  localStorage.setItem(keyLS(petName), JSON.stringify(payload));
-  // StageB 즉시 불러오기용 공용 키도 저장
-  localStorage.setItem(KEY_STAGEA_PAYLOAD, JSON.stringify(payload));
-  alert('단계B로 전송 완료!\nStageB에서 “localStorage 불러오기”를 눌러주세요.');
-});
-
-// 초기 상태 문구
-setStatus('입력을 채운 뒤 “후보 역산”을 눌러주세요.');
 </script>
 </body>
 </html>
