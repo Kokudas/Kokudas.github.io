@@ -91,106 +91,66 @@ button{cursor:pointer;font-weight:900}
 </main>
 
 <script>
-// ===== 짜얄 개선식(단일 계수 세트만 산출) =====
-// floor 고정, JSON 내보내기/불러오기 없음, 저장은 로컬스토리지 DB만 사용
-const AAVG=2.5;
-const E_CAND=[575,555,535,515,495,475]; // 랭크 평균계수 후보(짜얄 표본 기반)
-const M=[[4,1,1,1],[0.1,1,0.1,0.05],[0.1,0.1,1,0.05],[0,0,0,1]];
-function inv4(mat){let a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
- for(let i=0;i<n;i++){let p=i;for(let r=i;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[p][i]))p=r;
-  if(Math.abs(a[p][i])<1e-12)throw Error('역행렬 불가'); if(p!==i){[a[i],a[p]]=[a[p],a[i]];[id[i],id[p]]=[id[p],id[i]];}
-  const pv=a[i][i]; for(let j=0;j<n;j++){a[i][j]/=pv; id[i][j]/=pv;}
-  for(let r=0;r<n;r++){ if(r===i) continue; const f=a[r][i]; for(let j=0;j<n;j++){a[r][j]-=f*a[i][j]; id[r][j]-=f*id[i][j];}}
- } return id;}
-const Minv=inv4(M);
-function disp(h,a,d,g){return [4*h+a+d+g,0.1*h+a+0.1*d+0.05*g,0.1*h+0.1*a+d+0.05*g,g];}
+// ===== 짜얄 개선식(단일 계수 세트만 산출) — 튜닝 버전 =====
+// floor 고정, JSON 미사용. 저장은 로컬스토리지 DB만 사용.
 
-function solveOne(initDisp,growDisp){
-  // 1) 성장 소수 → (baseS + Aavg) * (E/10000) 를 역산 (선형)
-  let best=null;
-  for(const E of E_CAND){
-    const scale=E/10000;
-    // (baseS + Aavg) = Minv * growDisp / scale
-    const t=[0,0,0,0]; for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++)s+=Minv[i][j]*growDisp[j]; t[i]=s/scale;}
-    const baseFloat=t.map(v=>v-AAVG);
-    // 2) initnum(=IC)와 baseS는 정수 근처여야 함 → 스냅 탐색
-    let bestLocal=null;
-    for(let ic=10; ic<=100; ic++){
-      // G(순)부터 맞춰서 baseS_G 정수화
-      const gS = (initDisp[3]*100/ic) - AAVG; // g ≈ ic*(baseG+Aavg)/100 => baseG ≈ (g*100/ic)-Aavg (표기에서 역)
-      const baseInt = baseFloat.slice();
-      baseInt[3]=Math.round(gS);
+// ---- 튜닝 파라미터 ----
+const AAVG = 2.5;
+const EC_START = 460, EC_END = 600, EC_STEP = 5;       // E 후보군 범위 확대
+const IC_MIN = 10, IC_MAX = 120;                       // initnum 탐색 확대
+const GRID_ADJ = 2;                                    // H/A/D 스냅 탐색 폭 (±2)
+const W_INIT = 25, W_GROW = 1;                         // 초기치/성장 가중치
+const EPS = 0.03;                                      // 소수 2자리 허용 오차
+const FEASIBILITY_SAMPLES = 1200;                      // 타당성 체크 샘플 수(가볍게)
 
-      // 나머지 H/A/D는 초기 표기와 floor 일치로 미세조정(작은 라인성)
-      // 간단히 ±1 범위 그리드 탐색
-      for(let dh=-1; dh<=1; dh++)for(let da=-1; da<=1; da++)for(let dd=-1; dd<=1; dd++){
-        const b=[Math.round(baseFloat[0])+dh, Math.round(baseFloat[1])+da, Math.round(baseFloat[2])+dd, baseInt[3]];
-        // 내부 실수
-        const H=ic*(b[0]+AAVG)/100, A=ic*(b[1]+AAVG)/100, D=ic*(b[2]+AAVG)/100, G=ic*(b[3]+AAVG)/100;
-        const vis=disp(H,A,D,G).map(Math.floor);
-        const err = Math.abs(vis[0]-Math.floor(initDisp[0])) + Math.abs(vis[1]-Math.floor(initDisp[1])) +
-                    Math.abs(vis[2]-Math.floor(initDisp[2])) + Math.abs(vis[3]-Math.floor(initDisp[3]));
-        const growRebuild = (()=>{
-          const per=[b[0]+AAVG,b[1]+AAVG,b[2]+AAVG,b[3]+AAVG].map(x=>x* (E/10000));
-          // 레벨당 표기 성장
-          return disp(per[0],per[1],per[2],per[3]);
-        })();
-        // 성장 오차(소수 2자리 기준 근접)
-        const gerr = Math.abs(growRebuild[0]-growDisp[0]) + Math.abs(growRebuild[1]-growDisp[1]) +
-                     Math.abs(growRebuild[2]-growDisp[2]) + Math.abs(growRebuild[3]-growDisp[3]);
-        const score = err*10 + gerr; // 초기치 일치 우선, 다음 성장 근접
-        const pack={ic, base:b, E, score};
-        if(!bestLocal || score < bestLocal.score) bestLocal=pack;
-      }
+// ---- 행렬/표기 변환 ----
+const M = [
+  [4,   1,   1,   1],
+  [0.1, 1,   0.1, 0.05],
+  [0.1, 0.1, 1,   0.05],
+  [0,   0,   0,   1],
+];
+function inv4(mat){
+  let a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  for(let i=0;i<n;i++){
+    let p=i; for(let r=i;r<n;r++) if(Math.abs(a[r][i])>Math.abs(a[p][i])) p=r;
+    if(Math.abs(a[p][i])<1e-12) throw Error('역행렬 불가');
+    if(p!==i){ [a[i],a[p]]=[a[p],a[i]]; [id[i],id[p]]=[id[p],id[i]]; }
+    const pv=a[i][i];
+    for(let j=0;j<n;j++){ a[i][j]/=pv; id[i][j]/=pv; }
+    for(let r=0;r<n;r++){
+      if(r===i) continue;
+      const f=a[r][i];
+      for(let j=0;j<n;j++){ a[r][j]-=f*a[i][j]; id[r][j]-=f*id[i][j]; }
     }
-    if(!best || bestLocal.score < best.score) best = bestLocal;
   }
-  return best; // {ic, base:[H,A,D,G], E, score}
+  return id;
+}
+const Minv = inv4(M);
+function disp(h,a,d,g){
+  return [
+    4*h + a + d + g,
+    0.1*h + a + 0.1*d + 0.05*g,
+    0.1*h + 0.1*a + d + 0.05*g,
+    g
+  ];
 }
 
-// ===== 저장/목록 =====
+// ---- 보조 ----
 const els={
   petName:document.getElementById('petName'),
-  initH:document.getElementById('initH'),initA:document.getElementById('initA'),initD:document.getElementById('initD'),initG:document.getElementById('initG'),
-  growH:document.getElementById('growH'),growA:document.getElementById('growA'),growD:document.getElementById('growD'),growG:document.getElementById('growG'),
+  initH:document.getElementById('initH'),initA:document.getElementById('initA'),
+  initD:document.getElementById('initD'),initG:document.getElementById('initG'),
+  growH:document.getElementById('growH'),growA:document.getElementById('growA'),
+  growD:document.getElementById('growD'),growG:document.getElementById('growG'),
   btnCalc:document.getElementById('btnCalc'), btnSave:document.getElementById('btnSave'),
   outInit:document.getElementById('outInit'), outBase:document.getElementById('outBase'),
   lst:document.getElementById('lst'), btnReload:document.getElementById('btnReload'), btnPurge:document.getElementById('btnPurge')
 };
-let lastResult=null;
-
-function readInputs(){
-  const name=(els.petName.value||'').trim();
-  const initDisp=[+els.initH.value,+els.initA.value,+els.initD.value,+els.initG.value];
-  const growDisp=[+els.growH.value,+els.growA.value,+els.growD.value,+els.growG.value];
-  if(!name || initDisp.some(isNaN) || growDisp.some(isNaN)) throw Error('모든 칸을 채워 주세요.');
-  return {name,initDisp,growDisp};
-}
-els.btnCalc.onclick=()=>{
-  try{
-    const s=readInputs();
-    const r=solveOne(s.initDisp, s.growDisp);
-    if(!r) throw Error('계수 산출 실패');
-    lastResult={petName:s.name, initnum:r.ic, base:r.base, meta:{E:r.E, score:+r.score.toFixed(4), init:s.initDisp, grow:s.growDisp}};
-    els.outInit.textContent = String(r.ic);
-    els.outBase.textContent = `[${r.base.join(' / ')}] (E≈${r.E})`;
-  }catch(e){ alert(e.message); }
-};
-els.btnSave.onclick=()=>{
-  try{
-    if(!lastResult) throw Error('먼저 계수를 산출하세요.');
-    // DB: PetDBRecords (이름 고유)
-    const DBKEY='PetDBRecords';
-    const db=JSON.parse(localStorage.getItem(DBKEY)||'[]').filter(x=>x.petName!==lastResult.petName);
-    db.push({...lastResult, savedAt:Date.now()});
-    localStorage.setItem(DBKEY, JSON.stringify(db));
-    renderList();
-    alert('저장 완료: StageB에서 초성으로 선택할 수 있습니다.');
-  }catch(e){ alert(e.message); }
-};
+function loadDB(){try{const db=JSON.parse(localStorage.getItem('PetDBRecords')||'[]');return Array.isArray(db)?db:[]}catch{return[]}}
+function saveDB(rows){localStorage.setItem('PetDBRecords',JSON.stringify(rows))}
 function renderList(){
-  const DBKEY='PetDBRecords';
-  const db=JSON.parse(localStorage.getItem(DBKEY)||'[]').sort((a,b)=>a.petName.localeCompare(b.petName,'ko'));
+  const db=loadDB().sort((a,b)=>a.petName.localeCompare(b.petName,'ko'));
   els.lst.innerHTML='';
   if(db.length===0){ els.lst.innerHTML='<div class="item small">저장된 데이터가 없습니다.</div>'; return; }
   db.forEach(r=>{
@@ -199,11 +159,152 @@ function renderList(){
     els.lst.appendChild(div);
   });
 }
+
+// ---- 입력 ----
+function readInputs(){
+  const name=(els.petName.value||'').trim();
+  const initDisp=[+els.initH.value,+els.initA.value,+els.initD.value,+els.initG.value];
+  const growDisp=[+els.growH.value,+els.growA.value,+els.growD.value,+els.growG.value];
+  if(!name || initDisp.some(isNaN) || growDisp.some(isNaN)) throw Error('모든 칸을 채워 주세요.');
+  return {name, initDisp, growDisp};
+}
+
+// ---- 타당성 체크(경량 리젝션 샘플) ----
+// 산출 (IC, baseS)가 실제 floor표기 초기치를 “어떤” 조합으로든 만들 수 있는지 빠르게 검사
+function feasible(IC, B, initFloors){
+  // initFloors는 소수 초기치를 floor한 4튜플
+  // 작은 샘플로 충분: 균등하게 랜덤 추출
+  function randInt(a,b){return a + Math.floor(Math.random()*(b-a+1))}
+  for(let s=0;s<FEASIBILITY_SAMPLES;s++){
+    const r=[randInt(-2,2),randInt(-2,2),randInt(-2,2),randInt(-2,2)];
+    // 보너스 합10 무작위
+    let left=10; const bonus=[0,0,0,0];
+    for(let i=0;i<3;i++){ const take=randInt(0,left); bonus[i]=take; left-=take; }
+    bonus[3]=left;
+    // 내부값
+    const bh=B[0]+r[0]+bonus[0], ba=B[1]+r[1]+bonus[1], bd=B[2]+r[2]+bonus[2], bg=B[3]+r[3]+bonus[3];
+    const h=IC*(bh+AAVG)/100, a=IC*(ba+AAVG)/100, d=IC*(bd+AAVG)/100, g=IC*(bg+AAVG)/100;
+    const vis=disp(h,a,d,g).map(Math.floor);
+    if(vis[0]===initFloors[0] && vis[1]===initFloors[1] && vis[2]===initFloors[2] && vis[3]===initFloors[3]) return true;
+  }
+  return false;
+}
+
+// ---- 메인 솔버(튜닝) ----
+function solveOne(initDisp, growDisp){
+  // 목표는: (IC, baseS[4]) 정수 세트를 찾아,
+  //  (1) floor(init 재구성) ≈ floor(initDisp) 일치 (가중치 높음)
+  //  (2) 성장(소수) 재구성 ≈ growDisp (2순위, 허용오차 EPS)
+  //  (3) 실제로 만들 수 있는 조합이 존재(feasible)
+  let best=null;
+  const initFloors = initDisp.map(x=>Math.floor(x));
+  // E 후보군 확장
+  const E_CAND=[]; for(let e=EC_START;e<=EC_END;e+=EC_STEP) E_CAND.push(e);
+
+  // 선형역: (baseS + Aavg) = (Minv * growDisp) / (E/10000)
+  // 이후 정수 스냅 + 초기치 우선 적합 → 성장 근접 → 타당성 체크
+  for(const E of E_CAND){
+    const scale = E/10000;
+    const tmp=[0,0,0,0];
+    for(let i=0;i<4;i++){ let s=0; for(let j=0;j<4;j++) s+=Minv[i][j]*growDisp[j]; tmp[i]=s/scale; }
+    const baseFloat = tmp.map(v=>v - AAVG);
+
+    for(let IC=IC_MIN; IC<=IC_MAX; IC++){
+      // G(순) 먼저 고정 스냅: 관측 AGI가 가장 직결
+      const baseSnap = baseFloat.slice();
+      const gS = (initDisp[3]*100/IC) - AAVG; // g ≈ IC*(baseG+Aavg)/100 → baseG
+      baseSnap[3] = Math.round(gS);
+
+      // H/A/D ±GRID_ADJ 정수 격자 탐색
+      for(let dh=-GRID_ADJ; dh<=GRID_ADJ; dh++)
+      for(let da=-GRID_ADJ; da<=GRID_ADJ; da++)
+      for(let dd=-GRID_ADJ; dd<=GRID_ADJ; dd++){
+        const bH = Math.round(baseFloat[0])+dh;
+        const bA = Math.round(baseFloat[1])+da;
+        const bD = Math.round(baseFloat[2])+dd;
+        const B = [bH,bA,bD,baseSnap[3]];
+
+        // 재구성(초기치)
+        const H=IC*(B[0]+AAVG)/100, A=IC*(B[1]+AAVG)/100, D=IC*(B[2]+AAVG)/100, G=IC*(B[3]+AAVG)/100;
+        const vis = disp(H,A,D,G);
+        const visFloor = vis.map(Math.floor);
+
+        // 초기치 오차(가중치 높음): floor 기준
+        const errInit = Math.abs(visFloor[0]-initFloors[0]) + Math.abs(visFloor[1]-initFloors[1]) +
+                        Math.abs(visFloor[2]-initFloors[2]) + Math.abs(visFloor[3]-initFloors[3]);
+
+        // 성장 재구성 (레벨당 표기 증가량) — baseS+Aavg 를 scale 곱해서 disp
+        const per = [B[0]+AAVG, B[1]+AAVG, B[2]+AAVG, B[3]+AAVG].map(x=>x*scale);
+        const growRec = disp(per[0],per[1],per[2],per[3]);
+
+        // 성장 오차(소수2자리/허용오차)
+        const errGrow = (
+          Math.abs(growRec[0]-growDisp[0]) +
+          Math.abs(growRec[1]-growDisp[1]) +
+          Math.abs(growRec[2]-growDisp[2]) +
+          Math.abs(growRec[3]-growDisp[3])
+        );
+
+        // 허용 오차 컷(느슨): 완전 탈선 방지
+        if(errGrow > 4*0.5) continue; // 너무 멀면 스킵
+
+        const score = W_INIT*errInit + W_GROW*errGrow;
+
+        // 1차 후보: 점수로
+        const cand = {ic:IC, base:B, E, score, errInit, errGrow};
+
+        // 더 좋은 점수만 비교
+        if(best && score >= best.score) continue;
+
+        // 타당성(실제 조합 존재?) — errInit 0 또는 1 정도일 때만 검사(속도 최적화)
+        if(cand.errInit <= 1){
+          if(!feasible(IC, B, initFloors)) continue;
+        }else{
+          // errInit>1 이면 일단 보류(현실성 낮음)
+          continue;
+        }
+
+        best = cand;
+      }
+    }
+  }
+  return best; // {ic, base:[H,A/D/G], E, score, ...}
+}
+
+// ---- 이벤트/저장 ----
+let lastResult=null;
+
+els.btnCalc.onclick=()=>{
+  try{
+    const s=readInputs();
+    const r=solveOne(s.initDisp, s.growDisp);
+    if(!r) throw Error('계수 산출 실패(초기치/성장/타당성 동시 만족 후보 없음). E/IC 범위나 오차를 조정하세요.');
+    lastResult={petName:s.name, initnum:r.ic, base:r.base, meta:{E:r.E, score:+r.score.toFixed(4), init:s.initDisp, grow:s.growDisp, errInit:r.errInit, errGrow:+r.errGrow.toFixed(4)}};
+    els.outInit.textContent = String(r.ic);
+    els.outBase.textContent = `[${r.base.join(' / ')}] (E≈${r.E}, initErr=${r.errInit}, growErr=${lastResult.meta.errGrow})`;
+  }catch(e){ alert(e.message); }
+};
+
+els.btnSave.onclick=()=>{
+  try{
+    if(!lastResult) throw Error('먼저 계수를 산출하세요.');
+    const db=loadDB().filter(x=>x.petName!==lastResult.petName);
+    db.push({...lastResult, savedAt:Date.now()});
+    saveDB(db);
+    renderList();
+    alert('저장 완료: StageB에서 초성으로 선택할 수 있습니다.');
+  }catch(e){ alert(e.message); }
+};
+
 els.btnReload.onclick=renderList;
 els.btnPurge.onclick=()=>{
-  if(confirm('관리자용 전체 삭제(모든 페트 데이터) 할까요?')){ localStorage.removeItem('PetDBRecords'); renderList(); }
+  if(confirm('관리자용 전체 삭제(모든 페트 데이터) 할까요?')){
+    localStorage.removeItem('PetDBRecords');
+    renderList();
+  }
 };
 renderList();
 </script>
+
 </body>
 </html>
