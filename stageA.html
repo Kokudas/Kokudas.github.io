@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>StageA v0.7 · 관리자용 페트 데이터 입력</title>
+  <title>StageA v0.8 · 관리자용 페트 데이터 입력</title>
   <style>
     :root{
       --bg:#0b1220; --panel:#121a2b; --ink:#e7eef8; --muted:#8aa0bd; --pri:#7aa2ff;
@@ -34,23 +34,16 @@
     .btn-ok:hover{filter:brightness(1.05)}
     .muted{color:var(--muted);font-size:13px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace}
-    .pill{display:inline-block;padding:2px 8px;border:1px solid #2a3a5e;border-radius:999px;font-size:12px;color:#cfe0ff}
     .grid{display:grid;gap:10px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:right;font-size:13px}
-    th:first-child,td:first-child{text-align:left}
     .kv{display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center}
     .sep{height:1px;background:var(--line);margin:12px 0}
-    .note{font-size:12px;color:#aebbe0}
     .big{font-size:22px;font-weight:900}
-    .ok{color:var(--ok)} .bad{color:var(--bad)}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <strong>StageA v0.7 · 관리자용 페트 데이터 입력</strong>
-    <span class="pill">라운딩: floor 고정</span>
+    <strong>StageA v0.8 · 관리자용 페트 데이터 입력</strong>
     <div class="grow"></div>
     <a class="pill" href="./stageB.html">➡️ StageB로 이동</a>
   </div>
@@ -65,10 +58,6 @@
         <div>
           <label>페트 이름</label>
           <input id="petName" placeholder="페트 이름"/>
-        </div>
-        <div>
-          <label>메모(선택)</label>
-          <input id="petMemo" placeholder="비고"/>
         </div>
       </div>
 
@@ -101,22 +90,22 @@
         <div class="grid" style="margin-top:8px">
           <div class="row3">
             <div>
-              <label>EC 시작</label>
-              <input id="EC_START" type="number" value="430"/>
+              <label>E(성장계수) 시작</label>
+              <input id="EC_START" type="number" value="450"/>
             </div>
             <div>
-              <label>EC 끝</label>
-              <input id="EC_END" type="number" value="620"/>
+              <label>E 끝</label>
+              <input id="EC_END" type="number" value="610"/>
             </div>
             <div>
-              <label>EC 간격</label>
-              <input id="EC_STEP" type="number" value="5"/>
+              <label>E 간격</label>
+              <input id="EC_STEP" type="number" value="1"/>
             </div>
           </div>
           <div class="row3">
             <div>
               <label>초기치 오차 가중</label>
-              <input id="W_INIT" type="number" value="40"/>
+              <input id="W_INIT" type="number" value="30"/>
             </div>
             <div>
               <label>성장 오차 가중</label>
@@ -124,10 +113,10 @@
             </div>
             <div>
               <label>탐색 initnum 범위</label>
-              <input id="E_RANGE" type="text" value="18..38"/>
+              <input id="E_RANGE" type="text" value="10..140"/>
             </div>
           </div>
-          <div class="note">※ floor 고정. M(표기변환) 역행렬 기반 선형근사 + EC 스윕 + 초기치 가중 강화로 짜얄식 계수( initnum·baseS )를 1세트 도출합니다.</div>
+          <div class="muted">※ floor 고정. 표기→내부 역행렬 근사 + E 스윕 + 전수 타당성 검사로 1세트(IC, baseS)만 산출합니다.</div>
         </div>
       </details>
 
@@ -146,84 +135,57 @@
   <section class="card">
     <h2>결과 · 짜얄 계수(1세트)</h2>
     <div class="body grid">
-      <div class="kv"><div>라운딩</div><div class="pill">floor</div></div>
-      <div class="kv"><div>추정 initnum(E)</div><div id="outInitnum" class="big">—</div></div>
-      <div class="kv"><div>추정 baseS [H/A/D/G]</div><div id="outBase" class="mono big">—</div></div>
+      <div class="kv"><div>initnum</div><div id="outInitnum" class="big">—</div></div>
+      <div class="kv"><div>baseS [H/A/D/G]</div><div id="outBase" class="mono big">—</div></div>
+      <div class="kv"><div>E(성장계수)</div><div id="outE" class="mono">—</div></div>
       <div class="kv"><div>오차(초기/성장)</div><div id="outErr" class="mono">—</div></div>
       <div class="sep"></div>
-      <div class="muted" id="msg">계수를 계산하면 오른쪽에 1세트가 표시됩니다. 저장 후 StageB에서 검색/선택하여 환각 확률을 계산하세요.</div>
+      <div class="muted" id="msg">계수를 계산하면 이곳에 표시됩니다. 저장 후 StageB에서 검색/선택하여 환각 확률을 계산하세요.</div>
     </div>
   </section>
 </main>
 
-
 <script>
-// ====== 상수/기본 설정 ======
-const AAVG = 2.5;                // 짜얄 평균 A
-const EC_START = 450;            // E 탐색 시작
-const EC_END   = 610;            // E 탐색 끝
-const EC_STEP  = 1;              // E 간격 (촘촘)
-const IC_MIN   = 10;             // initnum 최소
-const IC_MAX   = 140;            // initnum 최대 (필요시 160까지 늘려보세요)
-const GRID_ADJ = 6;              // base 스냅 탐색 폭(±)
-const W_INIT   = 30;             // 초기치 오차 가중
-const W_GROW   = 1;              // 성장 오차 가중
-const EPS_GROW = 0.06;           // 성장 오차 허용(완화 코어)
+/* ===== 기본 파라미터 (초깃값) ===== */
+const AAVG   = 2.5;   // 짜얄 평균 A
+const DEF_EC = {start:450, end:610, step:1};
+const DEF_W  = {init:30, grow:1};
+const DEF_IC = {min:10, max:140};
+const GRID_ADJ = 6;   // base 스냅 탐색폭(±)
+const EPS_GROW = 0.06; // 성장 오차 허용(완화)
 
-// UI 엘리먼트 (레이아웃 그대로 사용)
+/* ===== DOM ===== */
+const $ = id => document.getElementById(id);
 const els = {
-  petName:     document.getElementById('petName'),
-  initH:       document.getElementById('initH'),
-  initA:       document.getElementById('initA'),
-  initD:       document.getElementById('initD'),
-  initG:       document.getElementById('initG'),
-  growH:       document.getElementById('growH'),
-  growA:       document.getElementById('growA'),
-  growD:       document.getElementById('growD'),
-  growG:       document.getElementById('growG'),
-  btnSolve:    document.getElementById('btnSolve'),
-  btnSaveLS:   document.getElementById('btnSaveLS'),
-  btnDownload: document.getElementById('btnDownload'),
-  btnClearLS:  document.getElementById('btnClearLS'),
-  tbl:         document.getElementById('tbl'),
-  summary:     document.getElementById('summary'),
-  lsKey:       document.getElementById('lsKey'),
+  petName: $('petName'),
+  initH: $('initH'), initA:$('initA'), initD:$('initD'), initG:$('initG'),
+  growH: $('growH'), growA:$('growA'), growD:$('growD'), growG:$('growG'),
+  EC_START:$('EC_START'), EC_END:$('EC_END'), EC_STEP:$('EC_STEP'),
+  W_INIT:$('W_INIT'), W_GROW:$('W_GROW'), E_RANGE:$('E_RANGE'),
+  btnSolve:$('btnSolve'), btnSaveLS:$('btnSaveLS'), btnClearLS:$('btnClearLS'),
+  outInitnum:$('outInitnum'), outBase:$('outBase'), outE:$('outE'), outErr:$('outErr'),
+  msg:$('msg'), lsKey:$('lsKey'),
 };
 
-// ====== 표기 변환/역행렬 ======
+/* ===== 표기변환/역행렬 ===== */
 function disp(H,A,D,G){
-  return [
-    4*H + A + D + G,                 // HP
-    0.1*H + A + 0.1*D + 0.05*G,      // ATK
-    0.1*H + 0.1*A + D + 0.05*G,      // DEF
-    G                                // AGI
-  ];
+  return [4*H+A+D+G, 0.1*H+A+0.1*D+0.05*G, 0.1*H+0.1*A+D+0.05*G, G];
 }
-
-// 표기 -> 내부 회귀를 위한 행렬 (표기 = M * 내부)
 const M = [
   [4,   1,   1,   1   ],
   [0.1, 1,   0.1, 0.05],
   [0.1, 0.1, 1,   0.05],
   [0,   0,   0,   1   ],
 ];
-
-// 4x4 역행렬
 function inv4(mat){
-  const a = mat.map(r=>r.slice());
-  const n = 4;
-  const id = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  const a=mat.map(r=>r.slice()), n=4, id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
   for(let i=0;i<n;i++){
-    let p=i;
-    for(let r=i;r<n;r++){
-      if(Math.abs(a[r][i]) > Math.abs(a[p][i])) p=r;
-    }
-    if(Math.abs(a[p][i]) < 1e-12) throw Error('역행렬 불가');
+    let p=i; for(let r=i;r<n;r++) if(Math.abs(a[r][i])>Math.abs(a[p][i])) p=r;
+    if(Math.abs(a[p][i])<1e-12) throw Error('역행렬 불가');
     if(p!==i){ [a[i],a[p]]=[a[p],a[i]]; [id[i],id[p]]=[id[p],id[i]]; }
     const pv=a[i][i];
     for(let j=0;j<n;j++){ a[i][j]/=pv; id[i][j]/=pv; }
-    for(let r=0;r<n;r++){
-      if(r===i) continue;
+    for(let r=0;r<n;r++){ if(r===i) continue;
       const f=a[r][i];
       for(let j=0;j<n;j++){ a[r][j]-=f*a[i][j]; id[r][j]-=f*id[i][j]; }
     }
@@ -232,42 +194,20 @@ function inv4(mat){
 }
 const Minv = inv4(M);
 
-// ====== 보너스 전수(합 10 → 4칸) 286개 ======
-const bonusPartitions = (() => {
-  const out=[];
-  for(let h=0; h<=10; h++){
-    for(let a=0; a<=10-h; a++){
-      for(let d=0; d<=10-h-a; d++){
-        const g = 10-h-a-d;
-        out.push([h,a,d,g]);
-      }
-    }
-  }
-  return out;
-})();
+/* ===== 보너스 전수(합10) 286개 ===== */
+const bonusPartitions = (()=>{const o=[];for(let h=0;h<=10;h++){for(let a=0;a<=10-h;a++){for(let d=0;d<=10-h-a;d++){const g=10-h-a-d;o.push([h,a,d,g]);}}}return o;})();
 
-// ====== 타당성 검사: 전수 + 조기탈출 ======
+/* ===== 전수 타당성 검사 (floor 고정) ===== */
 function feasible(IC, B, initFloor){
-  // r ∈ [-2..2]^4 전수(625) × 보너스 286 = 178,750 최대
   for(let rh=-2; rh<=2; rh++){
     for(let ra=-2; ra<=2; ra++){
       for(let rd=-2; rd<=2; rd++){
         for(let rg=-2; rg<=2; rg++){
           for(const bp of bonusPartitions){
-            const bh = B[0] + rh + bp[0];
-            const ba = B[1] + ra + bp[1];
-            const bd = B[2] + rd + bp[2];
-            const bg = B[3] + rg + bp[3];
-
-            const H = IC * (bh + AAVG) / 100;
-            const A = IC * (ba + AAVG) / 100;
-            const D = IC * (bd + AAVG) / 100;
-            const G = IC * (bg + AAVG) / 100;
-
-            const v = disp(H,A,D,G).map(Math.floor); // floor 고정
-            if(v[0]===initFloor[0] && v[1]===initFloor[1] && v[2]===initFloor[2] && v[3]===initFloor[3]){
-              return true; // 조기탈출
-            }
+            const bh=B[0]+rh+bp[0], ba=B[1]+ra+bp[1], bd=B[2]+rd+bp[2], bg=B[3]+rg+bp[3];
+            const H=IC*(bh+AAVG)/100, A=IC*(ba+AAVG)/100, D=IC*(bd+AAVG)/100, G=IC*(bg+AAVG)/100;
+            const v=disp(H,A,D,G).map(Math.floor);
+            if(v[0]===initFloor[0] && v[1]===initFloor[1] && v[2]===initFloor[2] && v[3]===initFloor[3]) return true;
           }
         }
       }
@@ -276,82 +216,49 @@ function feasible(IC, B, initFloor){
   return false;
 }
 
-// ====== 솔버 (E/IC 촘촘 탐색 + base 스냅 탐색) ======
-function solveOne(initDisp, growDisp){
+/* ===== 솔버 (E/IC 스윕 + base 스냅 탐색) ===== */
+function parseRange(txt){
+  const m=(txt||'').match(/^\s*(\d+)\s*\.\.\s*(\d+)\s*$/);
+  if(!m) return {min:DEF_IC.min, max:DEF_IC.max};
+  const a=+m[1], b=+m[2];
+  return {min:Math.min(a,b), max:Math.max(a,b)};
+}
+function solveOne(initDisp, growDisp, knobs){
   const initFloor = initDisp.map(x=>Math.floor(x));
-  let best = null;
-
-  // E 후보군
-  for(let E=EC_START; E<=EC_END; E+=EC_STEP){
-    const scale = E/10000;
-
-    // (base + 2.5) ≈ Minv * growDisp / scale → baseFloat 추정
+  let best=null;
+  for(let E=knobs.ec.start; E<=knobs.ec.end; E+=knobs.ec.step){
+    const scale=E/10000;
+    // base 추정(선형)
     const tmp=[0,0,0,0];
-    for(let i=0;i<4;i++){
-      let s=0;
-      for(let j=0;j<4;j++) s += Minv[i][j]*growDisp[j];
-      tmp[i]= s/scale;
-    }
-    const baseFloat = tmp.map(v=> v - AAVG);
+    for(let i=0;i<4;i++){ let s=0; for(let j=0;j<4;j++) s+=Minv[i][j]*growDisp[j]; tmp[i]=s/scale; }
+    const baseFloat = tmp.map(v=>v-AAVG);
 
-    for(let IC=IC_MIN; IC<=IC_MAX; IC++){
-      // G(순)도 반드시 ±GRID_ADJ 스캔
+    for(let IC=knobs.ic.min; IC<=knobs.ic.max; IC++){
       for(let dg=-GRID_ADJ; dg<=GRID_ADJ; dg++){
-        const gCand = Math.round(baseFloat[3]) + dg;
-
+        const gCand=Math.round(baseFloat[3])+dg;
         for(let dh=-GRID_ADJ; dh<=GRID_ADJ; dh++)
         for(let da=-GRID_ADJ; da<=GRID_ADJ; da++)
         for(let dd=-GRID_ADJ; dd<=GRID_ADJ; dd++){
-          const B = [
-            Math.round(baseFloat[0]) + dh,
-            Math.round(baseFloat[1]) + da,
-            Math.round(baseFloat[2]) + dd,
-            gCand
-          ];
+          const B=[Math.round(baseFloat[0])+dh, Math.round(baseFloat[1])+da, Math.round(baseFloat[2])+dd, gCand];
 
-          // 1) 초기치 재구성 (floor 비교)
-          const H = IC*(B[0]+AAVG)/100;
-          const A = IC*(B[1]+AAVG)/100;
-          const D = IC*(B[2]+AAVG)/100;
-          const G = IC*(B[3]+AAVG)/100;
-          const v0 = disp(H,A,D,G).map(Math.floor);
+          // 초기치 재구성(floor)
+          const H=IC*(B[0]+AAVG)/100, A=IC*(B[1]+AAVG)/100, D=IC*(B[2]+AAVG)/100, G=IC*(B[3]+AAVG)/100;
+          const v0=disp(H,A,D,G).map(Math.floor);
+          const errInit = Math.abs(v0[0]-initFloor[0])+Math.abs(v0[1]-initFloor[1])+Math.abs(v0[2]-initFloor[2])+Math.abs(v0[3]-initFloor[3]);
+          if(errInit>1) continue;
 
-          const errInit =
-            Math.abs(v0[0]-initFloor[0]) +
-            Math.abs(v0[1]-initFloor[1]) +
-            Math.abs(v0[2]-initFloor[2]) +
-            Math.abs(v0[3]-initFloor[3]);
+          // 성장 재구성(per-level)
+          const per=[B[0]+AAVG,B[1]+AAVG,B[2]+AAVG,B[3]+AAVG].map(x=>x*scale);
+          const growRec=disp(per[0],per[1],per[2],per[3]);
+          const errGrow = Math.abs(growRec[0]-growDisp[0])+Math.abs(growRec[1]-growDisp[1])+Math.abs(growRec[2]-growDisp[2])+Math.abs(growRec[3]-growDisp[3]);
+          if(errGrow>4*EPS_GROW) continue;
 
-          if(errInit > 1) continue; // 초기치부터 멀면 컷
+          // 실제 가능성
+          if(!feasible(IC,B,initFloor)) continue;
 
-          // 2) 성장 재구성 (per-level)
-          const per = [B[0]+AAVG, B[1]+AAVG, B[2]+AAVG, B[3]+AAVG].map(x=>x*scale);
-          const growRec = disp(per[0],per[1],per[2],per[3]);
-
-          const errGrow =
-            Math.abs(growRec[0]-growDisp[0]) +
-            Math.abs(growRec[1]-growDisp[1]) +
-            Math.abs(growRec[2]-growDisp[2]) +
-            Math.abs(growRec[3]-growDisp[3]);
-
-          // 성장 오차 너무 크면 컷(완화치)
-          if(errGrow > 4*EPS_GROW) continue;
-
-          // 3) 실제 가능성 전수검사
-          if(!feasible(IC, B, initFloor)) continue;
-
-          const score = W_INIT*errInit + W_GROW*errGrow;
-          if(!best || score < best.score){
-            best = {
-              ic: IC,
-              base: B.slice(),
-              E,
-              score,
-              errInit,
-              errGrow: +errGrow.toFixed(4),
-              initFloor: v0,
-              growRec: growRec.map(x=>+x.toFixed(4))
-            };
+          const score = knobs.w.init*errInit + knobs.w.grow*errGrow;
+          if(!best || score<best.score){
+            best={ic:IC, base:B.slice(), E, score, errInit, errGrow:+errGrow.toFixed(4), initFloor:v0, growRec:growRec.map(x=>+x.toFixed(4))};
           }
         }
       }
@@ -360,131 +267,81 @@ function solveOne(initDisp, growDisp){
   return best;
 }
 
-// ====== 입출력/렌더 ======
+/* ===== IO ===== */
 function readInputs(){
-  const petName = (els.petName.value||'').trim();
-  const initDisp = [
-    parseFloat(els.initH.value),
-    parseFloat(els.initA.value),
-    parseFloat(els.initD.value),
-    parseFloat(els.initG.value),
-  ];
-  const growDisp = [
-    parseFloat(els.growH.value),
-    parseFloat(els.growA.value),
-    parseFloat(els.growD.value),
-    parseFloat(els.growG.value),
-  ];
-  if(!petName || initDisp.some(isNaN) || growDisp.some(isNaN)){
-    throw Error('입력 누락: 페트 이름/초기치/성장치를 모두 채워주세요.');
-  }
-  return {petName, initDisp, growDisp};
+  const petName=(els.petName.value||'').trim();
+  const initDisp=[parseFloat(els.initH.value),parseFloat(els.initA.value),parseFloat(els.initD.value),parseFloat(els.initG.value)];
+  const growDisp=[parseFloat(els.growH.value),parseFloat(els.growA.value),parseFloat(els.growD.value),parseFloat(els.growG.value)];
+  if(!petName || initDisp.some(isNaN) || growDisp.some(isNaN)) throw Error('입력 누락: 페트 이름/초기치/성장치를 모두 채워주세요.');
+  const ec={start:+(els.EC_START.value||DEF_EC.start), end:+(els.EC_END.value||DEF_EC.end), step:+(els.EC_STEP.value||DEF_EC.step)};
+  const w={init:+(els.W_INIT.value||DEF_W.init), grow:+(els.W_GROW.value||DEF_W.grow)};
+  const ic=parseRange(els.E_RANGE.value||'');
+  return {petName, initDisp, growDisp, knobs:{ec,w,ic}};
+}
+function renderNone(){
+  els.outInitnum.textContent='—';
+  els.outBase.textContent='—';
+  els.outE.textContent='—';
+  els.outErr.textContent='—';
+}
+function render(best){
+  if(!best){ renderNone(); els.msg.textContent='가능한 계수를 찾지 못했습니다. (튜닝값을 넓혀보세요)'; return; }
+  els.outInitnum.textContent = best.ic;
+  els.outBase.textContent    = `[${best.base.join(' / ')}]`;
+  els.outE.textContent       = best.E;
+  els.outErr.textContent     = `init=${best.errInit}, grow=${best.errGrow}`;
+  els.msg.textContent        = '저장하면 StageB 검색/최근목록에서 바로 사용할 수 있습니다.';
 }
 
-function renderResult(best){
-  els.tbl.innerHTML = '';
-  els.summary.textContent = best ? '후보 1개(최적)' : '후보 0개';
-
-  const tr = document.createElement('tr');
-  if(!best){
-    tr.innerHTML = `<td colspan="6" style="text-align:center">가능한 계수를 찾지 못했습니다.</td>`;
-  }else{
-    // 레이아웃 유지: 랭크/개수 대신 최적 결과 1행만 표시
-    tr.innerHTML = `
-      <td>1</td>
-      <td class="mono">IC=${best.ic}, E=${best.E}</td>
-      <td class="mono">—</td>
-      <td class="mono">[${best.base.join(' / ')}]</td>
-      <td class="mono">${best.base.reduce((a,b)=>a+b,0)}</td>
-      <td class="mono">init=${best.errInit}, grow=${best.errGrow}</td>
-    `;
-  }
-  els.tbl.appendChild(tr);
-}
-
-// ====== 버튼 바인딩 ======
-els.btnSolve.onclick = () => {
+/* ===== 버튼 ===== */
+els.btnSolve.onclick=()=>{
   try{
-    const {petName, initDisp, growDisp} = readInputs();
-    els.summary.textContent = '탐색 중…';
-    els.tbl.innerHTML = '';
-
-    // 솔브
-    const best = solveOne(initDisp, growDisp);
-    renderResult(best);
-
-    if(best){
-      // 화면 하단 키 안내는 "미저장" 유지; 저장 시 갱신
-      console.log('[StageA] best:', best);
-    }
-  }catch(e){
-    alert(e.message||e);
-  }
+    const {initDisp,growDisp,knobs}=readInputs();
+    els.msg.textContent='탐색 중…';
+    renderNone();
+    const best=solveOne(initDisp,growDisp,knobs);
+    render(best);
+    console.log('[StageA] best', best);
+  }catch(e){ alert(e.message||e); }
 };
 
-els.btnSaveLS.onclick = () => {
+els.btnSaveLS.onclick=()=>{
   try{
-    const {petName, initDisp, growDisp} = readInputs();
-    // 직전 solve 결과가 테이블에 1행으로 올라와 있어야 함
-    // 없으면 다시 solve
-    const bestRowMissing = (els.tbl.querySelectorAll('tr').length===0);
-    let best = null;
-    if(bestRowMissing){
-      best = solveOne(initDisp, growDisp);
-      renderResult(best);
-      if(!best){ alert('저장할 결과가 없습니다. 먼저 [후보 역산]을 눌러주세요.'); return; }
-    }else{
-      // 안전하게 다시 구한다 (상태 일관성)
-      best = solveOne(initDisp, growDisp);
-      if(!best){ alert('저장할 결과가 없습니다. 먼저 [후보 역산]을 눌러주세요.'); return; }
-    }
-
-    // 관리용 저장 포맷 (JSON 파일 다운로드는 제거, 로컬스토리지만)
-    const payload = {
+    const {petName,initDisp,growDisp,knobs}=readInputs();
+    const best=solveOne(initDisp,growDisp,knobs);
+    if(!best){ alert('저장할 계수를 찾지 못했습니다. 먼저 [계수 계산]으로 유효한 결과를 얻어주세요.'); return; }
+    const payload={
       petName,
-      initDisp: initDisp.map(x=>+x.toFixed(2)),
-      growDisp: growDisp.map(x=>+x.toFixed(2)),
-      ic: best.ic,
-      base: best.base,   // 정수
-      E: best.E,
-      errInit: best.errInit,
-      errGrow: best.errGrow,
-      savedAt: new Date().toISOString()
+      initDisp:initDisp.map(x=>+x.toFixed(2)),
+      growDisp:growDisp.map(x=>+x.toFixed(2)),
+      ic:best.ic, base:best.base, E:best.E,
+      errInit:best.errInit, errGrow:best.errGrow,
+      savedAt:new Date().toISOString()
     };
-    const key = `PET_${petName}`;
+    const key=`PET_${petName}`;
     localStorage.setItem(key, JSON.stringify(payload));
 
-    // StageB가 최근항목 바로 띄울 수 있도록 최근 사용 스택도 유지
-    const recKey = '_PET_RECENT_KEYS_';
-    const arr = JSON.parse(localStorage.getItem(recKey)||'[]').filter(k=>k!==key);
+    // 최근 목록 관리 (StageB용)
+    const recKey='_PET_RECENT_KEYS_';
+    const arr=JSON.parse(localStorage.getItem(recKey)||'[]').filter(k=>k!==key);
     arr.unshift(key);
     localStorage.setItem(recKey, JSON.stringify(arr.slice(0,50)));
 
-    els.lsKey.textContent = key;
-    alert('페트 데이터 저장 완료 (StageB에서 검색/최근목록으로 바로 사용 가능)');
-  }catch(e){
-    alert(e.message||e);
-  }
+    els.lsKey.textContent=key;
+    alert('페트 데이터 저장 완료');
+  }catch(e){ alert(e.message||e); }
 };
 
-els.btnDownload.onclick = () => {
-  alert('JSON 내보내기는 비활성화되어 있습니다.');
-};
-
-els.btnClearLS.onclick = () => {
+els.btnClearLS.onclick=()=>{
   try{
-    const name = (els.petName.value||'').trim();
+    const name=(els.petName.value||'').trim();
     if(!name){ alert('페트 이름을 먼저 입력하세요.'); return; }
-    const key = `PET_${name}`;
+    const key=`PET_${name}`;
     localStorage.removeItem(key);
-    els.lsKey.textContent = '(삭제됨)';
+    els.lsKey.textContent='—';
     alert('로컬 저장 데이터가 삭제되었습니다.');
-  }catch(e){
-    alert(e.message||e);
-  }
+  }catch(e){ alert(e.message||e); }
 };
 </script>
-
-
 </body>
 </html>
