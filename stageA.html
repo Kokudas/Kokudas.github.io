@@ -177,34 +177,71 @@ function renderNone(){els.outInitnum.textContent='—';els.outBase.textContent='
 
 /* ========= Worker 코드 ========= */
 const workerCode = `(() => {
-  const AAVG=2.5;
-  const M=[[4,1,1,1],[0.1,1,0.1,0.05],[0.1,0.1,1,0.05],[0,0,0,1]];
-  function inv4(mat){const a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];for(let i=0;i<n;i++){let p=i;for(let r=i;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[p][i]))p=r;if(Math.abs(a[p][i])<1e-12)throw Error('inv');if(p!==i){[a[i],a[p]]=[a[p],a[i]];[id[i],id[p]]=[id[p],id[i]];}const pv=a[i][i];for(let j=0;j<n;j++){a[i][j]/=pv;id[i][j]/=pv;}for(let r=0;r<n;r++){if(r===i)continue;const f=a[r][i];for(let j=0;j<n;j++){a[r][j]-=f*a[i][j];id[r][j]-=f*id[i][j];}}}return id;}
-  const Minv=inv4(M);
-  const disp=(H,A,D,G)=>[4*H+A+D+G,0.1*H+A+0.1*D+0.05*G,0.1*H+0.1*A+D+0.05*G,G];
+  const AAVG = 2.5;
+  const M = [
+    [4,   1,   1,   1   ],
+    [0.1, 1,   0.1, 0.05],
+    [0.1, 0.1, 1,   0.05],
+    [0,   0,   0,   1   ],
+  ];
 
-  // 보너스 분할 미리 생성
-  const bonusPartitions=(()=>{const o=[];for(let h=0;h<=10;h++){for(let a=0;a<=10-h;a++){for(let d=0;d<=10-h-a;d++){o.push([h,a,d,10-h-a-d]);}}}return o;})();
+  function inv4(mat){
+    const a = mat.map(r=>r.slice()), n=4;
+    const id = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+    for(let i=0;i<n;i++){
+      let p=i;
+      for(let r=i;r<n;r++) if(Math.abs(a[r][i])>Math.abs(a[p][i])) p=r;
+      if(Math.abs(a[p][i])<1e-12) throw Error('inv');
+      if(p!==i){ [a[i],a[p]]=[a[p],a[i]]; [id[i],id[p]]=[id[p],id[i]]; }
+      const pv=a[i][i];
+      for(let j=0;j<n;j++){ a[i][j]/=pv; id[i][j]/=pv; }
+      for(let r=0;r<n;r++){
+        if(r===i) continue;
+        const f=a[r][i];
+        for(let j=0;j<n;j++){ a[r][j]-=f*a[i][j]; id[r][j]-=f*id[i][j]; }
+      }
+    }
+    return id;
+  }
+  const Minv = inv4(M);
+  const disp = (H,A,D,G)=>[
+    4*H + A + D + G,
+    0.1*H + A + 0.1*D + 0.05*G,
+    0.1*H + 0.1*A + D + 0.05*G,
+    G
+  ];
 
-  // 빠른 경계검사: r,b 보정의 최솟값/최댓값으로 만들 수 있는 표기 floor 범위 추정
+  // 보너스(합 10) 분할 전수 286개
+  const bonusPartitions = (() => {
+    const o=[];
+    for(let h=0;h<=10;h++){
+      for(let a=0;a<=10-h;a++){
+        for(let d=0;d<=10-h-a;d++){
+          o.push([h,a,d,10-h-a-d]);
+        }
+      }
+    }
+    return o;
+  })();
+
+  // 빠른 경계검사(바운드)
   function quickFeasible(IC,B,target){
-    // r in [-2,2], bonus in [0,10] with sum 10 => 각 스탯에 최소/최대 보정치
-    const rmin=-2, rmax=2;
-    const bmin=0, bmax=10;
-    // 내부값 최소/최대 (아주 느슨한 바운드)
-    const Hmin=IC*((B[0]+AAVG+rmin+bmin)/100), Hmax=IC*((B[0]+AAVG+rmax+bmax)/100);
-    const Amin=IC*((B[1]+AAVG+rmin+bmin)/100), Amax=IC*((B[1]+AAVG+rmax+bmax)/100);
-    const Dmin=IC*((B[2]+AAVG+rmin+bmin)/100), Dmax=IC*((B[2]+AAVG+rmax+bmax)/100);
-    const Gmin=IC*((B[3]+AAVG+rmin+bmin)/100), Gmax=IC*((B[3]+AAVG+rmax+bmax)/100);
-    const HPmin=Math.floor(4*Hmin+Amin+Dmin+Gmin), HPmax=Math.floor(4*Hmax+Amax+Dmax+Gmax);
-    const ATmin=Math.floor(0.1*Hmin+Amin+0.1*Dmin+0.05*Gmin), ATmax=Math.floor(0.1*Hmax+Amax+0.1*Dmax+0.05*Gmax);
-    const DFmin=Math.floor(0.1*Hmin+0.1*Amin+Dmin+0.05*Gmin), DFmax=Math.floor(0.1*Hmax+0.1*Amax+Dmax+0.05*Gmax);
-    const AGmin=Math.floor(Gmin), AGmax=Math.floor(Gmax);
+    const rmin=-2, rmax=2, bmin=0, bmax=10;
+    const Hmin = IC*((B[0]+AAVG+rmin+bmin)/100), Hmax = IC*((B[0]+AAVG+rmax+bmax)/100);
+    const Amin = IC*((B[1]+AAVG+rmin+bmin)/100), Amax = IC*((B[1]+AAVG+rmax+bmax)/100);
+    const Dmin = IC*((B[2]+AAVG+rmin+bmin)/100), Dmax = IC*((B[2]+AAVG+rmax+bmax)/100);
+    const Gmin = IC*((B[3]+AAVG+rmin+bmin)/100), Gmax = IC*((B[3]+AAVG+rmax+bmax)/100);
+
+    const HPmin = Math.floor(4*Hmin+Amin+Dmin+Gmin), HPmax=Math.floor(4*Hmax+Amax+Dmax+Gmax);
+    const ATmin = Math.floor(0.1*Hmin+Amin+0.1*Dmin+0.05*Gmin), ATmax=Math.floor(0.1*Hmax+Amax+0.1*Dmax+0.05*Gmax);
+    const DFmin = Math.floor(0.1*Hmin+0.1*Amin+Dmin+0.05*Gmin), DFmax=Math.floor(0.1*Hmax+0.1*Amax+Dmax+0.05*Gmax);
+    const AGmin = Math.floor(Gmin), AGmax=Math.floor(Gmax);
+
     const t=target;
     return !(t[0]<HPmin || t[0]>HPmax || t[1]<ATmin || t[1]>ATmax || t[2]<DFmin || t[2]>DFmax || t[3]<AGmin || t[3]>AGmax);
   }
 
-  // 전수 타당성(조기 종료)
+  // 느린 전수검사(조기 종료)
   function slowFeasible(IC,B,target){
     for(let rh=-2;rh<=2;rh++){
       for(let ra=-2;ra<=2;ra++){
@@ -214,7 +251,7 @@ const workerCode = `(() => {
               const bh=B[0]+rh+bp[0], ba=B[1]+ra+bp[1], bd=B[2]+rd+bp[2], bg=B[3]+rg+bp[3];
               const H=IC*(bh+AAVG)/100, A=IC*(ba+AAVG)/100, D=IC*(bd+AAVG)/100, G=IC*(bg+AAVG)/100;
               const v=disp(H,A,D,G).map(Math.floor);
-              if(v[0]===target[0]&&v[1]===target[1]&&v[2]===target[2]&&v[3]===target[3]) return true;
+              if(v[0]===target[0] && v[1]===target[1] && v[2]===target[2] && v[3]===target[3]) return true;
             }
           }
         }
@@ -223,48 +260,69 @@ const workerCode = `(() => {
     return false;
   }
 
-  onmessage = (e)=>{
-    const {initDisp,growDisp,knobs}=e.data;
-    const initFloor=initDisp.map(x=>Math.floor(x));
-    let best=null, checked=0;
+  onmessage = (e) => {
+    const {initDisp, growDisp, knobs} = e.data;
+    const initFloor = initDisp.map(x=>Math.floor(x));
+    let best = null;
 
     for(let E=knobs.ec.start; E<=knobs.ec.end; E+=knobs.ec.step){
-      const scale=E/10000;
-      // base 추정(선형)
+      const scale = E/10000;
+
+      // 선형 역산으로 base 추정
       const tmp=[0,0,0,0];
-      for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++) s+=Minv[i][j]*growDisp[j]; tmp[i]=s/scale;}
-      const baseFloat=tmp.map(v=>v-AAVG);
+      for(let i=0;i<4;i++){ let s=0; for(let j=0;j<4;j++) s += Minv[i][j]*growDisp[j]; tmp[i]=s/scale; }
+      const baseFloat = tmp.map(v=>v - AAVG);
 
       for(let IC=knobs.ic.min; IC<=knobs.ic.max; IC++){
         postMessage({type:'progress', msg:\`탐색 중… E=\${E} / IC=\${IC}\`});
+
         for(let dg=-knobs.gridAdj; dg<=knobs.gridAdj; dg++){
-          const gCand=Math.round(baseFloat[3])+dg;
+          const gCand = Math.round(baseFloat[3]) + dg;
+
           for(let dh=-knobs.gridAdj; dh<=knobs.gridAdj; dh++)
           for(let da=-knobs.gridAdj; da<=knobs.gridAdj; da++)
           for(let dd=-knobs.gridAdj; dd<=knobs.gridAdj; dd++){
-            const B=[Math.round(baseFloat[0])+dh, Math.round(baseFloat[1])+da, Math.round(baseFloat[2])+dd, gCand];
+            const B = [
+              Math.round(baseFloat[0]) + dh,
+              Math.round(baseFloat[1]) + da,
+              Math.round(baseFloat[2]) + dd,
+              gCand
+            ];
 
-            // 초기치 재구성(floor 비교)
+            // 초기치 재구성(floor)
             const H=IC*(B[0]+AAVG)/100, A=IC*(B[1]+AAVG)/100, D=IC*(B[2]+AAVG)/100, G=IC*(B[3]+AAVG)/100;
-            const v0=disp(H,A,D,G).map(Math.floor);
-            const errInit=Math.abs(v0[0]-initFloor[0])+Math.abs(v0[1]-initFloor[1])+Math.abs(v0[2]-initFloor[2])+Math.abs(v0[3]-initFloor[3]);
+            const v0 = disp(H,A,D,G).map(Math.floor);
+            const errInit = Math.abs(v0[0]-initFloor[0]) + Math.abs(v0[1]-initFloor[1]) + Math.abs(v0[2]-initFloor[2]) + Math.abs(v0[3]-initFloor[3]);
             if(errInit>1) continue;
 
             // 성장 재구성(per-level)
             const per=[B[0]+AAVG,B[1]+AAVG,B[2]+AAVG,B[3]+AAVG].map(x=>x*scale);
-            const growRec=disp(per[0],per[1],per[2],per[3]);
-            const errGrow=Math.abs(growRec[0]-growDisp[0])+Math.abs(growRec[1]-growDisp[1])+Math.abs(growRec[2]-growDisp[2])+Math.abs(growRec[3]-growDisp[3]);
-            if(errGrow>4*knobs.epsGrow) continue;
+            const growRec = disp(per[0],per[1],per[2],per[3]);
+            const errGrow = Math.abs(growRec[0]-growDisp[0]) + Math.abs(growRec[1]-growDisp[1]) + Math.abs(growRec[2]-growDisp[2]) + Math.abs(growRec[3]-growDisp[3]);
+            if(errGrow > 4*knobs.epsGrow) continue;
 
-            // 1) 빠른 경계검사
+            // 빠른/느린 타당성
             if(!quickFeasible(IC,B,initFloor)) continue;
-
-            // 2) 느린 전수검사(조기 종료)
             if(!slowFeasible(IC,B,initFloor)) continue;
 
-            const score = knobs.w.init*errInit + knobs.w.grow*errGrow;
-            if(!best || score<best.score){
-              best={ic:IC, base:B.slice(), E, score, errInit, errGrow:+errGrow.toFixed(4), initFloor:v0, growRec:growRec.map(x=>+x.toFixed(4))};
+            // ===== 점수식: 상향편향 억제용 IC 패널티 추가 =====
+            const score = knobs.w.init*errInit
+                        + knobs.w.grow*errGrow
+                        + 0.35*IC
+                        + (IC>30 ? 5*(IC-30) : 0);
+
+            // ===== 타이브레이커: 점수 동률이면 작은 IC, 그다음 작은 errGrow 선호 =====
+            if (!best
+                || score < best.score
+                || (Math.abs(score - best.score) < 1e-9 && (IC < best.ic
+                    || (IC === best.ic && errGrow < best.errGrow)))) {
+              best = {
+                ic: IC, base: B.slice(), E, score,
+                errInit,
+                errGrow: +errGrow.toFixed(4),
+                initFloor: v0,
+                growRec: growRec.map(x=>+x.toFixed(4))
+              };
             }
           }
         }
