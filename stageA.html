@@ -1,134 +1,135 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>StageA v0.7 · 짜얄식 계수 저장(→ StageB)</title>
-<style>
-:root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--bad:#ff5c5c}
-*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#e7eef8}
-header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
-header .wrap{display:flex;gap:12px;align-items:center;max-width:1000px;margin:0 auto;padding:12px 16px}
-a{color:var(--pri);text-decoration:none;font-weight:600}
-main{max-width:1000px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1fr}
-.card{background:var(--card);border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:16px}
-h2{margin:0 0 10px 0;font-size:18px;color:#d8e6ff}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
-input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
-.row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
-.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
-.btn{background:#132347;border-color:#2a3a5e;cursor:pointer;font-weight:800}
-.btn:hover{background:#162a55}
-.btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d;font-weight:900}
-.small{color:var(--muted);font-size:12px}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>StageA v0.7 · 성장계수 추정</title>
+  <style>
+    :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545;--bad:#ff5c5c}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#e7eef8}
+    header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
+    header .wrap{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto;padding:12px 16px}
+    header a{color:var(--pri);text-decoration:none;font-weight:600}
+    .pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff}
+    main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+    @media (max-width:980px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1e2a44;font-size:18px;color:#d8e6ff}
+    .card .body{padding:16px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
+    button{cursor:pointer;font-weight:700}
+    .btn{background:#132347;border-color:#2a3a5e}
+    .btn:hover{background:#162a55}
+    .btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d}
+    .btn-ok:hover{filter:brightness(1.05)}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{display:grid;gap:8px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right}
+    th{text-align:center;color:#bcd1ff}
+    td:nth-child(1),th:nth-child(1){text-align:center}
+    .footer{padding:16px;color:var(--muted);font-size:12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+  </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <strong>StageA v0.7 · 짜얄식 계수 저장</strong>
-    <a href="./stageB.html">➡️ StageB로 이동</a>
-  </div>
-</header>
+  <header>
+    <div class="wrap">
+      <strong>StageA v0.7 · 성장계수 추정</strong>
+      <a class="pill" href="./stageB.html">➡️ StageB로 이동</a>
+    </div>
+  </header>
 
-<main>
-  <section class="card">
-    <h2>① 짜얄식 계수 입력 (권장)</h2>
-    <div class="row">
-      <div class="col-6">
-        <label>페트 이름</label>
-        <input id="petName" placeholder="예: 오가로스, 반기노"/>
+  <main>
+    <section class="card">
+      <h2>입력 · 표기 초기치(소수2자리) + 성장치(소수2자리)</h2>
+      <div class="body grid">
+        <div class="row">
+          <div>
+            <label>페트 이름</label>
+            <input id="petName" placeholder="예: 반기노" />
+          </div>
+          <div>
+            <label>라운딩 규칙</label>
+            <select id="initRound">
+              <option value="floor">바닥(Floor)</option>
+              <option value="round">반올림(Round)</option>
+              <option value="ceil">올림(Ceil)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row4">
+          <div><label>초기·체</label><input id="initH" type="number" step="0.01"></div>
+          <div><label>초기·공</label><input id="initA" type="number" step="0.01"></div>
+          <div><label>초기·방</label><input id="initD" type="number" step="0.01"></div>
+          <div><label>초기·순</label><input id="initG" type="number" step="0.01"></div>
+        </div>
+
+        <div class="row4">
+          <div><label>성장·체성</label><input id="growH" type="number" step="0.01"></div>
+          <div><label>성장·공성</label><input id="growA" type="number" step="0.01"></div>
+          <div><label>성장·방성</label><input id="growD" type="number" step="0.01"></div>
+          <div><label>성장·순성</label><input id="growG" type="number" step="0.01"></div>
+        </div>
+
+        <div class="row">
+          <button class="btn-ok" id="btnSolve">계수 추정</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btnSaveLS">StageB로 저장</button>
+            <button class="btn" id="btnDownload">JSON 내보내기</button>
+            <button class="btn" id="btnClearLS">저장 초기화</button>
+          </div>
+        </div>
+        <div class="muted">※ StageA는 짜얄 계산기와 유사하게 초기치/성장을 입력받아 성장계수를 추정합니다.</div>
       </div>
-      <div class="col-6">
-        <label>표기 라운딩(해피/샴기르)</label>
-        <select id="roundMode">
-          <option value="floor" selected>floor (해피 권장)</option>
-          <option value="round">round (샴기르)</option>
-          <option value="ceil">ceil</option>
-        </select>
+    </section>
+
+    <section class="card">
+      <h2>추정 결과</h2>
+      <div class="body">
+        <table><thead><tr><th>initnum</th><th>체</th><th>공</th><th>방</th><th>순</th></tr></thead><tbody id="tbl"></tbody></table>
       </div>
-      <div class="col-4">
-        <label>초기계수 IC (initnum)</label>
-        <input id="ic" type="number" min="10" max="100" placeholder="예: 31"/>
-      </div>
-      <div class="col-4">
-        <label>체 계수 (H)</label>
-        <input id="coefH" type="number" placeholder="예: 32"/>
-      </div>
-      <div class="col-4">
-        <label>공 계수 (A)</label>
-        <input id="coefA" type="number" placeholder="예: 14"/>
-      </div>
-      <div class="col-4">
-        <label>방 계수 (D)</label>
-        <input id="coefD" type="number" placeholder="예: 22"/>
-      </div>
-      <div class="col-4">
-        <label>순 계수 (G)</label>
-        <input id="coefG" type="number" placeholder="예: 21"/>
-      </div>
-      <div class="col-12 small">
-        짜얄/샴기르 표에 있는 **IC, 체/공/방/순 계수**를 그대로 넣어 주세요. (정수 권장)
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div class="col-4"><button class="btn-ok" id="btnSave">StageB로 저장</button></div>
-      <div class="col-4"><button class="btn" id="btnExport">JSON 내보내기</button></div>
-      <div class="col-4"><button class="btn" id="btnClear">저장 초기화</button></div>
-    </div>
-    <div id="note" class="small" style="margin-top:8px">저장 키: <span class="mono" id="lsKey">(미저장)</span></div>
-  </section>
-</main>
+    </section>
+  </main>
 
 <script>
-const $=id=>document.getElementById(id);
-
-function buildPayload(){
-  const petName=($('petName').value||'').trim();
-  const initRound=$('roundMode').value||'floor';
-  const ic=+$('ic').value, H=+$('coefH').value, A=+$('coefA').value, D=+$('coefD').value, G=+$('coefG').value;
-  if(!petName||!Number.isFinite(ic)||!Number.isFinite(H)||!Number.isFinite(A)||!Number.isFinite(D)||!Number.isFinite(G)){
-    throw new Error('입력을 모두 채워주세요.');
+function estimateCoefficients(initDisp,growDisp){
+  // 성장률 기반 단순 선형 추정 (짜얄식 근사)
+  const icCandidates=[20,24,28,31,32,33,34,35];
+  let best=null;
+  for(const ic of icCandidates){
+    const baseH=(growDisp[0]*100/ic)-2.5;
+    const baseA=(growDisp[1]*100/ic)-2.5;
+    const baseD=(growDisp[2]*100/ic)-2.5;
+    const baseG=(growDisp[3]*100/ic)-2.5;
+    if([baseH,baseA,baseD,baseG].some(v=>v<=0)) continue;
+    const diff=Math.abs((initDisp[0]*0.25)-baseH)+Math.abs((initDisp[1])-baseA);
+    if(!best||diff<best.diff) best={ic,base:[baseH.toFixed(2),baseA.toFixed(2),baseD.toFixed(2),baseG.toFixed(2)],diff};
   }
-  // StageB가 읽는 새 포맷 (coeff 모드)
-  return {
-    petName,
-    initRound,
-    mode: 'coeff',
-    coeff: { initnum: ic, base: [H,A,D,G] }
-  };
+  return best;
 }
 
-$('btnSave').onclick=()=>{
-  try{
-    const p=buildPayload();
-    const key=`StageA_${p.petName}`;
-    localStorage.setItem(key, JSON.stringify(p));
-    localStorage.setItem('petCalcCandidates', JSON.stringify(p)); // 호환 키
-    $('lsKey').textContent=key;
-    $('note').innerHTML=`저장 완료 → <span class="mono">${key}</span> · StageB에서 "자동 연결"을 누르세요.`;
-    alert('저장되었습니다. StageB에서 불러오세요.');
-  }catch(e){ alert(e.message); }
+const els={initH:document.getElementById('initH'),initA:document.getElementById('initA'),initD:document.getElementById('initD'),initG:document.getElementById('initG'),growH:document.getElementById('growH'),growA:document.getElementById('growA'),growD:document.getElementById('growD'),growG:document.getElementById('growG'),tbl:document.getElementById('tbl'),btnSolve:document.getElementById('btnSolve'),btnSaveLS:document.getElementById('btnSaveLS'),btnDownload:document.getElementById('btnDownload'),btnClearLS:document.getElementById('btnClearLS'),petName:document.getElementById('petName')};
+
+let lastResult=null;
+
+els.btnSolve.onclick=()=>{
+  const initDisp=[parseFloat(els.initH.value),parseFloat(els.initA.value),parseFloat(els.initD.value),parseFloat(els.initG.value)];
+  const growDisp=[parseFloat(els.growH.value),parseFloat(els.growA.value),parseFloat(els.growD.value),parseFloat(els.growG.value)];
+  if(initDisp.some(isNaN)||growDisp.some(isNaN)){alert('값을 모두 입력하세요');return;}
+  const est=estimateCoefficients(initDisp,growDisp);
+  els.tbl.innerHTML= est? `<tr><td>${est.ic}</td><td>${est.base[0]}</td><td>${est.base[1]}</td><td>${est.base[2]}</td><td>${est.base[3]}</td></tr>` : '<tr><td colspan="5">추정 불가</td></tr>';
+  lastResult={petName:els.petName.value,initDisp,growDisp,estimate:est};
 };
 
-$('btnExport').onclick=()=>{
-  try{
-    const p=buildPayload();
-    const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${p.petName}_coeff.json`; a.click();
-  }catch(e){ alert(e.message); }
-};
-
-$('btnClear').onclick=()=>{
-  const petName=($('petName').value||'').trim();
-  if(!petName){ alert('먼저 페트 이름을 입력하세요.'); return; }
-  const key=`StageA_${petName}`;
-  localStorage.removeItem(key);
-  localStorage.removeItem('petCalcCandidates');
-  $('lsKey').textContent='(삭제됨)';
-  alert('StageA_*, petCalcCandidates 삭제 완료');
-};
+els.btnSaveLS.onclick=()=>{if(!lastResult){alert('먼저 추정 실행 필요');return;}localStorage.setItem('petCalcCandidates',JSON.stringify(lastResult));alert('StageB에서 불러올 수 있습니다');};
+els.btnDownload.onclick=()=>{if(!lastResult){alert('먼저 추정 실행 필요');return;}const blob=new Blob([JSON.stringify(lastResult,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${lastResult.petName||'pet'}_candidates.json`;a.click();};
+els.btnClearLS.onclick=()=>{localStorage.removeItem('petCalcCandidates');alert('저장 초기화 완료');};
 </script>
 </body>
 </html>
