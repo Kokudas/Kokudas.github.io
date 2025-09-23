@@ -3,38 +3,41 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>StageA v0.7 · 후보 역산 (floor 고정)</title>
+<title>StageA · 관리자 입력(짜얄식 1세트 계수 산출·저장, floor)</title>
 <style>
 :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--warn:#ffb545}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);color:#e7eef8;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",Arial}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);color:#e7eef8;font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",Arial}
 header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.85);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
-header .wrap{display:flex;gap:12px;align-items:center;max-width:1100px;margin:0 auto;padding:12px 16px}
-.pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff;text-decoration:none;font-weight:700}
-main{max-width:1100px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+header .wrap{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;gap:12px;align-items:center}
+header a{color:#9fc1ff;text-decoration:none;font-weight:800}
+main{max-width:1080px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:980px){main{grid-template-columns:1fr}}
 .card{background:#111a2b;border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1e2a44;font-size:18px;color:#d8e6ff}
 .card .body{padding:16px}
-label{font-size:12px;color:var(--muted);display:block;margin:8px 0 6px}
-input,select,button{width:100%;padding:12px;border-radius:12px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.btn{background:#132347;border-color:#2a3a5e;font-weight:800;cursor:pointer}
-.btn:hover{background:#162a55}
-.btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d;font-weight:900}
-.muted{color:var(--muted);font-size:13px}
-table{width:100%;border-collapse:collapse}th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right}
-th{text-align:center;color:#bcd1ff}td:nth-child(1),th:nth-child(1){text-align:center}
-.footer{padding:12px 16px;color:var(--muted);font-size:12px}
+label{display:block;color:var(--muted);font-weight:700;margin:8px 0 6px}
+input,button{width:100%;padding:12px;border-radius:12px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
+button{cursor:pointer;font-weight:900}
+.btn{background:#132347;border-color:#2a3a5e}
+.btn:hover{background:#172d5b}
+.btn-ok{background:var(--ok);border-color:#18a56d;color:#06120e}
+.row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+.col-12{grid-column:span 12}.col-6{grid-column:span 6}.col-3{grid-column:span 3}
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#0f213f;border:1px solid #26345a;color:#9fb2e7;font-weight:800}
+.small{color:var(--muted);font-size:13px}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center}
+.out{background:#0a1326;border:1px solid #243251;border-radius:10px;padding:10px}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.list{max-height:48vh;overflow:auto;border:1px solid #233055;border-radius:12px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #1b2746}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <strong>StageA v0.7 · 후보 역산 (floor 고정)</strong>
-    <a class="pill" href="./stageB.html">➡️ StageB</a>
+    <strong>StageA · 관리자 입력 (floor 고정 / JSON 미사용)</strong>
+    <a href="./stageB.html">➡️ StageB로</a>
   </div>
 </header>
 
@@ -43,200 +46,164 @@ th{text-align:center;color:#bcd1ff}td:nth-child(1),th:nth-child(1){text-align:ce
     <h2>입력 · 표기 초기치(소수) + 표기 성장(소수)</h2>
     <div class="body">
       <div class="row">
-        <div>
+        <div class="col-12">
           <label>페트 이름</label>
-          <input id="petName" />
+          <input id="petName">
         </div>
-        <div>
-          <label>최대 후보 수</label>
-          <input id="maxCand" type="number" value="120" min="20" step="10"/>
-        </div>
+
+        <div class="col-3"><label>초기·체</label><input id="initH" type="number" step="0.01"></div>
+        <div class="col-3"><label>초기·공</label><input id="initA" type="number" step="0.01"></div>
+        <div class="col-3"><label>초기·방</label><input id="initD" type="number" step="0.01"></div>
+        <div class="col-3"><label>초기·순</label><input id="initG" type="number" step="0.01"></div>
+
+        <div class="col-3"><label>성장·체성</label><input id="growH" type="number" step="0.01"></div>
+        <div class="col-3"><label>성장·공성</label><input id="growA" type="number" step="0.01"></div>
+        <div class="col-3"><label>성장·방성</label><input id="growD" type="number" step="0.01"></div>
+        <div class="col-3"><label>성장·순성</label><input id="growG" type="number" step="0.01"></div>
+
+        <div class="col-6"><button id="btnCalc" class="btn-ok">계수 산출(짜얄 개선식)</button></div>
+        <div class="col-6"><button id="btnSave" class="btn">페트 데이터 저장</button></div>
       </div>
 
-      <div class="row4">
-        <div><label>초기·체</label><input id="initH" type="number" step="0.01"></div>
-        <div><label>초기·공</label><input id="initA" type="number" step="0.01"></div>
-        <div><label>초기·방</label><input id="initD" type="number" step="0.01"></div>
-        <div><label>초기·순</label><input id="initG" type="number" step="0.01"></div>
-      </div>
-
-      <div class="row4" style="margin-top:8px">
-        <div><label>성장·체성</label><input id="growH" type="number" step="0.01"></div>
-        <div><label>성장·공성</label><input id="growA" type="number" step="0.01"></div>
-        <div><label>성장·방성</label><input id="growD" type="number" step="0.01"></div>
-        <div><label>성장·순성</label><input id="growG" type="number" step="0.01"></div>
-      </div>
-
-      <div class="row3" style="margin-top:8px">
-        <div>
-          <label>랭크(평균 B 구간)</label>
-          <select id="rankMode">
-            <option value="auto">자동</option>
-            <option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option>
-            <option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option>
-          </select>
-        </div>
-        <div>
-          <label>오차 보정(혼합) 강도</label>
-          <select id="blend">
-            <option value="0.30">보수적(0.30)</option>
-            <option value="0.50" selected>중간(0.50)</option>
-            <option value="0.70">공격적(0.70)</option>
-          </select>
-          <div class="muted">짜얄식(성장역산)과 초기치일치 보정의 혼합비</div>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button class="btn-ok" id="btnSolve">후보 역산</button>
-        <div style="display:flex;gap:8px">
-          <button class="btn" id="btnSaveLS">StageB로 저장</button>
-          <button class="btn" id="btnDownload">JSON 내보내기</button>
-          <button class="btn" id="btnClearLS">저장 초기화</button>
-        </div>
-      </div>
-
-      <div class="muted" style="margin-top:8px">
-        floor 고정. 입력은 모두 소수 표기(게임 UI 기준)입니다. StageB에서 “환각 확률”만 계산합니다.
-      </div>
+      <div style="margin-top:12px" class="small">라운딩은 <b>floor</b> 고정. 산출 결과는 1세트(<span class="mono">initnum, baseS[H/A/D/G]</span>)만 저장됩니다.</div>
     </div>
   </section>
 
   <section class="card">
-    <h2>후보 상위N <span id="summary" class="muted"></span></h2>
-    <div class="body" style="overflow:auto;max-height:62vh">
-      <table>
-        <thead><tr><th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th>합</th><th>오차</th></tr></thead>
-        <tbody id="tbl"></tbody>
-      </table>
+    <h2>산출 결과(읽기 전용)</h2>
+    <div class="body kv">
+      <div>initnum</div><div class="out mono" id="outInit">—</div>
+      <div>baseS</div><div class="out mono" id="outBase">—</div>
+      <div>설명</div><div class="small">짜얄식 선형해 + 랭크계수 탐색 → 정수계수 스냅(round) → 초기치 일치 검사(floor)로 확정.</div>
     </div>
-    <div class="footer">저장 키: <span id="lsKey" class="mono">(미저장)</span></div>
+  </section>
+
+  <section class="card">
+    <h2>저장 목록(로컬)</h2>
+    <div class="body">
+      <div class="list" id="lst"></div>
+      <div class="row" style="margin-top:8px">
+        <div class="col-6"><button id="btnReload" class="btn">목록 새로고침</button></div>
+        <div class="col-6"><button id="btnPurge" class="btn">전체 삭제(디버그)</button></div>
+      </div>
+    </div>
   </section>
 </main>
 
 <script>
-// ---- 상수/유틸 ----
-const RANK_B={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
-const AVG=a=>a.reduce((x,y)=>x+y,0)/a.length;
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const AAVG=2.5; // 다항 분배 평균
+// ===== 짜얄 개선식(단일 계수 세트만 산출) =====
+// floor 고정, JSON 내보내기/불러오기 없음, 저장은 로컬스토리지 DB만 사용
+const AAVG=2.5;
+const E_CAND=[575,555,535,515,495,475]; // 랭크 평균계수 후보(짜얄 표본 기반)
 const M=[[4,1,1,1],[0.1,1,0.1,0.05],[0.1,0.1,1,0.05],[0,0,0,1]];
 function inv4(mat){let a=mat.map(r=>r.slice()),n=4,id=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
  for(let i=0;i<n;i++){let p=i;for(let r=i;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[p][i]))p=r;
   if(Math.abs(a[p][i])<1e-12)throw Error('역행렬 불가'); if(p!==i){[a[i],a[p]]=[a[p],a[i]];[id[i],id[p]]=[id[p],id[i]];}
-  let pv=a[i][i];for(let j=0;j<n;j++){a[i][j]/=pv;id[i][j]/=pv;}
-  for(let r=0;r<n;r++){if(r===i)continue;let f=a[r][i];for(let j=0;j<n;j++){a[r][j]-=f*a[i][j];id[r][j]-=f*id[i][j];}}
+  const pv=a[i][i]; for(let j=0;j<n;j++){a[i][j]/=pv; id[i][j]/=pv;}
+  for(let r=0;r<n;r++){ if(r===i) continue; const f=a[r][i]; for(let j=0;j<n;j++){a[r][j]-=f*a[i][j]; id[r][j]-=f*id[i][j];}}
  } return id;}
 const Minv=inv4(M);
-function displayFromRaw(h,a,d,g){return [4*h+a+d+g,0.1*h+a+0.1*d+0.05*g,0.1*h+0.1*a+d+0.05*g,g];}
+function disp(h,a,d,g){return [4*h+a+d+g,0.1*h+a+0.1*d+0.05*g,0.1*h+0.1*a+d+0.05*g,g];}
 
-// 성장 소수에서 baseS(표기기준, A=0 가정) 역산 — 짜얄식 근거
-function baseFromGrow(growDisp,rank){
-  const Bavg=AVG(RANK_B[rank]||RANK_B.R3)/10000; // 평균 B
-  // growDisp = M * ( (baseS + Aavg) * Bavg )
-  // ⇒ (baseS + Aavg) = Minv * growDisp / Bavg
-  const t=[0,0,0,0]; for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++)s+=Minv[i][j]*growDisp[j]; t[i]=s/Bavg;}
-  return t.map(v=>clamp(v-AAVG,5,85));
+function solveOne(initDisp,growDisp){
+  // 1) 성장 소수 → (baseS + Aavg) * (E/10000) 를 역산 (선형)
+  let best=null;
+  for(const E of E_CAND){
+    const scale=E/10000;
+    // (baseS + Aavg) = Minv * growDisp / scale
+    const t=[0,0,0,0]; for(let i=0;i<4;i++){let s=0;for(let j=0;j<4;j++)s+=Minv[i][j]*growDisp[j]; t[i]=s/scale;}
+    const baseFloat=t.map(v=>v-AAVG);
+    // 2) initnum(=IC)와 baseS는 정수 근처여야 함 → 스냅 탐색
+    let bestLocal=null;
+    for(let ic=10; ic<=100; ic++){
+      // G(순)부터 맞춰서 baseS_G 정수화
+      const gS = (initDisp[3]*100/ic) - AAVG; // g ≈ ic*(baseG+Aavg)/100 => baseG ≈ (g*100/ic)-Aavg (표기에서 역)
+      const baseInt = baseFloat.slice();
+      baseInt[3]=Math.round(gS);
+
+      // 나머지 H/A/D는 초기 표기와 floor 일치로 미세조정(작은 라인성)
+      // 간단히 ±1 범위 그리드 탐색
+      for(let dh=-1; dh<=1; dh++)for(let da=-1; da<=1; da++)for(let dd=-1; dd<=1; dd++){
+        const b=[Math.round(baseFloat[0])+dh, Math.round(baseFloat[1])+da, Math.round(baseFloat[2])+dd, baseInt[3]];
+        // 내부 실수
+        const H=ic*(b[0]+AAVG)/100, A=ic*(b[1]+AAVG)/100, D=ic*(b[2]+AAVG)/100, G=ic*(b[3]+AAVG)/100;
+        const vis=disp(H,A,D,G).map(Math.floor);
+        const err = Math.abs(vis[0]-Math.floor(initDisp[0])) + Math.abs(vis[1]-Math.floor(initDisp[1])) +
+                    Math.abs(vis[2]-Math.floor(initDisp[2])) + Math.abs(vis[3]-Math.floor(initDisp[3]));
+        const growRebuild = (()=>{
+          const per=[b[0]+AAVG,b[1]+AAVG,b[2]+AAVG,b[3]+AAVG].map(x=>x* (E/10000));
+          // 레벨당 표기 성장
+          return disp(per[0],per[1],per[2],per[3]);
+        })();
+        // 성장 오차(소수 2자리 기준 근접)
+        const gerr = Math.abs(growRebuild[0]-growDisp[0]) + Math.abs(growRebuild[1]-growDisp[1]) +
+                     Math.abs(growRebuild[2]-growDisp[2]) + Math.abs(growRebuild[3]-growDisp[3]);
+        const score = err*10 + gerr; // 초기치 일치 우선, 다음 성장 근접
+        const pack={ic, base:b, E, score};
+        if(!bestLocal || score < bestLocal.score) bestLocal=pack;
+      }
+    }
+    if(!best || bestLocal.score < best.score) best = bestLocal;
+  }
+  return best; // {ic, base:[H,A,D,G], E, score}
 }
 
-// 초기 소수 표기와 일치성 점수(floor 고정) — 해피/샴기르 경험칙 보정
-function initConsistency(initDisp,initnum,baseS){
-  const h=initnum*(baseS[0]+AAVG)/100, a=initnum*(baseS[1]+AAVG)/100,
-        d=initnum*(baseS[2]+AAVG)/100, g=initnum*(baseS[3]+AAVG)/100;
-  const disp=displayFromRaw(h,a,d,g).map(Math.floor);
-  return Math.abs(disp[0]-Math.floor(initDisp[0]))+
-         Math.abs(disp[1]-Math.floor(initDisp[1]))+
-         Math.abs(disp[2]-Math.floor(initDisp[2]))+
-         Math.abs(disp[3]-Math.floor(initDisp[3]));
-}
-
-// 혼합 스코어: 짜얄식 성장역산과 초기치 일치 보정의 하이브리드
-function hybridScore(initDisp,growDisp,rank,initnum,blend){
-  const b0=baseFromGrow(growDisp,rank);
-  // 초기치와 맞추기 위해 작은 이동(경사하강 한 스텝 느낌의 국소 탐색)
-  const step=0.15; let best=b0.slice(), bestErr=initConsistency(initDisp,initnum,b0);
-  for(const idx of [0,1,2,3]){for(const sgn of [-1,1]){
-    const trial=b0.slice(); trial[idx]=clamp(trial[idx]+sgn*step,5,85);
-    const err=initConsistency(initDisp,initnum,trial);
-    if(err<bestErr){best=trial;bestErr=err;}
-  }}
-  // blend: 0이면 전적으로 초기치일치, 1이면 전적으로 성장역산
-  const base=best.map((v,i)=> v*(1-blend)+b0[i]*blend);
-  const err=initConsistency(initDisp,initnum,base);
-  // 총합 가까움(경험상 합 98±? 구간 선호) 보조가중
-  const sum=base.reduce((x,y)=>x+y,0); const sumBias=Math.abs(sum-98)/10;
-  return {base:base.map(v=>+v.toFixed(3)), err: +(err+sumBias).toFixed(6), sum:+sum.toFixed(3)};
-}
-
+// ===== 저장/목록 =====
 const els={
-  petName:document.getElementById('petName'), maxCand:document.getElementById('maxCand'),
+  petName:document.getElementById('petName'),
   initH:document.getElementById('initH'),initA:document.getElementById('initA'),initD:document.getElementById('initD'),initG:document.getElementById('initG'),
   growH:document.getElementById('growH'),growA:document.getElementById('growA'),growD:document.getElementById('growD'),growG:document.getElementById('growG'),
-  rankMode:document.getElementById('rankMode'), blend:document.getElementById('blend'),
-  btnSolve:document.getElementById('btnSolve'), btnSaveLS:document.getElementById('btnSaveLS'),
-  btnDownload:document.getElementById('btnDownload'), btnClearLS:document.getElementById('btnClearLS'),
-  tbl:document.getElementById('tbl'), summary:document.getElementById('summary'), lsKey:document.getElementById('lsKey')
+  btnCalc:document.getElementById('btnCalc'), btnSave:document.getElementById('btnSave'),
+  outInit:document.getElementById('outInit'), outBase:document.getElementById('outBase'),
+  lst:document.getElementById('lst'), btnReload:document.getElementById('btnReload'), btnPurge:document.getElementById('btnPurge')
 };
-let currentCandidates=[];
+let lastResult=null;
 
 function readInputs(){
-  const petName=(els.petName.value||'').trim();
+  const name=(els.petName.value||'').trim();
   const initDisp=[+els.initH.value,+els.initA.value,+els.initD.value,+els.initG.value];
   const growDisp=[+els.growH.value,+els.growA.value,+els.growD.value,+els.growG.value];
-  if(initDisp.some(isNaN)||growDisp.some(isNaN)) throw Error('모든 입력을 채워 주세요.');
-  const ranks=els.rankMode.value==='auto'?['R1','R2','R3','R4','R5','R6']:[els.rankMode.value];
-  const maxCand=Math.max(10,+els.maxCand.value|0);
-  const blend=parseFloat(els.blend.value);
-  return {petName,initDisp,growDisp,ranks,maxCand,blend};
+  if(!name || initDisp.some(isNaN) || growDisp.some(isNaN)) throw Error('모든 칸을 채워 주세요.');
+  return {name,initDisp,growDisp};
 }
-
-function solve(){
-  const s=readInputs(); const bag=[];
-  for(let initnum=20; initnum<=36; initnum++){
-    for(const rk of s.ranks){
-      const {base,err,sum}=hybridScore(s.initDisp,s.growDisp,rk,initnum,s.blend);
-      bag.push({rank:rk, initnum, base, sum, score:err});
-    }
-  }
-  bag.sort((a,b)=>a.score-b.score);
-  currentCandidates=bag.slice(0,s.maxCand);
-  render(s.petName);
-}
-
-function render(petName){
-  els.tbl.innerHTML='';
-  currentCandidates.forEach((c,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.join(' / ')}]</td><td>${c.sum}</td><td>${c.score}</td>`;
-    els.tbl.appendChild(tr);
+els.btnCalc.onclick=()=>{
+  try{
+    const s=readInputs();
+    const r=solveOne(s.initDisp, s.growDisp);
+    if(!r) throw Error('계수 산출 실패');
+    lastResult={petName:s.name, initnum:r.ic, base:r.base, meta:{E:r.E, score:+r.score.toFixed(4), init:s.initDisp, grow:s.growDisp}};
+    els.outInit.textContent = String(r.ic);
+    els.outBase.textContent = `[${r.base.join(' / ')}] (E≈${r.E})`;
+  }catch(e){ alert(e.message); }
+};
+els.btnSave.onclick=()=>{
+  try{
+    if(!lastResult) throw Error('먼저 계수를 산출하세요.');
+    // DB: PetDBRecords (이름 고유)
+    const DBKEY='PetDBRecords';
+    const db=JSON.parse(localStorage.getItem(DBKEY)||'[]').filter(x=>x.petName!==lastResult.petName);
+    db.push({...lastResult, savedAt:Date.now()});
+    localStorage.setItem(DBKEY, JSON.stringify(db));
+    renderList();
+    alert('저장 완료: StageB에서 초성으로 선택할 수 있습니다.');
+  }catch(e){ alert(e.message); }
+};
+function renderList(){
+  const DBKEY='PetDBRecords';
+  const db=JSON.parse(localStorage.getItem(DBKEY)||'[]').sort((a,b)=>a.petName.localeCompare(b.petName,'ko'));
+  els.lst.innerHTML='';
+  if(db.length===0){ els.lst.innerHTML='<div class="item small">저장된 데이터가 없습니다.</div>'; return; }
+  db.forEach(r=>{
+    const div=document.createElement('div'); div.className='item';
+    div.innerHTML=`<div><b>${r.petName}</b></div><div class="small mono">${new Date(r.savedAt).toLocaleString()}</div>`;
+    els.lst.appendChild(div);
   });
-  els.summary.textContent=`후보 ${currentCandidates.length}개 · floor`;
 }
-
-els.btnSolve.onclick=()=>{try{solve()}catch(e){alert(e.message)}};
-els.btnDownload.onclick=()=>{try{
-  const s=readInputs();
-  const blob=new Blob([JSON.stringify({petName:s.petName,targetGrow:s.growDisp,initRound:'floor',candidates:currentCandidates},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${s.petName||'pet'}_candidates.json`; a.click();
-}catch(e){alert(e.message)}};
-els.btnSaveLS.onclick=()=>{try{
-  const s=readInputs(); const key=`StageA_${s.petName}`;
-  const obj={petName:s.petName,targetGrow:s.growDisp,initRound:'floor',candidates:currentCandidates};
-  localStorage.setItem(key,JSON.stringify(obj));
-  // StageB 검색용 DB(목록/검색/자음 필터)
-  const dbKey='PetDB'; const db=JSON.parse(localStorage.getItem(dbKey)||'[]').filter(x=>x.petName!==s.petName);
-  db.push({petName:s.petName, key, savedAt:Date.now()});
-  localStorage.setItem(dbKey,JSON.stringify(db));
-  // 호환 키
-  localStorage.setItem('petCalcCandidates',JSON.stringify(obj));
-  els.lsKey.textContent=key; alert('StageB에서 검색/자음 필터로 불러올 수 있습니다.');
-}catch(e){alert(e.message)}};
-els.btnClearLS.onclick=()=>{try{
-  const s=readInputs(); const key=`StageA_${s.petName}`; localStorage.removeItem(key);
-  const dbKey='PetDB'; const db=JSON.parse(localStorage.getItem(dbKey)||'[]').filter(x=>x.key!==key);
-  localStorage.setItem(dbKey,JSON.stringify(db));
-  els.lsKey.textContent='(삭제됨)'; alert('해당 페트 저장이 초기화되었습니다.');
-}catch(e){alert(e.message)}};
+els.btnReload.onclick=renderList;
+els.btnPurge.onclick=()=>{
+  if(confirm('관리자용 전체 삭제(모든 페트 데이터) 할까요?')){ localStorage.removeItem('PetDBRecords'); renderList(); }
+};
+renderList();
 </script>
 </body>
 </html>
