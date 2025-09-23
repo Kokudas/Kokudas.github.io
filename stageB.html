@@ -1,111 +1,104 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>StageB v0.9 · S랭크 확률 계산기</title>
-  <style>
-    :root{--bg:#0b1220;--card:#111a2b;--ink:#e7eef8;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--bad:#ff5c5c}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",Helvetica,Arial;color:var(--ink)}
-    header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
-    header .wrap{display:flex;gap:12px;align-items:center;max-width:1100px;margin:0 auto;padding:12px 16px}
-    .pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff;text-decoration:none;font-weight:700}
-    main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
-    @media(max-width:980px){main{grid-template-columns:1fr}}
-    .card{background:#111a2b;border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1e2a44;font-size:18px;color:#d8e6ff}
-    .card .body{padding:16px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #253250;background:#0d1526;color:var(--ink)}
-    button{cursor:pointer;font-weight:800}
-    .btn{background:#132347;border-color:#2a3a5e}
-    .btn:hover{background:#162a55}
-    .btn-ok{background:#19c37d;border-color:#18a56d;color:#04120d}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right;white-space:nowrap}
-    th{text-align:center;color:#bcd1ff}
-    td:nth-child(1),th:nth-child(1){text-align:center}
-    .big{font-size:26px;font-weight:900;margin-top:10px}
-    .muted{color:var(--muted)}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>StageB v0.91 · 환각(최대랜덤) 확률 계산</title>
+<style>
+  :root{--bg:#0b1220;--card:#111a2b;--muted:#8aa0bd;--pri:#7aa2ff;--ok:#19c37d;--bad:#ff6363}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#e7eef8}
+  header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
+  header .wrap{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto;padding:12px 16px}
+  header a{color:var(--pri);text-decoration:none;font-weight:600}
+  .pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff}
+  main{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1e2a44;font-size:18px;color:#d8e6ff}
+  .card .body{padding:16px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+  input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #253250;background:#0d1526;color:#e7eef8}
+  .btn{background:#132347;border-color:#2a3a5e}
+  .btn:hover{background:#162a55}
+  .btn-ok{background:var(--ok);border-color:#18a56d;color:#04120d;font-weight:800}
+  .muted{color:var(--muted);font-size:13px}
+  .big{font-size:26px;font-weight:900}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 8px;border-bottom:1px solid #1e2a44;font-size:13px;text-align:right}
+  th{text-align:center;color:#bcd1ff}
+  td:nth-child(1),th:nth-child(1){text-align:center}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+</style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <strong>StageB v0.9 · S랭크 확률 계산기</strong>
+    <strong>StageB v0.91 · 환각(최대랜덤) 확률 계산</strong>
     <a class="pill" href="./stageA.html">⬅️ StageA로</a>
   </div>
 </header>
 
 <main>
-  <!-- 데이터 -->
+  <!-- 좌: 데이터/입력 -->
   <section class="card">
-    <h2>데이터 불러오기</h2>
+    <h2>데이터 불러오기 & 정수 초기치</h2>
     <div class="body">
       <div class="row">
         <div>
-          <label>로컬 저장된 페트(키는 <span class="mono">StageA_*</span>)</label>
+          <label>로컬 저장된 페트</label>
           <select id="selPets"></select>
         </div>
         <div style="display:flex;gap:8px;align-items:end">
           <button class="btn" id="btnRefresh">목록 새로고침</button>
           <button class="btn" id="btnLoad">불러오기</button>
-          <input type="file" id="fileJson" accept="application/json" style="width:auto"/>
+          <button class="btn" id="btnLoadDirect">자동 연결(petCalcCandidates)</button>
         </div>
       </div>
-      <div class="muted" id="info">StageA에서 “StageB로 저장” 후 선택하세요.</div>
-    </div>
-  </section>
+      <div class="muted" id="info">StageA에서 “StageB로 저장” 후 선택하세요. (키: <span class="mono">StageA_페트명</span> 또는 <span class="mono">petCalcCandidates</span>)</div>
 
-  <!-- 초기치/옵션 -->
-  <section class="card">
-    <h2>정수 초기치 & 옵션</h2>
-    <div class="body">
-      <div class="row4">
+      <div class="row4" style="margin-top:12px">
         <div><label>초기·체(정수)</label><input id="intH" type="number" placeholder="예: 52"></div>
         <div><label>초기·공(정수)</label><input id="intA" type="number" placeholder="예: 12"></div>
         <div><label>초기·방(정수)</label><input id="intD" type="number" placeholder="예: 7"></div>
         <div><label>초기·순(정수)</label><input id="intG" type="number" placeholder="예: 6"></div>
       </div>
 
-      <div class="row" style="margin-top:8px">
+      <div class="row" style="margin-top:12px">
         <div>
-          <label>라운딩 방식(표기 정수화)</label>
+          <label>라운딩(표기)</label>
           <select id="roundMode">
-            <option value="floor">floor(해피)</option>
-            <option value="round">round(샴기르)</option>
+            <option value="floor">floor (해피)</option>
+            <option value="round">round (샴기르)</option>
+            <option value="ceil">ceil</option>
           </select>
         </div>
         <div>
-          <label>LvMax / Trials</label>
-          <div class="row">
-            <input id="lvMax" type="number" min="2" value="140"/>
-            <input id="trials" type="number" min="1000" step="1000" value="20000"/>
-          </div>
+          <label>집계할 최대 후보 수</label>
+          <input id="topK" type="number" value="60" min="10" step="10"/>
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px">
+      <div class="row" style="margin-top:12px">
         <button class="btn-ok" id="btnCalc">계산 시작</button>
-        <div class="big" id="headline">성공 확률 : —</div>
+        <div class="muted" id="calcNote">결과는 “성공 확률 : n%”(=환각 확률 | 정수초기)로만 표기합니다.</div>
       </div>
+
+      <div class="big" id="headline" style="margin-top:12px">성공 확률 : —</div>
       <div class="muted" id="subline"></div>
     </div>
   </section>
 
-  <!-- 후보 테이블 -->
+  <!-- 우: 후보 테이블(간단) -->
   <section class="card">
     <h2>후보 요약</h2>
     <div class="body">
       <div class="muted" id="candSummary">불러온 데이터가 없습니다.</div>
       <div style="overflow:auto;max-height:55vh;border:1px solid #1e2a44;border-radius:10px;margin-top:8px">
         <table id="tbl"><thead><tr>
-          <th>#</th><th>일치</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th>
-          <th>p(Int|cand)</th><th>p(S|cand,Int)</th><th>p(S|cand)</th>
+          <th>#</th><th>랭크</th><th>initnum</th><th>baseS [H/A/D/G]</th><th>p(Int|cand)</th><th>p(H|cand,Int)</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </div>
@@ -113,209 +106,304 @@
 </main>
 
 <script>
-// ===== 공통 =====
-const $=q=>document.querySelector(q);
-const fmtp=x=>(x*100).toFixed(3)+'%';
-const disp=(H,A,D,G)=>({HP:4*H+A+D+G, ATK:0.1*H+A+0.1*D+0.05*G, DEF:0.1*H+0.1*A+D+0.05*G, AGI:G});
-const R={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
-const randint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-function multinom10(){let left=10;const v=[0,0,0,0];for(let i=0;i<3;i++){const t=randint(0,left);v[i]=t;left-=t;}v[3]=left;return v.sort(()=>Math.random()-0.5);}
-
-// Worker 코드 (당신이 “정상값” 봤던 버전 유지)
-const code=`(()=>{
-  const R={R1:[450,500],R2:[470,520],R3:[490,540],R4:[510,560],R5:[530,580],R6:[550,600]};
-  const randint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-  const multinom10=()=>{let left=10;const v=[0,0,0,0];for(let i=0;i<3;i++){const t=randint(0,left);v[i]=t;left-=t;}v[3]=left;return v.sort(()=>Math.random()-0.5);}
-  const disp=(H,A,D,G)=>({HP:4*H+A+D+G, ATK:0.1*H+A+0.1*D+0.05*G, DEF:0.1*H+0.1*A+D+0.05*G, AGI:G});
-  const bestGrowPerLevel=(baseS,rank)=>{const Bmax=(R[rank]||[470,520])[1];const g=baseS.map(v=>(v+2.5)*Bmax/10000);return{
-    toHP:4*g[0]+g[1]+g[2]+g[3], toATK:0.1*g[0]+g[1]+0.1*g[2]+0.05*g[3], toDEF:0.1*g[0]+0.1*g[1]+g[2]+0.05*g[3], toAGI:g[3]
-  }};
-  const applyRound=(x,m)=>m==='floor'?Math.floor(x):Math.round(x);
-
-  onmessage=(e)=>{
-    const {cands,intInit,lvMax,trials,roundMode,targetGrow}=e.data;
-    const L=lvMax-1;
-    const need={HP:targetGrow[0]*L, ATK:targetGrow[1]*L, DEF:targetGrow[2]*L, AGI:targetGrow[3]*L};
-    const rows=[];
-    for(const cand of cands){
-      const base=cand.base, rk=cand.rank, Brng=R[rk]||[470,520];
-      // 상한 차단
-      const best=bestGrowPerLevel(base,rk);
-      const block=(best.toHP*L<need.HP)||(best.toATK*L<need.ATK)||(best.toDEF*L<need.DEF)||(best.toAGI*L<need.AGI);
-
-      // p(S|cand)
-      let sCnt=0;
-      if(!block){
-        for(let t=0;t<trials;t++){
-          let gHP=0,gATK=0,gDEF=0,gAGI=0;
-          for(let lv=2;lv<=lvMax;lv++){
-            const A10=multinom10();
-            const B=Brng[0]+Math.random()*(Brng[1]-Brng[0]);
-            const per=[0,1,2,3].map(i=>(base[i]+A10[i])*B/10000);
-            gHP+=4*per[0]+per[1]+per[2]+per[3];
-            gATK+=0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-            gDEF+=0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-            gAGI+=per[3];
-          }
-          if(gHP>=need.HP&&gATK>=need.ATK&&gDEF>=need.DEF&&gAGI>=need.AGI) sCnt++;
-        }
-      }
-      const pS = block?0:sCnt/trials;
-
-      // p(Int|cand)
-      let iCnt=0;
-      for(let t=0;t<trials;t++){
-        const r=[0,0,0,0].map(()=>randint(-2,2));
-        const bonus=multinom10();
-        const H=cand.initnum*(base[0]+r[0]+bonus[0])/100;
-        const A=cand.initnum*(base[1]+r[1]+bonus[1])/100;
-        const D=cand.initnum*(base[2]+r[2]+bonus[2])/100;
-        const G=cand.initnum*(base[3]+r[3]+bonus[3])/100;
-        const v=disp(H,A,D,G);
-        const iv={HP:applyRound(v.HP,roundMode),ATK:applyRound(v.ATK,roundMode),DEF:applyRound(v.DEF,roundMode),AGI:applyRound(v.AGI,roundMode)};
-        if(iv.HP===intInit[0]&&iv.ATK===intInit[1]&&iv.DEF===intInit[2]&&iv.AGI===intInit[3]) iCnt++;
-      }
-      const pInt=iCnt/trials;
-
-      // p(S|cand,Int)
-      let matched=0,success=0,guard=0;
-      if(pInt>0 && !block){
-        while(matched<Math.min(500,Math.max(100,Math.floor(trials*0.25)))){
-          guard++; if(guard>trials*20) break;
-          // 리젝션으로 초기 정수 일치 샘플 확보
-          let ok=false,H,A,D,G;
-          for(let tries=0;tries<2000;tries++){
-            const r=[0,0,0,0].map(()=>randint(-2,2)), bonus=multinom10();
-            H=cand.initnum*(base[0]+r[0]+bonus[0])/100;
-            A=cand.initnum*(base[1]+r[1]+bonus[1])/100;
-            D=cand.initnum*(base[2]+r[2]+bonus[2])/100;
-            G=cand.initnum*(base[3]+r[3]+bonus[3])/100;
-            const v=disp(H,A,D,G);
-            if(applyRound(v.HP,roundMode)===intInit[0] && applyRound(v.ATK,roundMode)===intInit[1] && applyRound(v.DEF,roundMode)===intInit[2] && applyRound(v.AGI,roundMode)===intInit[3]){ ok=true; break; }
-          }
-          if(!ok) break;
-          matched++;
-          // 성장 시뮬
-          let gHP=0,gATK=0,gDEF=0,gAGI=0;
-          for(let lv=2;lv<=lvMax;lv++){
-            const A10=multinom10();
-            const B=Brng[0]+Math.random()*(Brng[1]-Brng[0]);
-            const per=[0,1,2,3].map(i=>(base[i]+A10[i])*B/10000);
-            gHP+=4*per[0]+per[1]+per[2]+per[3];
-            gATK+=0.1*per[0]+per[1]+0.1*per[2]+0.05*per[3];
-            gDEF+=0.1*per[0]+0.1*per[1]+per[2]+0.05*per[3];
-            gAGI+=per[3];
-          }
-          if(gHP>=need.HP&&gATK>=need.ATK&&gDEF>=need.DEF&&gAGI>=need.AGI) success++;
-        }
-      }
-      const pScI = matched>0 ? success/matched : 0;
-      rows.push({cand,pS,pInt,pScI});
-      postMessage({type:'progress',payload:{id:cand.rank+'/'+cand.initnum}});
-    }
-    postMessage({type:'done',payload:{rows}});
-  };
-})();`;
-const worker=new Worker(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
-
-// UI: 불러오기
-const sel=$('#selPets'), info=$('#info'), headline=$('#headline'), subline=$('#subline'), tblBody=$('#tbl tbody'), candSummary=$('#candSummary');
-function refreshKeys(){
-  sel.innerHTML='';
-  const keys=[];
-  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k && k.startsWith('StageA_')) keys.push(k);}
-  keys.sort();
-  if(keys.length===0){const opt=document.createElement('option');opt.value='';opt.textContent='(저장된 항목 없음)';sel.appendChild(opt);info.textContent='StageA에서 “StageB로 저장”을 먼저 수행하세요.';return;}
-  for(const k of keys){const opt=document.createElement('option');opt.value=k;opt.textContent=k.replace('StageA_','');sel.appendChild(opt);}
-  info.textContent='목록에서 페트를 선택 후 “불러오기”. 또는 JSON 파일 첨부.';
-}
-$('#btnRefresh').onclick=refreshKeys;
-window.addEventListener('load',refreshKeys);
-
-let payload=null;
-
-$('#btnLoad').onclick=()=>{
-  const key=sel.value;
-  if(!key){ alert('목록에서 항목을 선택하세요.'); return; }
-  try{
-    const raw=localStorage.getItem(key);
-    if(!raw){ alert('로컬 항목을 찾지 못했습니다.'); return; }
-    payload=JSON.parse(raw);
-    afterLoad();
-  }catch(e){ alert('불러오기 실패: '+e.message); payload=null; }
-};
-
-$('#fileJson').onchange=()=>{
-  const f=$('#fileJson').files?.[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{ try{ payload=JSON.parse(r.result); afterLoad(); }catch(e){ alert('JSON 파싱 실패'); } };
-  r.readAsText(f);
-};
-
-function afterLoad(){
-  if(!payload || !Array.isArray(payload.candidates)){ alert('형식이 올바르지 않습니다.'); payload=null; return; }
-  info.textContent=`불러옴: ${payload.petName||'(이름없음)'} · 후보 ${payload.candidates.length}개`;
-  candSummary.textContent = `후보 ${payload.candidates.length}개`;
-  // 표를 미리 렌더
-  renderCandidates([], payload.candidates);
-  headline.textContent='성공 확률 : —'; subline.textContent='';
-}
-
-function renderCandidates(matchIdxs, all){
-  tblBody.innerHTML='';
-  const set=new Set(matchIdxs);
-  all.forEach((c,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${set.has(i)?'✓':''}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.map(v=>Number(v).toFixed(3)).join(' / ')}]</td><td></td><td></td><td></td>`;
-    tblBody.appendChild(tr);
-  });
-}
-
-// 계산
-$('#btnCalc').onclick=()=>{
-  if(!payload){ alert('먼저 데이터를 불러오세요.'); return; }
-  const ints=[+$('#intH').value,+$('#intA').value,+$('#intD').value,+$('#intG').value];
-  if(ints.some(x=>!Number.isFinite(x))){ alert('정수 초기치를 모두 입력하세요.'); return; }
-  const lvMax=Math.max(2, +$('#lvMax').value|0);
-  const trials=Math.max(1000, +$('#trials').value|0);
-  const roundMode=$('#roundMode').value;
-  // “정상값” JSON과 호환: base 보정(>40 힌트면 -4.5)
-  const cands=(payload.candidates||[]).map(c=>{
-    const b=c.base;
-    const shift = (b[0]>40||b[1]>40||b[2]>40||b[3]>40);
-    const base=shift?[b[0]-4.5,b[1]-4.5,b[2]-4.5,b[3]-4.5]:b.slice();
-    return {rank:c.rank, initnum:c.initnum, base, score:c.score};
-  });
-
-  $('#candSummary').textContent=`후보 ${cands.length}개 · 계산 중…`;
-  worker.postMessage({cands,intInit:ints,lvMax,trials,roundMode,targetGrow:payload.targetGrow});
-};
-
-worker.onmessage=(e)=>{
-  const {type,payload:pl}=e.data;
-  if(type==='progress'){ subline.textContent=`계산 중… ${pl.id}`; }
-  if(type==='done'){
-    const rows=pl.rows;
-    rows.sort((a,b)=>(b.pScI-a.pScI)||(b.pS-a.pS)||(b.pInt-a.pInt));
-    // 테이블 갱신 + 평균
-    let n=rows.length, avgScI=0,minScI=1,maxScI=0, avgS=0,minS=1,maxS=0;
-    const tb=$('#tbl tbody'); tb.innerHTML='';
-    const matchedIdx=[];
-    rows.forEach((r,i)=>{
-      avgScI+=r.pScI; avgS+=r.pS;
-      minScI=Math.min(minScI,r.pScI); maxScI=Math.max(maxScI,r.pScI);
-      minS=Math.min(minS,r.pS); maxS=Math.max(maxS,r.pS);
-      if(r.pInt>0) matchedIdx.push(i);
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td>${r.pInt>0?'✓':''}</td><td>${r.cand.rank}</td><td>${r.cand.initnum}</td><td>[${r.cand.base.map(x=>x.toFixed(3)).join(' / ')}]</td><td>${fmtp(r.pInt)}</td><td>${fmtp(r.pScI)}</td><td>${fmtp(r.pS)}</td>`;
-      tb.appendChild(tr);
-    });
-    if(n===0){ headline.textContent='성공 확률 : —'; subline.textContent='후보가 없습니다.'; return; }
-    avgScI/=n; avgS/=n;
-    headline.textContent = `성공 확률 : ${(avgScI*100).toFixed(3)}%`; // = 평균 p(S|Int)
-    subline.textContent = `후보 ${n}개 · 평균 p(S)=${(avgS*100).toFixed(3)}% · 일치 후보 ${matchedIdx.length}/${n}`;
+  // ---------- 공통 수식 ----------
+  function roundBy(mode,x){ if(mode==='ceil')return Math.ceil(x); if(mode==='round')return Math.round(x); return Math.floor(x); }
+  function displayFromRaw(h,a,d,g){
+    const H = (h*4) + a + d + g;
+    const A = (h*0.1) + a + (d*0.1) + (g*0.05);
+    const D = (h*0.1) + (a*0.1) + d + (g*0.05);
+    const G = g;
+    return [H,A,D,G];
   }
-};
+
+  // ---------- 보너스(합=10) 완전조합 사전계산 ----------
+  const bonusPartitions = (()=>{ const out=[];
+    for(let h=0; h<=10; h++){
+      for(let a=0; a<=10-h; a++){
+        for(let d=0; d<=10-h-a; d++){
+          const g = 10-h-a-d;
+          out.push([h,a,d,g]);
+        }
+      }
+    }
+    return out;
+  })(); // 길이 286
+
+  // ---------- UI 엘리먼트 ----------
+  const sel=document.getElementById('selPets');
+  const btnRefresh=document.getElementById('btnRefresh');
+  const btnLoad=document.getElementById('btnLoad');
+  const btnLoadDirect=document.getElementById('btnLoadDirect');
+  const info=document.getElementById('info');
+  const headline=document.getElementById('headline');
+  const subline=document.getElementById('subline');
+  const tblBody=document.getElementById('tbl').querySelector('tbody');
+  const candSummary=document.getElementById('candSummary');
+
+  function refreshKeys(){
+    sel.innerHTML='';
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.startsWith('StageA_')) keys.push(k);
+    }
+    keys.sort();
+    if(keys.length===0){
+      const opt=document.createElement('option');
+      opt.value=''; opt.textContent='(저장된 항목 없음)';
+      sel.appendChild(opt);
+      info.textContent='StageA에서 “StageB로 저장”을 먼저 수행하세요.';
+      return;
+    }
+    keys.forEach(k=>{
+      const opt=document.createElement('option');
+      opt.value=k;
+      opt.textContent=k.replace('StageA_','');
+      sel.appendChild(opt);
+    });
+    info.textContent='목록에서 페트를 선택 후 “불러오기”를 누르세요.';
+  }
+  btnRefresh.onclick=refreshKeys;
+  window.addEventListener('load',refreshKeys);
+
+  let payload=null;
+  function attachPayload(obj){
+    payload=obj;
+    const msg = `불러옴: ${obj.petName||'(이름없음)'} · 후보 ${obj.candidates?.length||0}개`;
+    info.textContent = msg + (obj.initRound?` · 라운딩=${obj.initRound}`:'');
+    document.getElementById('roundMode').value = obj.initRound || 'floor';
+    headline.textContent='성공 확률 : —';
+    subline.textContent='';
+    renderRows([]);
+  }
+
+  btnLoad.onclick=()=>{
+    const key=sel.value;
+    if(!key){ alert('목록에서 항목을 선택하세요.'); return; }
+    const raw=localStorage.getItem(key);
+    if(!raw){ alert('로컬 저장에 없음'); return; }
+    try{ attachPayload(JSON.parse(raw)); }catch(e){ alert('파싱 실패: '+e.message); }
+  };
+  btnLoadDirect.onclick=()=>{
+    const raw=localStorage.getItem('petCalcCandidates');
+    if(!raw){ alert('petCalcCandidates 키가 없습니다. StageA에서 “StageB로 저장”을 눌러주세요.'); return; }
+    try{ attachPayload(JSON.parse(raw)); }catch(e){ alert('파싱 실패: '+e.message); }
+  };
+
+  function renderRows(rows){
+    tblBody.innerHTML='';
+    rows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td>${r.cand.rank}</td>
+        <td>${r.cand.initnum}</td>
+        <td>[${r.cand.base.map(x=>Number(x).toFixed(3)).join(' / ')}]</td>
+        <td>${(r.pInt*100).toFixed(4)}%</td>
+        <td>${(r.pHall*100).toFixed(4)}%</td>`;
+      tblBody.appendChild(tr);
+    });
+    candSummary.textContent = payload ? `후보 ${payload.candidates.length}개` : '불러온 데이터가 없습니다.';
+  }
+
+  // ---------- Worker: 정확열거(짜얄/샴기르 해석) ----------
+  const workerCode = `
+    let bonusPartitions=[];
+    (function build(){
+      for(let h=0; h<=10; h++){
+        for(let a=0; a<=10-h; a++){
+          for(let d=0; d<=10-h-a; d++){
+            const g=10-h-a-d;
+            bonusPartitions.push([h,a,d,g]);
+          }
+        }
+      }
+    })();
+
+    function roundBy(mode,x){ if(mode==='ceil')return Math.ceil(x); if(mode==='round')return Math.round(x); return Math.floor(x); }
+    function displayFromRaw(h,a,d,g){
+      const H=(h*4)+a+d+g;
+      const A=(h*0.1)+a+(d*0.1)+(g*0.05);
+      const D=(h*0.1)+(a*0.1)+d+(g*0.05);
+      const G=g;
+      return [H,A,D,G];
+    }
+
+    function perCandEnumerate(cand, targetInts, roundMode){
+      // 전체 경우의 수 = 5^4(임의 -2..+2) * 286(보너스 합10)
+      const totComb = 625*286;
+      let hit=0, hitHall=0;
+
+      const base = cand.base;
+      const initnum = cand.initnum;
+
+      for(let rh=-2; rh<=2; rh++){
+        for(let ra=-2; ra<=2; ra++){
+          for(let rd=-2; rd<=2; rd++){
+            for(let rg=-2; rg<=2; rg++){
+              // 환각(최대) 판정용 플래그
+              const hall = (rh===2 && ra===2 && rd===2 && rg===2);
+
+              for(let bi=0; bi<bonusPartitions.length; bi++){
+                const b=bonusPartitions[bi];
+                const H = initnum * (base[0] + rh + b[0]) / 100;
+                const A = initnum * (base[1] + ra + b[1]) / 100;
+                const D = initnum * (base[2] + rd + b[2]) / 100;
+                const G = initnum * (base[3] + rg + b[3]) / 100;
+
+                const disp = displayFromRaw(H,A,D,G).map(x=>roundBy(roundMode,x));
+                if(disp[0]===targetInts[0] && disp[1]===targetInts[1] && disp[2]===targetInts[2] && disp[3]===targetInts[3]){
+                  hit++;
+                  if(hall) hitHall++;
+                }
+              }
+            }
+          }
+        }
+      }
+      return {hit, hitHall, totComb};
+    }
+
+    onmessage = async (e)=>{
+      const {type,payload} = e.data;
+      if(type!=='run') return;
+      const {cands, targetInts, roundMode, topK} = payload;
+
+      // 1차로 p(Int|cand) 추정(간이 샘플링) → 상위 topK만 본계산
+      // 샘플링: 보너스 286개 중 44개 정도만(간략), r벡터 625 중 125개 샘플 (5^3)
+      const sampleIdx = []; // 균등 샘플 인덱스
+      for(let i=0;i<bonusPartitions.length;i+=Math.ceil(286/44)) sampleIdx.push(i);
+
+      function quickEstimate(cand){
+        let hit=0, tries=0;
+        let idxList=[-2,-1,0,1,2];
+        for(let rh of idxList){
+          for(let ra of idxList){
+            for(let rd of idxList){
+              let rg = 0; // 5^3 샘플 (가속)
+              for(let bi of sampleIdx){
+                const b=bonusPartitions[bi];
+                const H = cand.initnum * (cand.base[0] + rh + b[0]) / 100;
+                const A = cand.initnum * (cand.base[1] + ra + b[1]) / 100;
+                const D = cand.initnum * (cand.base[2] + rd + b[2]) / 100;
+                const G = cand.initnum * (cand.base[3] + rg + b[3]) / 100;
+                const disp=[
+                  (H*4)+A+D+G,
+                  (H*0.1)+A+(D*0.1)+(G*0.05),
+                  (H*0.1)+(A*0.1)+D+(G*0.05),
+                  G
+                ].map(x=> roundBy(roundMode,x) );
+                tries++;
+                if(disp[0]===targetInts[0] && disp[1]===targetInts[1] && disp[2]===targetInts[2] && disp[3]===targetInts[3]) hit++;
+              }
+            }
+          }
+        }
+        return hit/tries;
+      }
+
+      const est = cands.map((c,i)=>({i,score:quickEstimate(c)})).sort((a,b)=>b.score-a.score).slice(0, Math.min(topK, cands.length));
+
+      let num=0, den=0;
+      const detailRows=[];
+
+      for(const it of est){
+        const cand=cands[it.i];
+        postMessage({type:'progress', payload:{name: cand.rank+"/"+cand.initnum}});
+        const r = perCandEnumerate(cand, targetInts, roundMode);
+        const pInt = r.hit / r.totComb;
+        const pHall = r.hit>0 ? (r.hitHall / r.hit) : 0; // 조건부 환각 확률
+        if(pInt>0){
+          num += pInt * pHall;
+          den += pInt;
+        }
+        detailRows.push({cand, pInt, pHall});
+      }
+
+      const p = den>0 ? (num/den) : 0;
+      postMessage({type:'done', payload:{p, rows:detailRows}});
+    };
+  `;
+  const worker = new Worker(URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'})));
+
+  function readInts(){
+    return [
+      parseInt(document.getElementById('intH').value,10),
+      parseInt(document.getElementById('intA').value,10),
+      parseInt(document.getElementById('intD').value,10),
+      parseInt(document.getElementById('intG').value,10),
+    ];
+  }
+
+  function sanitizeCandidates(cands){
+    // StageA v0.6는 base가 표기계수 그대로이므로 보정 불필요.
+    // 혹시 이전 버전 섞였을 때를 대비해 배열/필드만 정리.
+    return (cands||[]).map(c=>({rank:c.rank, initnum:c.initnum, base:[+c.base[0],+c.base[1],+c.base[2],+c.base[3]]}));
+  }
+
+  function fmtp(x){ return (x*100).toFixed(4)+'%'; }
+
+  document.getElementById('btnCalc').onclick=()=>{
+    if(!payload){ alert('먼저 데이터를 불러오세요.'); return; }
+    const ints = readInts();
+    if(ints.some(v=>!Number.isFinite(v))){ alert('정수 초기치를 모두 입력하세요.'); return; }
+
+    const roundMode = document.getElementById('roundMode').value || payload.initRound || 'floor';
+    const topK = Math.max(10, parseInt(document.getElementById('topK').value)||60);
+    const cands = sanitizeCandidates(payload.candidates);
+
+    headline.textContent='계산 중… (Web Worker 정확열거)';
+    subline.textContent='';
+
+    worker.postMessage({type:'run', payload:{cands, targetInts:ints, roundMode, topK}});
+  };
+
+  worker.onmessage=(e)=>{
+    const {type,payload}=e.data;
+    if(type==='progress'){
+      subline.textContent = `계산 중… ${payload.name}`;
+      return;
+    }
+    if(type==='done'){
+      const {p, rows} = payload;
+      headline.textContent = `성공 확률 : ${(p*100).toFixed(4)}%`;
+      rows.sort((a,b)=> (b.pHall - a.pHall) || (b.pInt - a.pInt));
+      renderRows(rows);
+      const nPos = rows.filter(r=>r.pInt>0).length;
+      subline.textContent = `집계 후보 ${rows.length}개 중 정수초기치가 가능한 후보 ${nPos}개 반영 · 라운딩=${document.getElementById('roundMode').value}`;
+    }
+  };
+
+  function renderCandidatesOnly(){
+    if(!payload){ candSummary.textContent='불러온 데이터가 없습니다.'; tblBody.innerHTML=''; return; }
+    tblBody.innerHTML='';
+    (payload.candidates||[]).forEach((c,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${i+1}</td><td>${c.rank}</td><td>${c.initnum}</td><td>[${c.base.map(v=>Number(v).toFixed(3)).join(' / ')}]</td><td>-</td><td>-</td>`;
+      tblBody.appendChild(tr);
+    });
+    candSummary.textContent=`후보 ${payload.candidates.length}개`;
+  }
+
+  function renderRows(rows){
+    tblBody.innerHTML='';
+    rows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${i+1}</td>
+        <td>${r.cand.rank}</td>
+        <td>${r.cand.initnum}</td>
+        <td>[${r.cand.base.map(x=>x.toFixed(3)).join(' / ')}]</td>
+        <td>${fmtp(r.pInt)}</td>
+        <td>${fmtp(r.pHall)}</td>
+      `;
+      tblBody.appendChild(tr);
+    });
+    if(rows.length===0) renderCandidatesOnly();
+  }
+
+  // 초기 로드시 목록 구성
+  refreshKeys();
 </script>
 </body>
 </html>
