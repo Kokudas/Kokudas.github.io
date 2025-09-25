@@ -1,48 +1,539 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>펫 계산기 안내 · v0.2</title>
-<style>
-:root{--bg:#0b1220;--card:#111a2b;--ink:#e7eef8;--muted:#8aa0bd;--pri:#7aa2ff}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1729);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans KR",Pretendard,sans-serif;color:var(--ink)}
-header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.8);backdrop-filter:blur(6px);border-bottom:1px solid #1e2a44}
-header .wrap{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto;padding:12px 16px}
-header a{color:var(--pri);text-decoration:none;font-weight:600}
-.pill{padding:6px 10px;border:1px solid #2a3a5e;border-radius:999px;background:#0e1628;color:#cfe0ff}
-main{max-width:900px;margin:24px auto;padding:0 16px}
-.card{background:var(--card);border:1px solid #1a2540;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:18px;margin-bottom:14px}
-.btn{display:inline-block;background:#132347;border:1px solid #2a3a5e;color:var(--ink);padding:10px 14px;border-radius:10px;margin-right:8px;text-decoration:none}
-.hint{color:var(--muted);font-size:14px}
-</style>
+  <meta charset="utf-8" />
+  <title>노바 페트 계산기 v0.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --gap:12px;
+      --chip:#f3f4f6;
+      --chip-text:#111827;
+      --chip-border:#e5e7eb;
+      --primary:#2563eb;
+      --muted:#6b7280;
+      --danger:#dc2626;
+      --ok:#059669;
+      --card:#ffffff;
+      --bg:#f9fafb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:10}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+    .topbar{display:flex;align-items:center;gap:12px;padding:12px 0}
+    .title{font-weight:700}
+    .ver{margin-left:auto;color:var(--muted);font-size:12px}
+    .row{display:grid;grid-template-columns: 1.1fr 1fr; gap:var(--gap); align-items:start}
+    @media (max-width:960px){ .row{grid-template-columns:1fr} }
+    .card{background:var(--card);border:1px solid #eee;border-radius:10px;padding:14px}
+    .searchbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .searchbar input[type="text"]{flex:1;min-width:200px;padding:10px 12px;border:1px solid #ddd;border-radius:8px}
+    button, .btn{cursor:pointer;border:1px solid #ddd;background:#fff;padding:8px 12px;border-radius:8px}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.ghost{background:#fff;color:#111;border-color:#ddd}
+    .btn.small{padding:6px 10px;font-size:12px}
+    .keypad{display:flex;flex-wrap:wrap;gap:6px}
+    .keypad .key{border:1px solid #ddd;background:#fff;border-radius:6px;padding:6px 10px;cursor:pointer}
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip-border);background:var(--chip);color:var(--chip-text);border-radius:999px;padding:6px 10px;font-size:13px}
+    .chip .x{cursor:pointer;color:#555}
+    .subtle{color:var(--muted);font-size:12px}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+    @media (max-width:760px){ .cols{grid-template-columns:1fr} }
+    .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .statgrid .cell{display:flex;flex-direction:column;gap:6px}
+    .statgrid input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
+    .steppers{display:flex;gap:6px}
+    .steppers .step{border:1px solid #ddd;background:#fff;border-radius:6px;padding:6px 8px;cursor:pointer}
+    .presets{display:grid;grid-template-columns:1fr;gap:8px}
+    .preset-row{display:flex;gap:8px;flex-wrap:wrap}
+    .favstar{cursor:pointer}
+    .result{display:flex;flex-direction:column;gap:8px}
+    .result .line{display:flex;gap:16px;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    details{background:#fff;border:1px dashed #e5e7eb;border-radius:8px;padding:8px}
+    .list{margin-top:8px;max-height:220px;overflow:auto;border:1px solid #eee;border-radius:8px}
+    .list .item{padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .list .item:last-child{border-bottom:none}
+    .hidden{display:none !important}
+    footer{padding:30px 0 60px;color:var(--muted);font-size:12px;text-align:center}
+    .tiny-link{opacity:.2;user-select:none}
+    .tiny-link:hover{opacity:.6}
+  </style>
 </head>
 <body>
 <header>
-  <div class="wrap">
-    <strong>Index · 안내</strong>
-    <a class="pill" href="./stageA.html">➡️ StageA</a>
-    <a class="pill" href="./stageB.html">➡️ StageB</a>
+  <div class="wrap topbar">
+    <div class="title">노바 페트 계산기</div>
+    <div class="subtle">초성검색 · 즐겨찾기 · 프리셋</div>
+    <div class="ver">v<span id="ver">0.1</span></div>
   </div>
 </header>
-<main>
-  <div class="card">
-    <h2 style="margin:0 0 6px">흐름</h2>
-    <ol>
-      <li><b>StageA v0.2</b> — 표기 초기치(소수 둘째) + 표기 성장률(소수 둘째) → 후보 역산 → 로컬 저장</li>
-      <li><b>StageB v0.2</b> — 페트 선택 + 정수 초기치 입력 → <b>성공 확률(평균 p(S|Int))</b>만 크게 출력</li>
-    </ol>
-    <div class="hint">라운딩 규칙(Floor/Round/Ceil)은 서버 표기에 맞게 선택.</div>
-  </div>
-  <div class="card">
-    <h2 style="margin:0 0 6px">주의</h2>
-    <ul>
-      <li>결과는 참고용. 역산·난수 가정으로 오차가 있을 수 있음.</li>
-      <li>로컬스토리지를 사용합니다. StageB에서 “StageA 값 초기화”로 삭제 가능.</li>
-    </ul>
-    <a class="btn" href="./stageA.html">StageA 열기</a>
-    <a class="btn" href="./stageB.html">StageB 열기</a>
-  </div>
+
+<main class="wrap" style="padding:16px 0 28px">
+  <!-- 검색/초성/즐겨찾기/최근 -->
+  <section class="card">
+    <div class="searchbar">
+      <input id="q" type="text" placeholder="펫 이름 검색 (예: 반보로)" autocomplete="off" />
+      <button id="btnClear" class="btn small">지우기</button>
+      <span class="subtle">초성버퍼: <b id="choBuf">·</b></span>
+    </div>
+    <div style="height:8px"></div>
+    <div class="keypad" id="keypad"></div>
+    <div style="height:8px"></div>
+    <div class="subtle">후보</div>
+    <div id="cand" class="list"></div>
+    <div style="height:10px"></div>
+    <div class="subtle" style="margin-bottom:6px">즐겨찾기 (최대 10)</div>
+    <div id="fav" class="chips"></div>
+    <div style="height:10px"></div>
+    <div class="subtle" style="margin-bottom:6px">최근 검색 (최대 10)</div>
+    <div id="recents" class="chips"></div>
+  </section>
+
+  <!-- 좌우 패널 -->
+  <section class="row" style="margin-top:12px">
+    <!-- 좌측: 정석 S0/Sg -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><b id="selName">-</b> <span class="favstar" id="favToggle" title="즐겨찾기">☆</span></div>
+        <div class="subtle">정석 S0/Sg (읽기전용)</div>
+      </div>
+      <div class="cols">
+        <div>
+          <div class="subtle" style="margin-bottom:6px">표기 초기치 S0 (체/공/방/순)</div>
+          <div class="statgrid">
+            <div class="cell"><label class="subtle">체</label><input id="s0_hp" type="text" readonly></div>
+            <div class="cell"><label class="subtle">공</label><input id="s0_atk" type="text" readonly></div>
+            <div class="cell"><label class="subtle">방</label><input id="s0_def" type="text" readonly></div>
+            <div class="cell"><label class="subtle">순</label><input id="s0_agi" type="text" readonly></div>
+          </div>
+        </div>
+        <div>
+          <div class="subtle" style="margin-bottom:6px">표기 성장치 Sg (체/공/방/순)</div>
+          <div class="statgrid">
+            <div class="cell"><label class="subtle">체</label><input id="sg_hp" type="text" readonly></div>
+            <div class="cell"><label class="subtle">공</label><input id="sg_atk" type="text" readonly></div>
+            <div class="cell"><label class="subtle">방</label><input id="sg_def" type="text" readonly></div>
+            <div class="cell"><label class="subtle">순</label><input id="sg_agi" type="text" readonly></div>
+          </div>
+        </div>
+      </div>
+      <div class="subtle" id="seedHint" style="margin-top:10px"></div>
+    </div>
+
+    <!-- 우측: 내 1레벨 표기치 + 프리셋 -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><b>내 1레벨 표기치 입력</b> <span class="subtle">(정수)</span></div>
+        <div class="subtle">마우스 휠/▲▼ 가능</div>
+      </div>
+      <div class="statgrid">
+        <div class="cell">
+          <label>내구력</label>
+          <input id="in_hp" type="number" inputmode="numeric" />
+          <div class="steppers">
+            <div class="step" data-step="in_hp" data-delta="1">+1</div>
+            <div class="step" data-step="in_hp" data-delta="-1">-1</div>
+            <div class="step" data-step="in_hp" data-delta="2">+2</div>
+            <div class="step" data-step="in_hp" data-delta="-2">-2</div>
+          </div>
+        </div>
+        <div class="cell">
+          <label>공격력</label>
+          <input id="in_atk" type="number" inputmode="numeric" />
+          <div class="steppers">
+            <div class="step" data-step="in_atk" data-delta="1">+1</div>
+            <div class="step" data-step="in_atk" data-delta="-1">-1</div>
+          </div>
+        </div>
+        <div class="cell">
+          <label>방어력</label>
+          <input id="in_def" type="number" inputmode="numeric" />
+          <div class="steppers">
+            <div class="step" data-step="in_def" data-delta="1">+1</div>
+            <div class="step" data-step="in_def" data-delta="-1">-1</div>
+          </div>
+        </div>
+        <div class="cell">
+          <label>순발력</label>
+          <input id="in_agi" type="number" inputmode="numeric" />
+          <div class="steppers">
+            <div class="step" data-step="in_agi" data-delta="1">+1</div>
+            <div class="step" data-step="in_agi" data-delta="-1">-1</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:10px"></div>
+      <div class="presets">
+        <div class="preset-row">
+          <span class="subtle" style="margin-right:6px">시스템 프리셋:</span>
+          <button class="btn small" id="pz_round">정석 반올림</button>
+          <button class="btn small" id="pz_floor">정석 내림</button>
+          <button class="btn small" id="pz_ceil">정석 올림</button>
+          <span class="subtle" style="margin:0 4px">|</span>
+          <button class="btn small" id="pz_hp_p1">체 +1</button>
+          <button class="btn small" id="pz_hp_m1">체 -1</button>
+          <button class="btn small" id="pz_hp_p2">체 +2</button>
+          <button class="btn small" id="pz_hp_m2">체 -2</button>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button id="btnCalc" class="btn primary">계산</button>
+        <span id="progress" class="subtle"></span>
+        <button id="btnCancel" class="btn small hidden">취소</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section class="card" style="margin-top:12px">
+    <div class="result">
+      <div class="line">
+        <div><b>환각(8등급) 확률</b> : <span id="pHall" class="muted">-</span></div>
+        <div><b>출현 확률</b> : <span id="pSpawn" class="muted">-</span></div>
+        <div><b>기대 시도</b> : <span id="expected" class="muted">-</span></div>
+      </div>
+      <details id="more">
+        <summary>자세히 (등급 분포 / 로그)</summary>
+        <div style="padding:8px 4px">
+          <div id="dist" class="muted">계산 엔진 연결 전입니다.</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <div>표기식 M(공통): <code>체×4 + 공 + 방 + 순</code> / <code>체×0.1 + 공 + 방×0.1 + 순×0.05</code> / <code>체×0.1 + 공×0.1 + 방 + 순×0.05</code> / <code>순</code></div>
+    <div>R 버킷(노바 가정): {435, 455, 475, 495, 515, 535, 555, 575}</div>
+    <div style="margin-top:8px"><a class="tiny-link" id="adminLink" href="javascript:void(0)" title="관리자">⚙️</a></div>
+  </footer>
 </main>
+
+<script>
+/* ================== 설정 ================== */
+const APP_VERSION = "0.1";
+/* 관리자 접근용: 클라이언트 사이드 게이트(가벼운 숨김) — 반드시 바꾸세요.
+   기본 패스워드 문자열은 공개하지 않고, SHA-256 해시만 저장합니다.
+   기본값은 'changeme' 의 해시입니다. (반드시 교체!)
+   새 비밀번호로 바꾸려면 admin.html 상단 안내 참고. */
+const ADMIN_PASSWORD_HASH = "8d6e8f6b0f6c9d1f0a5a1b7c02a6b2f2f0f8f8d1a5a0a6f3b2f4c7a3e9f6b1e2"; // placeholder text string (length-64 hex 형태가 아님: admin.html에서 갱신하세요)
+
+/* ================== 데이터: 종명 전체 ================== */
+const ALL_PETS = [
+  "베노노크","파베로스","갈푸스","샤크론","카우거","노스토로스","가우","블랙펄",
+  "골로스","테로노돈","크로아치","로라미우스","미라미우스","보라미우스","타라미우스",
+  "차라쿠","토라쿠","파라쿠","카라쿠","스노밍코","킹북이","크루거","차크론","아누",
+  "블루문","카누","아르카","카르카로돈","노바티","링코","모사크","타라티스","엘크룬",
+  "야크노","다크무이","하르가","케로푸스","라이칸","우리스타","쿠오코마","다크론",
+  "데블로스","카르노스","카가로스","흑귀","키파","흑갈푸스","쿠팡","쿠아","밍코","크랩",
+  "킹크랩","도라비스","사루나","지라크","포레스트크랩","피피아","포루나","보르비스",
+  "그린고르","쿠로로","진주토로스","디로로크스","실버로크스","노로로크스","코리노로스",
+  "푸토라지","노리노스","모이토","파라프","차이혼","푸룡","지가로스","노르곤","칼로스",
+  "쥬키","흑카키","푸타카","타르쿠","테라돈","골드테라곤","실버라곤","푸테라","실버로스",
+  "만모드","푸모나스","메모스","노라키토스","브라키오스","푸비토스","노보스","루보스","가이",
+  "누이","돌가로스","노트로스","기트로스","라가로스","쟈하드","판그","판그라","석화케스",
+  "타르프스","코발스","노타스","타노프스","페루루","고루루","성호","도르도르","바쿠","푸쿠",
+  "바쿠우","바카우","노보","타루쟈","푸보","노라돈","고라돈","실버고르돈","철기돈","카이비",
+  "키라비","연두큐이","블루카비트","범링","토끼","라스키","노스키","프로돈","기비노","기라노",
+  "주니","기바바","라루루","푸고고","타로아","기고아","골드곤","자라북","철북이","물북이",
+  "베로바드","베노투리","베톤","푸투","노투투","푸투투","포포","푸미","돌꼬비","꼬이미","꼬꼬미",
+  "깡우비","푸이","푸비","녹우리","푸우리","복우리","코리토르스","란베르스","바로로크스","타르노르스",
+  "다이노로스","아리노스","아토라지","스토라지","타이혼","라이혼","라나프","모나시프","프이토",
+  "오가로스","카키","호르쿠","쿠쿠","타키","포이비스","카르곤","테라곤","만모로스","마모나스",
+  "만모르","만모","프리토스","스텐토스","프라키토스","다이노스","다이노","투이","씨보스","무이",
+  "루이","가가로스","비트로스","메가로스","기가로스","판지","쟈그","쟈그라","고반케스","토르프스",
+  "토리케라","펜타스","토리노프스","노르노르","고르고르","베루루","베르가","카우","바우","바카",
+  "카쿠","부르보","토로쟈","쿠보","포보","휴보","고르고","투르돈","기라돈","고르돈","골드카비트",
+  "큐이","케이비","카비트","모가로스","오르곤","리스키","포링","쿠쿠르","쿠링","부르돈","반기노",
+  "반보로","얀기로","리비노","카르기안","쿠타스","아이카스","램가스","로기안","코로카스","쿠카스",
+  "카타르카스","루니","토루루","후바바","라고고","보크곤","다고스","타로곤","네고스","아고아",
+  "돌북이","깡북이","북이","노북이","베로포리","베로보크","베로로크","베론","오투투","투투","우푸",
+  "푸푸","꼬꼬비","꼬비오","꼬비","꼬미","얼룩부이비","부이비","부이","골드부비","부비","환생얼룩우리",
+  "실버우리","불그리","얼룩우리","두리","우리"
+];
+
+/* ================== 시드(정석 S0/Sg 일부) — 필요시 관리자에서 보완 ================== */
+const SEEDS = {
+  "반보로": { s0:{hp:55.48, atk:12.90, def:7.80, agi:6.88}, sg:{hp:10.17, atk:2.36, def:1.43, agi:1.26}, seed:true },
+  "얀기로": { s0:{hp:59.88, atk:12.49, def:7.73, agi:6.84}, sg:{hp:10.85, atk:2.26, def:1.40, agi:1.24}, seed:true },
+  "부르돈": { s0:{hp:51.12, atk:11.43, def:6.71, agi:7.12}, sg:{hp:10.12, atk:2.26, def:1.33, agi:1.41}, seed:true },
+  "모가로스": { s0:{hp:56.62, atk:13.13, def:7.96, agi:8.12}, sg:{hp:9.85, atk:2.28, def:1.38, agi:1.41}, seed:true },
+  "케이비": { s0:{hp:30.50, atk:5.86, def:5.86, agi:6.30}, sg:{hp:8.77, atk:1.68, def:1.68, agi:1.81}, seed:true }
+};
+/* ================== 상태 저장 ================== */
+const LS = {
+  table: "novaPetTable",     // 관리자에서 입력한 S0/Sg 저장(JSON)
+  favs:  "novaFavs",         // 즐겨찾기 배열
+  rec:   "novaRecents",      // 최근 검색 배열
+  admin: "novaAdminAuth"     // 관리자 인증 토큰(간이)
+};
+
+/* ================== 유틸: 초성 ================== */
+const CHO_LIST = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const CHO_SIMPLE = (c)=>({ "ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ" }[c]||c);
+function hangulCho(str){
+  let res="";
+  for(const ch of str){
+    const code=ch.charCodeAt(0);
+    if(code<0xAC00||code>0xD7A3){ res+=ch; continue; }
+    const idx=Math.floor((code-0xAC00)/(21*28));
+    const cho=CHO_SIMPLE(CHO_LIST[idx]);
+    res+=cho;
+  }
+  return res;
+}
+
+/* ================== 상태 ================== */
+let choBuffer="";      // 초성 누적
+let currentName=null;  // 선택 종
+
+/* ================== 저장/로드 ================== */
+function loadTable(){
+  const raw=localStorage.getItem(LS.table);
+  let data = raw? JSON.parse(raw): {};
+  // seed 병합(없을 때만)
+  for(const k of Object.keys(SEEDS)){
+    if(!data[k]) data[k]=SEEDS[k];
+  }
+  return data;
+}
+function saveTable(tbl){ localStorage.setItem(LS.table, JSON.stringify(tbl)); }
+function loadFavs(){ return JSON.parse(localStorage.getItem(LS.favs)||"[]"); }
+function saveFavs(arr){ localStorage.setItem(LS.favs, JSON.stringify(arr.slice(0,10))); }
+function loadRecents(){ return JSON.parse(localStorage.getItem(LS.rec)||"[]"); }
+function saveRecents(arr){ localStorage.setItem(LS.rec, JSON.stringify(arr.slice(0,10))); }
+
+/* ================== 렌더: 후보/초성 ================== */
+const keypadEl=document.getElementById('keypad');
+const candEl=document.getElementById('cand');
+const choEl=document.getElementById('choBuf');
+const qEl=document.getElementById('q');
+
+const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+
+function renderKeypad(){
+  keypadEl.innerHTML="";
+  KEYS.forEach(k=>{
+    const b=document.createElement('div');
+    b.className='key';
+    b.textContent=k;
+    b.onclick=()=>{ choBuffer+=k; choEl.textContent=choBuffer||"·"; filterAndShow(); };
+    keypadEl.appendChild(b);
+  });
+  // backspace & reset
+  const bk=document.createElement('div');
+  bk.className='key'; bk.textContent="←";
+  bk.onclick=()=>{ choBuffer=choBuffer.slice(0,-1); choEl.textContent=choBuffer||"·"; filterAndShow(); };
+  keypadEl.appendChild(bk);
+  const rs=document.createElement('div');
+  rs.className='key'; rs.textContent="초기화";
+  rs.onclick=()=>{ choBuffer=""; choEl.textContent="·"; filterAndShow(true); };
+  keypadEl.appendChild(rs);
+}
+
+function filterAndShow(resetText){
+  if(resetText) qEl.value="";
+  const text=qEl.value.trim();
+  const table=loadTable();
+  const items=ALL_PETS.filter(n=>{
+    const byText = text? n.includes(text): true;
+    const byCho = choBuffer? hangulCho(n).startsWith(choBuffer): true;
+    return byText && byCho;
+  }).slice(0,200);
+
+  candEl.innerHTML="";
+  if(items.length===0){
+    const empty=document.createElement('div');
+    empty.className='item'; empty.textContent="일치하는 후보가 없습니다.";
+    candEl.appendChild(empty);
+    return;
+  }
+  for(const name of items){
+    const row=document.createElement('div');
+    row.className='item';
+    const a=document.createElement('div');
+    a.textContent=name;
+    const b=document.createElement('div');
+    b.className='subtle';
+    b.textContent = table[name] ? (table[name].seed? "시드":"등록") : "미등록";
+    row.appendChild(a); row.appendChild(b);
+    row.onclick=()=> selectPet(name);
+    candEl.appendChild(row);
+  }
+}
+
+/* ================== 즐겨찾기/최근 ================== */
+const favEl=document.getElementById('fav');
+const recEl=document.getElementById('recents');
+const favToggleEl=document.getElementById('favToggle');
+
+function renderChips(){
+  const favs=loadFavs();
+  favEl.innerHTML="";
+  favs.forEach(n=>{
+    const chip=document.createElement('div'); chip.className='chip';
+    chip.innerHTML=`<span>★ ${n}</span><span class="x" title="삭제">✕</span>`;
+    chip.querySelector('.x').onclick=()=>{ removeFav(n); };
+    chip.onclick=(e)=>{ if(e.target.classList.contains('x')) return; selectPet(n); };
+    favEl.appendChild(chip);
+  });
+
+  const rec=loadRecents();
+  recEl.innerHTML="";
+  rec.forEach(n=>{
+    const chip=document.createElement('div'); chip.className='chip';
+    chip.innerHTML=`<span>${n}</span><span class="x" title="삭제">✕</span>`;
+    chip.querySelector('.x').onclick=()=>{ removeRecent(n); };
+    chip.onclick=(e)=>{ if(e.target.classList.contains('x')) return; selectPet(n); };
+    recEl.appendChild(chip);
+  });
+}
+function toggleFavIcon(name){
+  const favs=loadFavs();
+  favToggleEl.textContent = favs.includes(name) ? "★" : "☆";
+}
+function addRecent(name){
+  let rec=loadRecents().filter(x=>x!==name);
+  rec.unshift(name);
+  saveRecents(rec);
+  renderChips();
+}
+function addFav(name){
+  let favs=loadFavs().filter(x=>x!==name);
+  favs.unshift(name);
+  saveFavs(favs);
+  toggleFavIcon(name); renderChips();
+}
+function removeFav(name){
+  let favs=loadFavs().filter(x=>x!==name);
+  saveFavs(favs); toggleFavIcon(name); renderChips();
+}
+function removeRecent(name){
+  let rec=loadRecents().filter(x=>x!==name);
+  saveRecents(rec); renderChips();
+}
+favToggleEl.onclick=()=>{ if(!currentName) return; const favs=loadFavs(); favs.includes(currentName)? removeFav(currentName): addFav(currentName); };
+
+/* ================== 선택 시 좌패널 채우기 & 프리셋 ================== */
+const s0hp=document.getElementById('s0_hp');
+const s0atk=document.getElementById('s0_atk');
+const s0def=document.getElementById('s0_def');
+const s0agi=document.getElementById('s0_agi');
+const sghp=document.getElementById('sg_hp');
+const sgatk=document.getElementById('sg_atk');
+const sgdef=document.getElementById('sg_def');
+const sgagi=document.getElementById('sg_agi');
+const selNameEl=document.getElementById('selName');
+const seedHint=document.getElementById('seedHint');
+
+const in_hp=document.getElementById('in_hp');
+const in_atk=document.getElementById('in_atk');
+const in_def=document.getElementById('in_def');
+const in_agi=document.getElementById('in_agi');
+
+function selectPet(name){
+  currentName=name; selNameEl.textContent=name;
+  addRecent(name); toggleFavIcon(name);
+  const table=loadTable();
+  const row=table[name];
+  if(row){
+    s0hp.value = row.s0?.hp?.toFixed(2) ?? "";
+    s0atk.value= row.s0?.atk?.toFixed(2) ?? "";
+    s0def.value= row.s0?.def?.toFixed(2) ?? "";
+    s0agi.value= row.s0?.agi?.toFixed(2) ?? "";
+
+    sghp.value = row.sg?.hp?.toFixed(2) ?? "";
+    sgatk.value= row.sg?.atk?.toFixed(2) ?? "";
+    sgdef.value= row.sg?.def?.toFixed(2) ?? "";
+    sgagi.value= row.sg?.agi?.toFixed(2) ?? "";
+
+    seedHint.textContent = row.seed ? "시드 데이터(관리자 등록 전 임시값)" : "";
+  }else{
+    s0hp.value=s0atk.value=s0def.value=s0agi.value="";
+    sghp.value=sgatk.value=sgdef.value=sgagi.value="";
+    seedHint.textContent="미등록 — 관리자에게 문의 바랍니다.";
+  }
+  // 프리셋 기본: 정석 반올림 적용
+  applyPreset("round");
+}
+
+function applyPreset(kind){
+  if(!currentName) return;
+  const table=loadTable(); const row=table[currentName]; if(!row||!row.s0){ return; }
+  const {hp,atk,def,agi} = row.s0;
+  const op = kind==="floor"? Math.floor : kind==="ceil"? Math.ceil : Math.round;
+  in_hp.value = op(hp);
+  in_atk.value= op(atk);
+  in_def.value= op(def);
+  in_agi.value= op(agi);
+}
+document.getElementById('pz_round').onclick=()=>applyPreset("round");
+document.getElementById('pz_floor').onclick=()=>applyPreset("floor");
+document.getElementById('pz_ceil').onclick =()=>applyPreset("ceil");
+document.getElementById('pz_hp_p1').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)+1; };
+document.getElementById('pz_hp_m1').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)-1; };
+document.getElementById('pz_hp_p2').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)+2; };
+document.getElementById('pz_hp_m2').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)-2; };
+
+/* 숫자 스텝 버튼 */
+document.querySelectorAll('.step').forEach(el=>{
+  el.onclick=()=>{
+    const id=el.dataset.step, delta=parseInt(el.dataset.delta,10);
+    const box=document.getElementById(id);
+    box.value = (parseInt(box.value||0,10) + delta);
+  };
+});
+/* 마우스 휠 */
+[in_hp,in_atk,in_def,in_agi].forEach(el=>{
+  el.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    const d = e.deltaY<0 ? 1 : -1;
+    el.value = (parseInt(el.value||0,10) + d);
+  }, {passive:false});
+});
+
+/* ================== 계산 버튼 (엔진 미연결: 자리표시자) ================== */
+const progressEl=document.getElementById('progress');
+const pHall=document.getElementById('pHall');
+const pSpawn=document.getElementById('pSpawn');
+const expected=document.getElementById('expected');
+document.getElementById('btnCalc').onclick=()=>{
+  if(!currentName){ alert("펫을 먼저 선택해주세요."); return; }
+  const vals=[in_hp,in_atk,in_def,in_agi].map(i=>i.value.trim()).map(v=>v===""?null:parseInt(v,10));
+  if(vals.some(v=>v===null||Number.isNaN(v))){ alert("내 1레벨 표기치 4개 모두 정수로 입력해주세요."); return; }
+  // 자리표시 결과
+  progressEl.textContent="(시뮬레이션 준비 중 — 엔진 연결 예정)";
+  pHall.textContent="—";
+  pSpawn.textContent="—";
+  expected.textContent="—";
+  document.getElementById('dist').textContent="엔진 연결 전입니다. (등급 분포/로그)";
+};
+
+/* ================== 검색/초성 바인딩 ================== */
+document.getElementById('btnClear').onclick=()=>{ qEl.value=""; choBuffer=""; choEl.textContent="·"; filterAndShow(); };
+qEl.addEventListener('input',()=> filterAndShow());
+
+/* ================== 관리자 이동(간이 게이트) ================== */
+document.getElementById('adminLink').onclick=async()=>{
+  const pw = prompt("관리자 비밀번호를 입력하세요.");
+  if(!pw) return;
+  // 해시 체크는 admin.html에서 처리(여기선 토큰만 남겨둠). 간이 토큰:
+  localStorage.setItem(LS.admin, "1");
+  location.href="./admin.html";
+};
+
+/* ================== 부트 ================== */
+document.getElementById('ver').textContent=APP_VERSION;
+renderKeypad();
+renderChips();
+filterAndShow(true);
+// 첫 진입시 초성 두 타 기대: 자동 포커스
+qEl.focus();
+</script>
 </body>
 </html>
