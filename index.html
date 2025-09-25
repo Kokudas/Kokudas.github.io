@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 (v0.2)</title>
+<title>노바 서버 펫 계산기 (v0.4)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
@@ -50,6 +50,7 @@
   .btn:hover{filter:brightness(1.1)}
   .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
   .btn.ghost{ background:transparent;}
+  .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
   .muted{color:var(--muted)}
   .chips{display:flex; gap:8px; flex-wrap:wrap}
   .chip{
@@ -91,6 +92,8 @@
     display:grid; place-items:center; background:#0d1117; overflow:hidden;
   }
   .imgbox img{width:100%; height:100%; object-fit:cover; display:block}
+  /* 모바일용 관측치 스텝퍼 */
+  .stepper{display:flex; gap:6px; margin-top:6px}
 </style>
 </head>
 <body>
@@ -112,7 +115,7 @@
         <label>초성 키패드</label>
         <div id="chosung" class="chips"></div>
 
-        <!-- 선택한 초성 토큰 표시 (요구사항 1) -->
+        <!-- 선택한 초성 토큰 표시 -->
         <div class="row" style="margin-top:6px; align-items:center">
           <span class="muted" style="min-width:78px">선택한 초성</span>
           <div id="chosungTokens" class="chips" style="min-height:28px"></div>
@@ -143,7 +146,6 @@
           <div class="col"><input type="number" id="s0_agi" step="0.01" placeholder="—" /></div>
         </div>
 
-        <!-- 줄바꿈으로 Sg 표시 -->
         <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순)</label>
         <div class="row">
           <div class="col"><input type="number" id="sg_hp"  step="0.01" placeholder="—" /></div>
@@ -160,10 +162,35 @@
       <div class="col">
         <label>내 펫 레벨1 관측 표기치 (정수) — 체/공/방/순</label>
         <div class="row">
-          <div class="col"><input type="number" id="obs_hp"  step="1" placeholder="예: 52" /></div>
-          <div class="col"><input type="number" id="obs_atk" step="1" placeholder="예: 10" /></div>
-          <div class="col"><input type="number" id="obs_def" step="1" placeholder="예: 6" /></div>
-          <div class="col"><input type="number" id="obs_agi" step="1" placeholder="예: 8" /></div>
+          <!-- 예시 placeholder 제거 + 스텝퍼 추가 -->
+          <div class="col">
+            <input type="number" id="obs_hp"  step="1" placeholder="" />
+            <div class="stepper">
+              <button class="btn btn-sm" data-target="obs_hp" data-delta="-1">-1</button>
+              <button class="btn btn-sm" data-target="obs_hp" data-delta="1">+1</button>
+            </div>
+          </div>
+          <div class="col">
+            <input type="number" id="obs_atk" step="1" placeholder="" />
+            <div class="stepper">
+              <button class="btn btn-sm" data-target="obs_atk" data-delta="-1">-1</button>
+              <button class="btn btn-sm" data-target="obs_atk" data-delta="1">+1</button>
+            </div>
+          </div>
+          <div class="col">
+            <input type="number" id="obs_def" step="1" placeholder="" />
+            <div class="stepper">
+              <button class="btn btn-sm" data-target="obs_def" data-delta="-1">-1</button>
+              <button class="btn btn-sm" data-target="obs_def" data-delta="1">+1</button>
+            </div>
+          </div>
+          <div class="col">
+            <input type="number" id="obs_agi" step="1" placeholder="" />
+            <div class="stepper">
+              <button class="btn btn-sm" data-target="obs_agi" data-delta="-1">-1</button>
+              <button class="btn btn-sm" data-target="obs_agi" data-delta="1">+1</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -216,11 +243,10 @@
     </details>
   </section>
 
-  <!-- 우하단: 디버그 영역을 이미지 공간으로 교체 (요구사항 3) -->
+  <!-- 우하단: 이미지 공간 -->
   <section class="card">
     <h3>디버그 · 셀프체크</h3>
     <div class="imgbox">
-      <!-- 원하시는 이미지 경로로 교체하세요 -->
       <img id="dinoImg" src="" alt="스톤에이지 공룡 이미지 자리 (이미지 경로를 설정하세요)">
     </div>
     <p class="muted" style="margin-top:8px">이미지 경로를 위 &lt;img&gt;의 <span class="code">src</span>에 넣어 사용하세요.</p>
@@ -235,12 +261,8 @@
 </div>
 
 <script>
-/** ========= 데이터셋 (노바=해피 테이블 가정) =========
- *  name, initnum(k), u:{hp,atk,def,agi}, 보여줄 S0/Sg(참고용)
- *  ※ S0/Sg는 화면 표시용일 뿐, 현재 계산 엔진은 k와 u로만 동작합니다.
- */
+/** ========= 데이터셋 (노바=해피 테이블 가정) ========= */
 const PETS = [
-  // 사례 검증용
   { name:"카르곤", k:26, u:{hp:23, atk:31, def:13, agi:30},
     S0:[51.35, 10.85, 6.64, 8.97], Sg:[9.78, 2.07, 1.26, 1.71] },
   { name:"반기노", k:26, u:{hp:24, atk:38, def:16, agi:20},
@@ -248,7 +270,6 @@ const PETS = [
   { name:"오가로스", k:24, u:{hp:30, atk:37, def:28, agi:20},
     S0:[55.80,11.84,9.89,5.88], Sg:[10.11,2.15,1.79,1.07] },
 
-  // 요청 목록 5종(표시용), k/u는 해피 테이블값 추정
   { name:"반보로", k:27, u:{hp:25, atk:37, def:16, agi:21},
     S0:[55.48, 12.90, 7.80, 6.88], Sg:[10.17, 2.36, 1.43, 1.26] },
   { name:"얀기로", k:27, u:{hp:27, atk:36, def:16, agi:20},
@@ -271,23 +292,21 @@ function getChosung(str){
   for(const ch of str){
     const code = ch.charCodeAt(0);
     if(code<0xAC00 || code>0xD7A3){ out+=ch; continue; }
-    const idx = Math.floor((code - 0xAC00) / 588); // 21*28=588
+    const idx = Math.floor((code - 0xAC00) / 588);
     out += CHO_CODE[idx];
   }
-  // 더블초성 정규화: ㄲ→ㄱ, ㄸ→ㄷ, ㅃ→ㅂ, ㅆ→ㅅ, ㅉ→ㅈ
   out = out.replace(/ㄲ/g,'ㄱ').replace(/ㄸ/g,'ㄷ').replace(/ㅃ/g,'ㅂ').replace(/ㅆ/g,'ㅅ').replace(/ㅉ/g,'ㅈ');
   return out;
 }
 
 /** ========= 계산 엔진 ========= */
-const TOTAL = 178750; // 5^4 * 조합(10+4-1,4-1)=625*286
+const TOTAL = 178750; // 5^4 * C(13,3)
 function preciseRound(n){ return Math.round(n*1e12)/1e12; }
 
 function enumerate(pet, obs){
   const k = pet.k;
-  const u = pet.u; // {hp,atk,def,agi}
+  const u = pet.u;
 
-  // 미리 보너스 조합 생성(합계=10, 각 항목 0..10)
   const bonuses=[];
   for(let h=0; h<=10; h++){
     for(let a=0; a<=10-h; a++){
@@ -299,13 +318,12 @@ function enumerate(pet, obs){
   }
 
   let matches=0, rank8=0;
-  const dist = {}; // 등급(베이스 합) 분포
+  const dist = {};
 
   for(let bh=-2; bh<=2; bh++){
     for(let ba=-2; ba<=2; ba++){
       for(let bd=-2; bd<=2; bd++){
         for(let bg=-2; bg<=2; bg++){
-          const base = [bh,ba,bd,bg];
           for(const B of bonuses){
             const vhp = preciseRound(k*(u.hp + bh + B[0])/100);
             const vatk= preciseRound(k*(u.atk+ ba + B[1])/100);
@@ -375,8 +393,8 @@ const btnExB = document.getElementById('exBanGino');
 let currentChosung="";
 let selectedPet = null;
 
-/* ===== 관리자 버튼 (요구사항 2) ===== */
-const ADMIN_PASS = "kokudas"; // ☆ 필요 시 원하는 값으로 변경하세요
+/* ===== 관리자 버튼 ===== */
+const ADMIN_PASS = "kokudas";
 document.getElementById('btnAdmin').addEventListener('click', ()=>{
   const pw = prompt('관리자 암호를 입력하세요.');
   if(pw === null) return;
@@ -387,7 +405,7 @@ document.getElementById('btnAdmin').addEventListener('click', ()=>{
   }
 });
 
-// 초성 토큰 렌더
+/* ===== 초성 토큰 렌더 ===== */
 function renderChosungTokens(){
   chosungTokens.innerHTML = "";
   for(const ch of currentChosung){
@@ -399,7 +417,7 @@ function renderChosungTokens(){
   }
 }
 
-// 초성 키패드 렌더
+/* ===== 초성 키패드 렌더 ===== */
 CHO.forEach(c=>{
   const chip=document.createElement('div');
   chip.className='chip';
@@ -408,14 +426,13 @@ CHO.forEach(c=>{
     currentChosung += c;
     renderPetList();
     renderChosungTokens();
-    // 칩 highlight
     Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
     chip.classList.add('on');
   });
   chosungBar.appendChild(chip);
 });
 
-// 펫 목록 렌더
+/* ===== 펫 목록 렌더 ===== */
 function renderPetList(){
   const kw = petSearch.value.trim();
   const list = PETS
@@ -437,26 +454,55 @@ function renderPetList(){
     petList.appendChild(div);
   });
 
-  // 토큰 표시 동기화
   renderChosungTokens();
 }
 renderPetList();
 
+/* ===== 관측치 보조 기능 ===== */
+function setObsValuesFromS0(p){
+  if(!p || !p.S0) return;
+  const [h,a,d,g] = p.S0.map(v=>Math.floor(v)); // 요구 ②: S0 → 관측치 자동 기입 (floor)
+  obshp.value = h; obsatk.value = a; obsdef.value = d; obsagi.value = g;
+}
+function enableWheelStep(el){
+  el.addEventListener('wheel', (e)=>{
+    if(document.activeElement !== el) return; // 포커스 된 경우에만
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    const curr = parseInt(el.value||"0",10);
+    el.value = String(curr + delta);
+  }, {passive:false});
+}
+[obshp,obsatk,obsdef,obsagi].forEach(enableWheelStep);
+
+// 스텝퍼(+1/-1) 클릭
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-delta][data-target]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-target');
+  const delta = parseInt(btn.getAttribute('data-delta'),10);
+  const input = document.getElementById(id);
+  if(!input) return;
+  const curr = parseInt(input.value||"0",10);
+  input.value = String(curr + delta);
+});
+
+/* ===== 펫 선택 ===== */
 function selectPet(p){
   selectedPet = p;
-  // S0/Sg 표시
   if(p.S0){ s0hp.value=p.S0[0]; s0atk.value=p.S0[1]; s0def.value=p.S0[2]; s0agi.value=p.S0[3]; }
   else { s0hp.value=s0atk.value=s0def.value=s0agi.value=""; }
   if(p.Sg){ sghp.value=p.Sg[0]; sgatk.value=p.Sg[1]; sgdef.value=p.Sg[2]; sgagi.value=p.Sg[3]; }
   else { sghp.value=sgatk.value=sgdef.value=sgagi.value=""; }
 
-  // 관측치는 비워둠(사용자가 입력)
-  obshp.value=obsatk.value=obsdef.value=obsagi.value="";
+  // 요구 ②: S0 정수(floor)로 관측치 자동 채움
+  setObsValuesFromS0(p);
 
-  // 강조 표시 초기화
+  // KPI 초기화
   showKpis(null);
 }
 
+/* ===== KPI 렌더 ===== */
 function showKpis(res){
   if(!res){
     kpiSuccess.textContent="—%";
@@ -474,19 +520,16 @@ function showKpis(res){
   const success = matches ? (rank8 / matches * 100) : 0;
   const tries = success>0 ? (100/success) : Infinity;
 
-  // 숫자 표기
   kpiSuccess.textContent = success.toFixed(4) + "%";
   kpiAppear.textContent  = appear.toFixed(4)  + "%";
   kpiTries.textContent   = (isFinite(tries)? tries.toFixed(2) : "—");
 
-  // 링 각도 (360도 = 100%)
   ringSuccess.style.setProperty("--p", (360*success/100)+"deg");
   ringAppear.style.setProperty("--p", (360*appear/100)+"deg");
 
   totMatches.textContent = matches.toLocaleString();
   rank8Matches.textContent = rank8.toLocaleString();
 
-  // 등급 분포 렌더
   const entries = Object.entries(res.dist)
     .map(([r,c])=>({r:parseInt(r,10), c}))
     .sort((a,b)=>b.r-a.r || b.c-a.c);
@@ -501,17 +544,15 @@ function showKpis(res){
   distBox.innerHTML = html;
 }
 
-// 계산 버튼
+/* ===== 계산/리셋/검색 ===== */
 btnCalc.addEventListener('click', ()=>{
   if(!selectedPet){ alert("펫을 먼저 선택하세요."); return; }
   const obs = [obshp.value, obsatk.value, obsdef.value, obsagi.value].map(v=>parseInt(v,10));
   if(obs.some(v=>Number.isNaN(v))){ alert("관측 표기치(정수)를 모두 입력하세요."); return; }
-
   const res = enumerate(selectedPet, obs);
   showKpis(res);
 });
 
-// 리셋
 btnReset.addEventListener('click', ()=>{
   selectedPet=null;
   petSearch.value="";
@@ -526,23 +567,19 @@ btnClear.addEventListener('click', ()=>{
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
   renderPetList();
 });
-
-// 검색 입력 즉시 반영
 petSearch.addEventListener('input', renderPetList);
 
-// 셀프체크 프리셋 (요소가 없으면 무시)
+// (이전 디버그 프리셋 버튼은 제거됨; 안전 가드)
 if(btnExK){
   btnExK.addEventListener('click', ()=>{
     const p = PETS.find(x=>x.name==="카르곤");
     selectPet(p);
-    obshp.value=52; obsatk.value=10; obsdef.value=6; obsagi.value=8;
   });
 }
 if(btnExB){
   btnExB.addEventListener('click', ()=>{
     const p = PETS.find(x=>x.name==="반기노");
     selectPet(p);
-    obshp.value=50; obsatk.value=12; obsdef.value=7; obsagi.value=6;
   });
 }
 </script>
