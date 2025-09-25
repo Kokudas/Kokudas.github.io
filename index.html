@@ -568,19 +568,6 @@ btnClear.addEventListener('click', ()=>{
   renderPetList();
 });
 petSearch.addEventListener('input', renderPetList);
-
-// (이전 디버그 프리셋 버튼은 제거됨; 안전 가드)
-if(btnExK){
-  btnExK.addEventListener('click', ()=>{
-    const p = PETS.find(x=>x.name==="카르곤");
-    selectPet(p);
-  });
-}
-if(btnExB){
-  btnExB.addEventListener('click', ()=>{
-    const p = PETS.find(x=>x.name==="반기노");
-    selectPet(p);
-  });
 }
 </script>
 </body>
