@@ -262,6 +262,9 @@
 
 <script>
 /** ========= 데이터셋 (노바=해피 테이블 가정) ========= */
+const LS_TABLE = "novaPetTable";
+function getAdminTable(){ try { return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); } catch(e){ return {}; } }
+
 const PETS = [
   { name:"카르곤", k:26, u:{hp:23, atk:31, def:13, agi:30},
     S0:[51.35, 10.85, 6.64, 8.97], Sg:[9.78, 2.07, 1.26, 1.71] },
@@ -436,22 +439,40 @@ CHO.forEach(c=>{
 
 /* ===== 펫 목록 렌더 ===== */
 function renderPetList(){
+  const admin = getAdminTable();                      // 관리자 테이블
+  const names = new Set([
+    ...Object.keys(admin),                            // 관리자 등록 페트
+    ...PETS.map(p=>p.name)                            // 내장(해피 가정) 페트
+  ]);
+
   const kw = petSearch.value.trim();
-  const list = PETS
-    .filter(p=>{
-      if(!kw && !currentChosung) return true;
-      const name = p.name;
-      const a = name.includes(kw);
-      const b = currentChosung ? getChosung(name).startsWith(currentChosung) : true;
-      return (kw? a : true) && b;
-    })
-    .sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  const items = Array.from(names).map(n=>{
+    // 우선순위: 내장(PETS) → 관리자(admin)의 s0/sg만 있는 경우
+    const built = PETS.find(x=>x.name===n);
+    if (built) return built;
+    // 관리자 데이터만 있는 경우(계산엔진용 k/u 없음)
+    const row = admin[n];
+    return { name:n, k:null, u:null,
+             S0: row?.s0 ? [row.s0.hp,row.s0.atk,row.s0.def,row.s0.agi] : null,
+             Sg: row?.sg ? [row.sg.hp,row.sg.atk,row.sg.def,row.sg.agi] : null };
+  })
+  .filter(p=>{
+    if(!kw && !currentChosung) return true;
+    const name = p.name;
+    const a = kw ? name.includes(kw) : true;
+    const b = currentChosung ? getChosung(name).startsWith(currentChosung) : true;
+    return a && b;
+  })
+  .sort((a,b)=>a.name.localeCompare(b.name,'ko'));
 
   petList.innerHTML="";
-  list.forEach(p=>{
+  items.forEach(p=>{
     const div=document.createElement('div');
     div.className='item';
-    div.textContent = p.name + `  ·  k=${p.k}  u=[${p.u.hp},${p.u.atk},${p.u.def},${p.u.agi}]`;
+    // k/u가 없는(관리자만 등록) 페트는 간단히 이름만 표기
+    div.textContent = p.k && p.u
+      ? `${p.name}  ·  k=${p.k}  u=[${p.u.hp},${p.u.atk},${p.u.def},${p.u.agi}]`
+      : `${p.name}`;
     div.addEventListener('click', ()=>selectPet(p));
     petList.appendChild(div);
   });
@@ -502,6 +523,10 @@ function selectPet(p){
 
   // KPI 초기화
   showKpis(null);
+
+  // 계산 엔진은 k/u가 필요
+  if(!p.k || !p.u){
+    alert("이 페트는 아직 계산 데이터(k/u)가 없어 계산할 수 없습니다. 관리자 페이지에서 등록해 주세요.");
 }
 
 /* ===== KPI 렌더 ===== */
@@ -548,7 +573,11 @@ function showKpis(res){
 
 /* ===== 계산/리셋/검색 ===== */
 btnCalc.addEventListener('click', ()=>{
-  if(!selectedPet){ alert("펫을 먼저 선택하세요."); return; }
+  if(!selectedPet){ alert("페트를 먼저 선택하세요."); return; }
+  if(!selectedPet.k || !selectedPet.u){
+    alert("이 페트는 아직 계산 데이터(k/u)가 없습니다.");
+    return;
+  }
   const obs = [obshp.value, obsatk.value, obsdef.value, obsagi.value].map(v=>parseInt(v,10));
   if(obs.some(v=>Number.isNaN(v))){ alert("관측 표기치(정수)를 모두 입력하세요."); return; }
   const res = enumerate(selectedPet, obs);
