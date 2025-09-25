@@ -64,8 +64,11 @@
     max-height:220px; overflow:auto; border:1px solid #2a3040; border-radius:10px; padding:6px;
     background:#0d1117;
   }
-  .item{padding:8px 10px; border-radius:8px; cursor:pointer}
+  .item{padding:8px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center}
   .item:hover{background:#19202b}
+  .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
+  .tag.ok{color:#6ef3a6;border-color:#2f6;color:#122;}
+  .tag.warn{color:#ffcf66;border-color:#66521a;background:#1c1708}
   /* 결과 강조 */
   .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
   @media (max-width: 720px){ .kpis{grid-template-columns: 1fr} }
@@ -86,27 +89,26 @@
   .badge{display:inline-block; min-width:34px; text-align:center; padding:2px 6px; border-radius:6px; background:#223; border:1px solid #356}
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
   .footer{max-width:1100px; margin:8px auto 30px; padding:0 16px; color:var(--muted); font-size:12px}
-  /* 이미지 공간 가이드 */
   .imgbox{
     width:100%; aspect-ratio: 16/9; border:1px dashed #334055; border-radius:12px;
     display:grid; place-items:center; background:#0d1117; overflow:hidden;
   }
   .imgbox img{width:100%; height:100%; object-fit:cover; display:block}
-  /* 모바일용 관측치 스텝퍼 */
   .stepper{display:flex; gap:6px; margin-top:6px}
+  .empty{padding:10px;color:#9aa3b2}
+  .banner{margin-top:8px;padding:8px 10px;border:1px solid #634;border-radius:10px;background:#28151a;color:#ffc3cf;font-size:12px}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">노바 서버 펫 계산기</div>
   <div class="ver">
-    <span>v0.1 · <span class="muted">kokudas.github.io 전용</span></span>
+    <span>v0.5 · <span class="muted">kokudas.github.io 전용</span></span>
     <button class="btn ghost" id="btnAdmin">관리자</button>
   </div>
 </header>
 
 <div class="grid">
-
   <!-- 좌: 펫 선택 -->
   <section class="card">
     <h3>① 펫 선택</h3>
@@ -115,7 +117,6 @@
         <label>초성 키패드</label>
         <div id="chosung" class="chips"></div>
 
-        <!-- 선택한 초성 토큰 표시 -->
         <div class="row" style="margin-top:6px; align-items:center">
           <span class="muted" style="min-width:78px">선택한 초성</span>
           <div id="chosungTokens" class="chips" style="min-height:28px"></div>
@@ -128,6 +129,7 @@
           <button class="btn" id="btnClear">지우기</button>
         </div>
         <div class="list" id="petList"></div>
+        <div id="emptyMsg" class="empty"></div>
       </div>
     </div>
     <p class="muted" style="margin-top:8px">팁: 초성만 두세 번 눌러도 후보가 빠르게 걸러집니다. (예: <span class="kbd">ㅂ</span>→<span class="kbd">ㄱ</span>)</p>
@@ -136,6 +138,8 @@
   <!-- 우: 표기 S0 / Sg + 관측 입력 -->
   <section class="card">
     <h3>② 표기치 & 관측치 입력</h3>
+    <div id="warnKU" class="banner" style="display:none">이 페트에는 <b>initnum(k)</b> 또는 <b>u(HP/ATK/DEF/AGI)</b>가 누락되어 계산할 수 없습니다. 관리자 페이지에서 값을 채워주세요.</div>
+
     <div class="row">
       <div class="col">
         <label>표기 초기치 S0 (체/공/방/순)</label>
@@ -162,7 +166,6 @@
       <div class="col">
         <label>내 펫 레벨1 관측 표기치 (정수) — 체/공/방/순</label>
         <div class="row">
-          <!-- 예시 placeholder 제거 + 스텝퍼 추가 -->
           <div class="col">
             <input type="number" id="obs_hp"  step="1" placeholder="" />
             <div class="stepper">
@@ -251,45 +254,25 @@
     </div>
     <p class="muted" style="margin-top:8px">이미지 경로를 위 &lt;img&gt;의 <span class="code">src</span>에 넣어 사용하세요.</p>
   </section>
-
 </div>
 
 <div class="footer">
   <p>· “환각(8등급)”은 베이스 합계가 <b>+8</b>인 경우만 집계합니다. (베이스 각 항목 범위 −2..+2, 보너스 총합 10 분배)</p>
   <p>· 표기식 M은 서버 공통: <span class="code">HP=4h+a+d+g</span>, <span class="code">ATK=0.1h+a+0.1d+0.05g</span>, <span class="code">DEF=0.1h+0.1a+d+0.05g</span>, <span class="code">AGI=g</span></p>
-  <p>· 본 페이지는 kokudas.github.io 전용 배포이며, 관리자 페이지 링크/탭은 숨김(비번 진입) 예정.</p>
+  <p>· 본 페이지는 kokudas.github.io 전용 배포이며, 관리자 페이지 링크/탭은 숨김(비번 진입).</p>
 </div>
 
 <script>
-/** ========= 데이터셋 (노바=해피 테이블 가정) ========= */
-const LS_TABLE = "novaPetTable";
-function getAdminTable(){ try { return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); } catch(e){ return {}; } }
+/** ===== 공통 상수/함수 ===== */
+const LS_TABLE="novaPetTable";         // admin과 동일 키
+const TOTAL = 178750;                  // 5^4 * C(13,3)
+function loadTable(){ try{return JSON.parse(localStorage.getItem(LS_TABLE)||"{}");}catch(e){return {}}}
+function preciseRound(n){ return Math.round(n*1e12)/1e12; }
+function hasKU(row){ return row && Number.isFinite(row.k) && row.u && ['hp','atk','def','agi'].every(x=>Number.isFinite(row.u[x])); }
 
-const PETS = [
-  { name:"카르곤", k:26, u:{hp:23, atk:31, def:13, agi:30},
-    S0:[51.35, 10.85, 6.64, 8.97], Sg:[9.78, 2.07, 1.26, 1.71] },
-  { name:"반기노", k:26, u:{hp:24, atk:38, def:16, agi:20},
-    S0:[52.39, 12.64, 7.49, 6.37], Sg:[9.97, 2.41, 1.43, 1.21] },
-  { name:"오가로스", k:24, u:{hp:30, atk:37, def:28, agi:20},
-    S0:[55.80,11.84,9.89,5.88], Sg:[10.11,2.15,1.79,1.07] },
-
-  { name:"반보로", k:27, u:{hp:25, atk:37, def:16, agi:21},
-    S0:[55.48, 12.90, 7.80, 6.88], Sg:[10.17, 2.36, 1.43, 1.26] },
-  { name:"얀기로", k:27, u:{hp:27, atk:36, def:16, agi:20},
-    S0:[59.88, 12.49, 7.73, 6.84], Sg:[10.85, 2.26, 1.40, 1.24] },
-  { name:"부르돈", k:25, u:{hp:25, atk:35, def:14, agi:24},
-    S0:[51.12, 11.43, 6.71, 7.12], Sg:[10.12, 2.26, 1.33, 1.41] },
-  { name:"모가로스", k:25, u:{hp:27, atk:40, def:19, agi:28},
-    S0:[56.62, 13.13, 7.96, 8.12], Sg:[9.85, 2.28, 1.38, 1.41] },
-  { name:"케이비", k:20, u:{hp:14, atk:19, def:19, agi:27},
-    S0:[30.50, 5.86, 5.86, 6.30],  Sg:[8.77, 1.68, 1.68, 1.81] },
-];
-
-/** ========= 초성 키패드 ========= */
+/** ===== 초성 키패드 ===== */
 const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-const CHO_CODE = [
-  'ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'
-];
+const CHO_CODE = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 function getChosung(str){
   let out="";
   for(const ch of str){
@@ -298,17 +281,13 @@ function getChosung(str){
     const idx = Math.floor((code - 0xAC00) / 588);
     out += CHO_CODE[idx];
   }
-  out = out.replace(/ㄲ/g,'ㄱ').replace(/ㄸ/g,'ㄷ').replace(/ㅃ/g,'ㅂ').replace(/ㅆ/g,'ㅅ').replace(/ㅉ/g,'ㅈ');
-  return out;
+  return out.replace(/ㄲ/g,'ㄱ').replace(/ㄸ/g,'ㄷ').replace(/ㅃ/g,'ㅂ').replace(/ㅆ/g,'ㅅ').replace(/ㅉ/g,'ㅈ');
 }
 
-/** ========= 계산 엔진 ========= */
-const TOTAL = 178750; // 5^4 * C(13,3)
-function preciseRound(n){ return Math.round(n*1e12)/1e12; }
-
-function enumerate(pet, obs){
-  const k = pet.k;
-  const u = pet.u;
+/** ===== 계산 엔진 (해피식 floor) ===== */
+function enumerate(petKU, obs){
+  const k = petKU.k;
+  const u = petKU.u;
 
   const bonuses=[];
   for(let h=0; h<=10; h++){
@@ -356,11 +335,12 @@ function enumerate(pet, obs){
   return {matches, rank8, dist};
 }
 
-/** ========= UI 바인딩 ========= */
+/** ===== UI 바인딩 ===== */
 const chosungBar = document.getElementById('chosung');
 const chosungTokens = document.getElementById('chosungTokens');
 const petList = document.getElementById('petList');
 const petSearch = document.getElementById('petSearch');
+const emptyMsg  = document.getElementById('emptyMsg');
 
 const s0hp = document.getElementById('s0_hp');
 const s0atk= document.getElementById('s0_atk');
@@ -389,28 +369,25 @@ const distBox = document.getElementById('dist');
 const btnCalc = document.getElementById('btnCalc');
 const btnReset= document.getElementById('btnReset');
 const btnClear= document.getElementById('btnClear');
-
-const btnExK = document.getElementById('exKargon');
-const btnExB = document.getElementById('exBanGino');
+const adminBtn= document.getElementById('btnAdmin');
+const warnKU = document.getElementById('warnKU');
 
 let currentChosung="";
-let selectedPet = null;
+let selectedName = null;
 
-/* ===== 관리자 버튼 ===== */
+/* 관리자 이동 */
 const ADMIN_PASS = "kokudas";
-const adminBtn = document.getElementById('btnAdmin');
-if (adminBtn) {
-  adminBtn.addEventListener('click', () => {
-    const pw = prompt('관리자 암호를 입력하세요.');
-    if (pw === null) return;
-    if (pw === ADMIN_PASS) {
-      window.location.href = "https://kokudas.github.io/admin.html";
-    } else {
-      alert('암호가 올바르지 않습니다.');
-    }
-  });
-}
-/* ===== 초성 토큰 렌더 ===== */
+adminBtn.addEventListener('click', () => {
+  const pw = prompt('관리자 암호를 입력하세요.');
+  if (pw === null) return;
+  if (pw === ADMIN_PASS) {
+    window.location.href = "https://kokudas.github.io/admin.html";
+  } else {
+    alert('암호가 올바르지 않습니다.');
+  }
+});
+
+/* 초성 토큰 렌더 */
 function renderChosungTokens(){
   chosungTokens.innerHTML = "";
   for(const ch of currentChosung){
@@ -422,7 +399,7 @@ function renderChosungTokens(){
   }
 }
 
-/* ===== 초성 키패드 렌더 ===== */
+/* 초성 키패드 */
 CHO.forEach(c=>{
   const chip=document.createElement('div');
   chip.className='chip';
@@ -437,59 +414,62 @@ CHO.forEach(c=>{
   chosungBar.appendChild(chip);
 });
 
-/* ===== 펫 목록 렌더 ===== */
-function renderPetList(){
-  const admin = getAdminTable();                      // 관리자 테이블
-  const names = new Set([
-    ...Object.keys(admin),                            // 관리자 등록 페트
-    ...PETS.map(p=>p.name)                            // 내장(해피 가정) 페트
-  ]);
+/* 이름 풀 생성: 저장된 JSON의 키 사용 */
+function getNamePool(){
+  const table = loadTable();
+  return Object.keys(table).sort((a,b)=>a.localeCompare(b,'ko'));
+}
 
+/* 리스트 렌더 */
+function renderPetList(){
+  const table = loadTable();
+  const names = getNamePool();
   const kw = petSearch.value.trim();
-  const items = Array.from(names).map(n=>{
-    // 우선순위: 내장(PETS) → 관리자(admin)의 s0/sg만 있는 경우
-    const built = PETS.find(x=>x.name===n);
-    if (built) return built;
-    // 관리자 데이터만 있는 경우(계산엔진용 k/u 없음)
-    const row = admin[n];
-    return { name:n, k:null, u:null,
-             S0: row?.s0 ? [row.s0.hp,row.s0.atk,row.s0.def,row.s0.agi] : null,
-             Sg: row?.sg ? [row.sg.hp,row.sg.atk,row.sg.def,row.sg.agi] : null };
-  })
-  .filter(p=>{
-    if(!kw && !currentChosung) return true;
-    const name = p.name;
-    const a = kw ? name.includes(kw) : true;
-    const b = currentChosung ? getChosung(name).startsWith(currentChosung) : true;
+  const filtered = names.filter(n=>{
+    const a = kw ? n.includes(kw) : true;
+    const b = currentChosung ? getChosung(n).startsWith(currentChosung) : true;
     return a && b;
-  })
-  .sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  });
 
   petList.innerHTML="";
-  items.forEach(p=>{
-    const div=document.createElement('div');
-    div.className='item';
-    // k/u가 없는(관리자만 등록) 페트는 간단히 이름만 표기
-    div.textContent = p.k && p.u
-      ? `${p.name}  ·  k=${p.k}  u=[${p.u.hp},${p.u.atk},${p.u.def},${p.u.agi}]`
-      : `${p.name}`;
-    div.addEventListener('click', ()=>selectPet(p));
-    petList.appendChild(div);
+  if(filtered.length===0){
+    emptyMsg.textContent = Object.keys(table).length===0
+      ? "등록된 페트가 없습니다. 관리자 페이지에서 JSON을 가져오거나 직접 추가하세요."
+      : "검색 결과가 없습니다.";
+    return;
+  }
+  emptyMsg.textContent="";
+
+  filtered.forEach(name=>{
+    const row = document.createElement('div');
+    row.className='item';
+    const left = document.createElement('div');
+    left.textContent = name;
+    const right = document.createElement('div');
+    const tag = document.createElement('span');
+    const has = hasKU(table[name]);
+    tag.className = 'tag ' + (has ? 'ok':'warn');
+    tag.textContent= has ? '등록됨' : 'k/u 필요';
+    right.appendChild(tag);
+    row.appendChild(left); row.appendChild(right);
+    row.addEventListener('click', ()=>selectPet(name));
+    petList.appendChild(row);
   });
 
   renderChosungTokens();
 }
 renderPetList();
 
-/* ===== 관측치 보조 기능 ===== */
-function setObsValuesFromS0(p){
-  if(!p || !p.S0) return;
-  const [h,a,d,g] = p.S0.map(v=>Math.floor(v)); // 요구 ②: S0 → 관측치 자동 기입 (floor)
-  obshp.value = h; obsatk.value = a; obsdef.value = d; obsagi.value = g;
+/* 관측치 보조 */
+function setObsFromS0(row){
+  if(!row || !row.s0) return;
+  const f = v => Math.floor(Number(v));
+  obshp.value=f(row.s0.hp); obsatk.value=f(row.s0.atk);
+  obsdef.value=f(row.s0.def); obsagi.value=f(row.s0.agi);
 }
 function enableWheelStep(el){
   el.addEventListener('wheel', (e)=>{
-    if(document.activeElement !== el) return; // 포커스 된 경우에만
+    if(document.activeElement !== el) return;
     e.preventDefault();
     const delta = e.deltaY < 0 ? 1 : -1;
     const curr = parseInt(el.value||"0",10);
@@ -498,7 +478,7 @@ function enableWheelStep(el){
 }
 [obshp,obsatk,obsdef,obsagi].forEach(enableWheelStep);
 
-// 스텝퍼(+1/-1) 클릭
+// 스텝퍼
 document.addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-delta][data-target]');
   if(!btn) return;
@@ -510,27 +490,35 @@ document.addEventListener('click', (e)=>{
   input.value = String(curr + delta);
 });
 
-/* ===== 펫 선택 ===== */
-function selectPet(p){
-  selectedPet = p;
-  if(p.S0){ s0hp.value=p.S0[0]; s0atk.value=p.S0[1]; s0def.value=p.S0[2]; s0agi.value=p.S0[3]; }
+/* 선택 */
+function selectPet(name){
+  selectedName = name;
+  const row = loadTable()[name]||{};
+  warnKU.style.display = hasKU(row) ? 'none':'block';
+
+  // S0/Sg 채우기
+  if(row.s0){ s0hp.value=row.s0.hp; s0atk.value=row.s0.atk; s0def.value=row.s0.def; s0agi.value=row.s0.agi; }
   else { s0hp.value=s0atk.value=s0def.value=s0agi.value=""; }
-  if(p.Sg){ sghp.value=p.Sg[0]; sgatk.value=p.Sg[1]; sgdef.value=p.Sg[2]; sgagi.value=p.Sg[3]; }
+
+  if(row.sg){ sghp.value=row.sg.hp; sgatk.value=row.sg.atk; sgdef.value=row.sg.def; sgagi.value=row.sg.agi; }
   else { sghp.value=sgatk.value=sgdef.value=sgagi.value=""; }
 
-  // 요구 ②: S0 정수(floor)로 관측치 자동 채움
-  setObsValuesFromS0(p);
-
-  // KPI 초기화
+  // 관측치 자동 채움
+  setObsFromS0(row);
   showKpis(null);
-
-  // 계산 엔진은 k/u가 필요
-  if(!p.k || !p.u){
-    alert("이 페트는 아직 계산 데이터(k/u)가 없어 계산할 수 없습니다. 관리자 페이지에서 등록해 주세요.");
 }
 
-/* ===== KPI 렌더 ===== */
+/* KPI 출력 */
 function showKpis(res){
+  const kpiSuccess = document.getElementById('kpiSuccess');
+  const kpiAppear  = document.getElementById('kpiAppear');
+  const kpiTries   = document.getElementById('kpiTries');
+  const ringSuccess= document.getElementById('ringSuccess');
+  const ringAppear = document.getElementById('ringAppear');
+  const totMatches = document.getElementById('totMatches');
+  const rank8Matches = document.getElementById('rank8Matches');
+  const distBox = document.getElementById('dist');
+
   if(!res){
     kpiSuccess.textContent="—%";
     kpiAppear.textContent="—%";
@@ -571,26 +559,29 @@ function showKpis(res){
   distBox.innerHTML = html;
 }
 
-/* ===== 계산/리셋/검색 ===== */
+/* 계산/리셋/검색 */
 btnCalc.addEventListener('click', ()=>{
-  if(!selectedPet){ alert("페트를 먼저 선택하세요."); return; }
-  if(!selectedPet.k || !selectedPet.u){
-    alert("이 페트는 아직 계산 데이터(k/u)가 없습니다.");
+  if(!selectedName){ alert("펫을 먼저 선택하세요."); return; }
+  const table = loadTable();
+  const row = table[selectedName] || {};
+  if(!hasKU(row)){
+    alert("이 페트는 initnum(k) 또는 u가 없어 계산할 수 없습니다. 관리자에서 채워주세요.");
     return;
   }
   const obs = [obshp.value, obsatk.value, obsdef.value, obsagi.value].map(v=>parseInt(v,10));
   if(obs.some(v=>Number.isNaN(v))){ alert("관측 표기치(정수)를 모두 입력하세요."); return; }
-  const res = enumerate(selectedPet, obs);
+  const res = enumerate({k:row.k, u:row.u}, obs);
   showKpis(res);
 });
 
 btnReset.addEventListener('click', ()=>{
-  selectedPet=null;
+  selectedName=null;
   petSearch.value="";
   currentChosung="";
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
   renderPetList();
   [s0hp,s0atk,s0def,s0agi,sghp,sgatk,sgdef,sgagi,obshp,obsatk,obsdef,obsagi].forEach(i=>i.value="");
+  warnKU.style.display='none';
   showKpis(null);
 });
 btnClear.addEventListener('click', ()=>{
@@ -599,7 +590,6 @@ btnClear.addEventListener('click', ()=>{
   renderPetList();
 });
 petSearch.addEventListener('input', renderPetList);
-
 </script>
 </body>
 </html>
