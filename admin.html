@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>노바 페트 계산기 — 관리자 v0.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; }
+    *{box-sizing:border-box}
+    body{margin:0;background:#f9fafb;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:10}
+    .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+    .topbar{display:flex;align-items:center;gap:12px;padding:12px 0}
+    .title{font-weight:700}
+    .ver{margin-left:auto;color:var(--muted);font-size:12px}
+    .row{display:grid;grid-template-columns: 0.9fr 1.1fr; gap:var(--gap)}
+    @media (max-width:980px){ .row{grid-template-columns:1fr} }
+    .card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px}
+    .subtle{color:var(--muted);font-size:12px}
+    input[type="text"], input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    button{cursor:pointer;border:1px solid #ddd;background:#fff;padding:8px 12px;border-radius:8px}
+    .primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .danger{background:#fff;border-color:#fca5a5;color:#b91c1c}
+    .ghost{background:#fff}
+    .list{max-height:480px;overflow:auto;border:1px solid #eee;border-radius:8px}
+    .item{padding:8px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .item:last-child{border-bottom:none}
+    .tag{font-size:11px;border:1px solid #eee;border-radius:999px;padding:2px 8px}
+    .ok{color:var(--ok);border-color:#bbf7d0;background:#ecfdf5}
+    .warn{color:#b45309;border-color:#fde68a;background:#fffbeb}
+    .muted{color:var(--muted)}
+    .hidden{display:none !important}
+    .divider{height:1px;background:#eee;margin:8px 0}
+    footer{padding:30px 0;color:var(--muted);font-size:12px;text-align:center}
+    /* 로그인 화면 */
+    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a}
+    #gate .box{width:92%;max-width:420px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
+    #gate input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
+    #gate .hint{font-size:12px;color:#9ca3af}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap topbar">
+    <div class="title">관리자</div>
+    <div class="subtle">정석(S0/Sg) 테이블 관리 · 전문모드 숨김</div>
+    <div class="ver">v<span id="ver">0.1</span></div>
+  </div>
+</header>
+
+<!-- 간이 비밀번호 게이트 (클라이언트) -->
+<div id="gate">
+  <div class="box">
+    <div style="font-weight:700;margin-bottom:6px">관리자 인증</div>
+    <div class="hint" style="margin-bottom:10px">GitHub Pages 특성상 클라이언트 측 간이 보호입니다. 민감정보 저장 금지.</div>
+    <input id="pw" type="password" placeholder="Password" />
+    <div class="flex" style="margin-top:10px">
+      <button id="btnLogin" class="primary">입장</button>
+      <button id="btnBack" class="ghost">돌아가기</button>
+    </div>
+    <div class="hint" style="margin-top:12px">
+      ▸ 비밀번호 변경: 아래 콘솔에 실행한 SHA-256 해시값을 <code>ADMIN_PASSWORD_HASH</code>로 교체<br/>
+      <code>crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
+    </div>
+  </div>
+</div>
+
+<main class="wrap" style="padding:16px 0 28px">
+  <!-- 상단 툴 -->
+  <section class="card">
+    <div class="flex">
+      <input id="search" type="text" placeholder="종명 검색" style="flex:1;min-width:220px" />
+      <button id="btnImport">가져오기(JSON)</button>
+      <button id="btnExport">내보내기(JSON)</button>
+      <button id="btnClear" class="danger">전체 초기화</button>
+      <span class="subtle">전문 모드: <input id="proToggle" type="checkbox" /></span>
+    </div>
+    <div style="height:8px"></div>
+    <div id="keypad" class="flex"></div>
+  </section>
+
+  <section class="row" style="margin-top:12px">
+    <!-- 좌: 목록 -->
+    <div class="card">
+      <div class="subtle" style="margin-bottom:6px">종 목록</div>
+      <div id="list" class="list"></div>
+    </div>
+    <!-- 우: 편집 -->
+    <div class="card">
+      <div class="flex" style="justify-content:space-between">
+        <div><b id="name">미선택</b></div>
+        <div class="subtle">정석 표기치 (소수 둘째, 표기는 3째자리 반올림)</div>
+      </div>
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div>
+          <div class="subtle" style="margin-bottom:6px">S0 초기치 (체/공/방/순)</div>
+          <div class="grid4">
+            <input id="s0_hp" type="number" step="0.01" placeholder="체" />
+            <input id="s0_atk" type="number" step="0.01" placeholder="공" />
+            <input id="s0_def" type="number" step="0.01" placeholder="방" />
+            <input id="s0_agi" type="number" step="0.01" placeholder="순" />
+          </div>
+        </div>
+        <div>
+          <div class="subtle" style="margin-bottom:6px">Sg 성장치 (체/공/방/순)</div>
+          <div class="grid4">
+            <input id="sg_hp" type="number" step="0.01" placeholder="체" />
+            <input id="sg_atk" type="number" step="0.01" placeholder="공" />
+            <input id="sg_def" type="number" step="0.01" placeholder="방" />
+            <input id="sg_agi" type="number" step="0.01" placeholder="순" />
+          </div>
+        </div>
+      </div>
+
+      <div id="pro" class="hidden" style="margin-top:10px">
+        <div class="divider"></div>
+        <div class="grid3">
+          <div>
+            <div class="subtle">initnum 추정(읽기전용/향후)</div>
+            <input id="initnum" type="text" readonly />
+          </div>
+          <div>
+            <div class="subtle">MAPE(%)</div>
+            <input id="mape" type="text" readonly />
+          </div>
+          <div>
+            <div class="subtle">R 버킷 예외(선택)</div>
+            <select id="rOverride">
+              <option value="">(글로벌 기본 사용)</option>
+              <option>435</option><option>455</option><option>475</option><option>495</option>
+              <option>515</option><option>535</option><option>555</option><option>575</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex" style="margin-top:12px">
+        <button id="btnSave" class="primary">저장</button>
+        <button id="btnDelete" class="danger">삭제</button>
+        <span id="saveMsg" class="subtle"></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>클라이언트 저장(LocalStorage). 배포용은 JSON 내보내기 후 저장소에 커밋하세요.</footer>
+</main>
+
+<script>
+/* ===== 설정/상수 ===== */
+const APP_VERSION="0.1";
+const LS_TABLE="novaPetTable";
+const ADMIN_TOKEN="novaAdminAuth";
+
+/* 실제 운영 시, 아래 해시를 교체하세요. (SHA-256 hex)
+   임시값: 'changeme' 의 SHA-256 해시 예시를 입력해야 안전합니다.
+   ※ index.html의 값과 무관, admin.html에서 재검증 */
+const ADMIN_PASSWORD_HASH="8d6e8f6b0f6c9d1f0a5a1b7c02a6b2f2f0f8f8d1a5a0a6f3b2f4c7a3e9f6b1e2"; // placeholder 형식(실사용시 64hex로 교체)
+
+/* 종명(유저 페이지와 동일) */
+const ALL_PETS=[/* 동일 배열 — 길어서 생략해도 되지만, 독립 동작 위해 복제 권장 */
+  "베노노크","파베로스","갈푸스","샤크론","카우거","노스토로스","가우","블랙펄",
+  "골로스","테로노돈","크로아치","로라미우스","미라미우스","보라미우스","타라미우스",
+  "차라쿠","토라쿠","파라쿠","카라쿠","스노밍코","킹북이","크루거","차크론","아누",
+  "블루문","카누","아르카","카르카로돈","노바티","링코","모사크","타라티스","엘크룬",
+  "야크노","다크무이","하르가","케로푸스","라이칸","우리스타","쿠오코마","다크론",
+  "데블로스","카르노스","카가로스","흑귀","키파","흑갈푸스","쿠팡","쿠아","밍코","크랩",
+  "킹크랩","도라비스","사루나","지라크","포레스트크랩","피피아","포루나","보르비스",
+  "그린고르","쿠로로","진주토로스","디로로크스","실버로크스","노로로크스","코리노로스",
+  "푸토라지","노리노스","모이토","파라프","차이혼","푸룡","지가로스","노르곤","칼로스",
+  "쥬키","흑카키","푸타카","타르쿠","테라돈","골드테라곤","실버라곤","푸테라","실버로스",
+  "만모드","푸모나스","메모스","노라키토스","브라키오스","푸비토스","노보스","루보스","가이",
+  "누이","돌가로스","노트로스","기트로스","라가로스","쟈하드","판그","판그라","석화케스",
+  "타르프스","코발스","노타스","타노프스","페루루","고루루","성호","도르도르","바쿠","푸쿠",
+  "바쿠우","바카우","노보","타루쟈","푸보","노라돈","고라돈","실버고르돈","철기돈","카이비",
+  "키라비","연두큐이","블루카비트","범링","토끼","라스키","노스키","프로돈","기비노","기라노",
+  "주니","기바바","라루루","푸고고","타로아","기고아","골드곤","자라북","철북이","물북이",
+  "베로바드","베노투리","베톤","푸투","노투투","푸투투","포포","푸미","돌꼬비","꼬이미","꼬꼬미",
+  "깡우비","푸이","푸비","녹우리","푸우리","복우리","코리토르스","란베르스","바로로크스","타르노르스",
+  "다이노로스","아리노스","아토라지","스토라지","타이혼","라이혼","라나프","모나시프","프이토",
+  "오가로스","카키","호르쿠","쿠쿠","타키","포이비스","카르곤","테라곤","만모로스","마모나스",
+  "만모르","만모","프리토스","스텐토스","프라키토스","다이노스","다이노","투이","씨보스","무이",
+  "루이","가가로스","비트로스","메가로스","기가로스","판지","쟈그","쟈그라","고반케스","토르프스",
+  "토리케라","펜타스","토리노프스","노르노르","고르고르","베루루","베르가","카우","바우","바카",
+  "카쿠","부르보","토로쟈","쿠보","포보","휴보","고르고","투르돈","기라돈","고르돈","골드카비트",
+  "큐이","케이비","카비트","모가로스","오르곤","리스키","포링","쿠쿠르","쿠링","부르돈","반기노",
+  "반보로","얀기로","리비노","카르기안","쿠타스","아이카스","램가스","로기안","코로카스","쿠카스",
+  "카타르카스","루니","토루루","후바바","라고고","보크곤","다고스","타로곤","네고스","아고아",
+  "돌북이","깡북이","북이","노북이","베로포리","베로보크","베로로크","베론","오투투","투투","우푸",
+  "푸푸","꼬꼬비","꼬비오","꼬비","꼬미","얼룩부이비","부이비","부이","골드부비","부비","환생얼룩우리",
+  "실버우리","불그리","얼룩우리","두리","우리"
+];
+
+/* LocalStorage 로드/세이브 */
+function loadTable(){ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }
+function saveTable(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
+
+/* 초성키패드 */
+const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+let choBuffer="";
+const CHO_LIST=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const CHO_SIMPLE=(c)=>({"ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ"}[c]||c);
+function hangulCho(str){
+  let res=""; for(const ch of str){ const code=ch.charCodeAt(0);
+    if(code<0xAC00||code>0xD7A3){ res+=ch; continue; }
+    const idx=Math.floor((code-0xAC00)/(21*28)); res+=CHO_SIMPLE(CHO_LIST[idx]);
+  } return res;
+}
+
+/* DOM */
+const verEl=document.getElementById('ver'); verEl.textContent=APP_VERSION;
+const gate=document.getElementById('gate');
+const pw=document.getElementById('pw');
+const btnLogin=document.getElementById('btnLogin');
+const btnBack=document.getElementById('btnBack');
+
+const search=document.getElementById('search');
+const list=document.getElementById('list');
+const keypad=document.getElementById('keypad');
+
+const nameEl=document.getElementById('name');
+const s0hp=document.getElementById('s0_hp');
+const s0atk=document.getElementById('s0_atk');
+const s0def=document.getElementById('s0_def');
+const s0agi=document.getElementById('s0_agi');
+const sghp=document.getElementById('sg_hp');
+const sgatk=document.getElementById('sg_atk');
+const sgdef=document.getElementById('sg_def');
+const sgagi=document.getElementById('sg_agi');
+
+const initnum=document.getElementById('initnum');
+const mape=document.getElementById('mape');
+const rOverride=document.getElementById('rOverride');
+
+const btnSave=document.getElementById('btnSave');
+const btnDelete=document.getElementById('btnDelete');
+const saveMsg=document.getElementById('saveMsg');
+const proToggle=document.getElementById('proToggle');
+const pro=document.getElementById('pro');
+
+proToggle.onchange=()=>{ pro.classList.toggle('hidden', !proToggle.checked); };
+
+/* 인증 */
+async function sha256Hex(s){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+btnLogin.onclick=async()=>{
+  const v=pw.value||"";
+  const h=await sha256Hex(v);
+  if(ADMIN_PASSWORD_HASH.length===64 ? (h===ADMIN_PASSWORD_HASH) : true /*placeholder일 때는 통과*/) {
+    localStorage.setItem(ADMIN_TOKEN,"1");
+    gate.style.display="none";
+  }else{
+    alert("비밀번호가 올바르지 않습니다.");
+  }
+};
+btnBack.onclick=()=>{ location.href="./index.html"; };
+// 자동 진입(간이 토큰, 새로고침 편의)
+if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
+
+/* 키패드 */
+function renderKeypad(){
+  keypad.innerHTML="";
+  KEYS.forEach(k=>{
+    const b=document.createElement('button'); b.textContent=k; b.onclick=()=>{ choBuffer+=k; renderList(); }; keypad.appendChild(b);
+  });
+  const bk=document.createElement('button'); bk.textContent='←'; bk.onclick=()=>{ choBuffer=choBuffer.slice(0,-1); renderList(); }; keypad.appendChild(bk);
+  const rst=document.createElement('button'); rst.textContent='초기화'; rst.onclick=()=>{ choBuffer=""; renderList(); }; keypad.appendChild(rst);
+}
+renderKeypad();
+
+/* 목록 필터/렌더 */
+let selected=null;
+function renderList(){
+  const text=(search.value||"").trim();
+  const byText=(n)=> text? n.includes(text): true;
+  const byCho=(n)=> choBuffer? hangulCho(n).startsWith(choBuffer): true;
+
+  const table=loadTable();
+  const arr=ALL_PETS.filter(n=>byText(n)&&byCho(n));
+  list.innerHTML="";
+  if(arr.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.textContent="없음"; list.appendChild(empty); return; }
+
+  arr.forEach(n=>{
+    const row=document.createElement('div'); row.className='item';
+    const l=document.createElement('div'); l.textContent=n;
+    const r=document.createElement('div');
+    const tag=document.createElement('span'); tag.className='tag '+(table[n]?'ok':'warn'); tag.textContent=table[n]?'등록':'미등록';
+    r.appendChild(tag);
+    row.appendChild(l); row.appendChild(r);
+    row.onclick=()=> select(n);
+    list.appendChild(row);
+  });
+}
+search.addEventListener('input', renderList);
+renderList();
+
+/* 선택/바인딩 */
+function select(n){
+  selected=n; nameEl.textContent=n;
+  const t=loadTable();
+  const row=t[n]||{};
+  s0hp.value=row.s0?.hp??""; s0atk.value=row.s0?.atk??""; s0def.value=row.s0?.def??""; s0agi.value=row.s0?.agi??"";
+  sghp.value=row.sg?.hp??""; sgatk.value=row.sg?.atk??""; sgdef.value=row.sg?.def??""; sgagi.value=row.sg?.agi??"";
+  initnum.value=row.initnum??""; mape.value=row.mape??"";
+  rOverride.value=row.r??"";
+  saveMsg.textContent="";
+}
+
+/* 저장/삭제 */
+btnSave.onclick=()=>{
+  if(!selected){ alert("종을 선택하세요."); return; }
+  const t=loadTable();
+  t[selected] = {
+    s0:{ hp:valNum(s0hp), atk:valNum(s0atk), def:valNum(s0def), agi:valNum(s0agi) },
+    sg:{ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) },
+    initnum: initnum.value||"",
+    mape: mape.value||"",
+    r: rOverride.value||"",
+    seed: false,
+    updated: Date.now()
+  };
+  saveTable(t);
+  saveMsg.textContent="저장됨.";
+  renderList();
+};
+btnDelete.onclick=()=>{
+  if(!selected) return;
+  const t=loadTable();
+  delete t[selected];
+  saveTable(t);
+  select(selected);
+  renderList();
+  saveMsg.textContent="삭제됨.";
+};
+function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
+
+/* 내보내기/가져오기/초기화 */
+document.getElementById('btnExport').onclick=()=>{
+  const t=loadTable();
+  const blob=new Blob([JSON.stringify(t,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`novaPetTable_v${APP_VERSION}.json`; a.click();
+  URL.revokeObjectURL(url);
+};
+document.getElementById('btnImport').onclick=()=>{
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
+    const rdr=new FileReader(); rdr.onload=()=>{ try{
+      const obj=JSON.parse(rdr.result); localStorage.setItem(LS_TABLE, JSON.stringify(obj)); renderList(); saveMsg.textContent="가져오기 완료.";
+    }catch(e){ alert("JSON 파싱 실패"); } }; rdr.readAsText(f);
+  }; inp.click();
+};
+document.getElementById('btnClear').onclick=()=>{
+  if(confirm("정말 전체 초기화할까요? (되돌릴 수 없습니다)")){
+    localStorage.removeItem(LS_TABLE);
+    selected=null; nameEl.textContent="미선택";
+    s0hp.value=s0atk.value=s0def.value=s0agi.value="";
+    sghp.value=sgatk.value=sgdef.value=sgagi.value="";
+    initnum.value=mape.value=""; rOverride.value="";
+    renderList(); saveMsg.textContent="초기화됨.";
+  }
+};
+</script>
+</body>
+</html>
