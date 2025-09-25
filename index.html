@@ -16,6 +16,7 @@
       --ok:#059669;
       --card:#ffffff;
       --bg:#f9fafb;
+      --accent:#111827;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
@@ -31,7 +32,6 @@
     .searchbar input[type="text"]{flex:1;min-width:200px;padding:10px 12px;border:1px solid #ddd;border-radius:8px}
     button, .btn{cursor:pointer;border:1px solid #ddd;background:#fff;padding:8px 12px;border-radius:8px}
     .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-    .btn.ghost{background:#fff;color:#111;border-color:#ddd}
     .btn.small{padding:6px 10px;font-size:12px}
     .keypad{display:flex;flex-wrap:wrap;gap:6px}
     .keypad .key{border:1px solid #ddd;background:#fff;border-radius:6px;padding:6px 10px;cursor:pointer}
@@ -39,27 +39,37 @@
     .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip-border);background:var(--chip);color:var(--chip-text);border-radius:999px;padding:6px 10px;font-size:13px}
     .chip .x{cursor:pointer;color:#555}
     .subtle{color:var(--muted);font-size:12px}
-    .cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-    @media (max-width:760px){ .cols{grid-template-columns:1fr} }
+    .cols{display:grid;grid-template-columns:1fr;gap:10px} /* S0/Sg 세로 배치 */
     .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .statgrid .cell{display:flex;flex-direction:column;gap:6px}
-    .statgrid input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
+    .statgrid input[type="number"], .statgrid input[type="text"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
     .steppers{display:flex;gap:6px}
     .steppers .step{border:1px solid #ddd;background:#fff;border-radius:6px;padding:6px 8px;cursor:pointer}
     .presets{display:grid;grid-template-columns:1fr;gap:8px}
     .preset-row{display:flex;gap:8px;flex-wrap:wrap}
     .favstar{cursor:pointer}
     .result{display:flex;flex-direction:column;gap:8px}
-    .result .line{display:flex;gap:16px;flex-wrap:wrap}
     .muted{color:var(--muted)}
     details{background:#fff;border:1px dashed #e5e7eb;border-radius:8px;padding:8px}
     .list{margin-top:8px;max-height:220px;overflow:auto;border:1px solid #eee;border-radius:8px}
     .list .item{padding:8px 10px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .list .item:last-child{border-bottom:none}
-    .hidden{display:none !important}
     footer{padding:30px 0 60px;color:var(--muted);font-size:12px;text-align:center}
     .tiny-link{opacity:.2;user-select:none}
     .tiny-link:hover{opacity:.6}
+    /* 강조 결과 */
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+    @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
+    .kpi .blk{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+    .kpi .label{font-size:12px;color:var(--muted)}
+    .kpi .value{font-size:28px;font-weight:800;line-height:1.1;color:var(--accent)}
+    .kpi .hint{font-size:12px;color:#94a3b8;margin-top:4px}
+    .good .value{color:#047857}
+    .warn .value{color:#b45309}
+    .bad  .value{color:#b91c1c}
+    /* 진행률 */
+    .progress{height:8px;background:#eef2ff;border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:0%;background:var(--primary);transition:width .15s}
   </style>
 </head>
 <body>
@@ -100,6 +110,8 @@
         <div><b id="selName">-</b> <span class="favstar" id="favToggle" title="즐겨찾기">☆</span></div>
         <div class="subtle">정석 S0/Sg (읽기전용)</div>
       </div>
+
+      <!-- 줄바꿈(세로) 레이아웃 -->
       <div class="cols">
         <div>
           <div class="subtle" style="margin-bottom:6px">표기 초기치 S0 (체/공/방/순)</div>
@@ -110,6 +122,7 @@
             <div class="cell"><label class="subtle">순</label><input id="s0_agi" type="text" readonly></div>
           </div>
         </div>
+
         <div>
           <div class="subtle" style="margin-bottom:6px">표기 성장치 Sg (체/공/방/순)</div>
           <div class="statgrid">
@@ -120,6 +133,7 @@
           </div>
         </div>
       </div>
+
       <div class="subtle" id="seedHint" style="margin-top:10px"></div>
     </div>
 
@@ -184,27 +198,41 @@
       <div style="height:12px"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button id="btnCalc" class="btn primary">계산</button>
-        <span id="progress" class="subtle"></span>
-        <button id="btnCancel" class="btn small hidden">취소</button>
+        <span id="progressTxt" class="subtle"></span>
+        <button id="btnCancel" class="btn small" style="display:none">취소</button>
       </div>
+      <div class="progress" style="margin-top:8px;display:none"><div class="bar" id="bar"></div></div>
     </div>
   </section>
 
   <!-- 결과 -->
   <section class="card" style="margin-top:12px">
-    <div class="result">
-      <div class="line">
-        <div><b>환각(8등급) 확률</b> : <span id="pHall" class="muted">-</span></div>
-        <div><b>출현 확률</b> : <span id="pSpawn" class="muted">-</span></div>
-        <div><b>기대 시도</b> : <span id="expected" class="muted">-</span></div>
+    <!-- 강조 KPI -->
+    <div class="kpi">
+      <div class="blk good">
+        <div class="label">환각(8등급) 확률</div>
+        <div class="value" id="pHall">—</div>
+        <div class="hint" id="pHallHint"></div>
       </div>
-      <details id="more">
-        <summary>자세히 (등급 분포 / 로그)</summary>
-        <div style="padding:8px 4px">
-          <div id="dist" class="muted">계산 엔진 연결 전입니다.</div>
-        </div>
-      </details>
+      <div class="blk">
+        <div class="label">출현 확률</div>
+        <div class="value" id="pSpawn">—</div>
+        <div class="hint">모든 경우의 수(178,750) 중 일치 비율</div>
+      </div>
+      <div class="blk warn">
+        <div class="label">기대 시도</div>
+        <div class="value" id="expected">—</div>
+        <div class="hint">100 / 환각확률</div>
+      </div>
     </div>
+
+    <div style="height:8px"></div>
+    <details id="more">
+      <summary>자세히 (등급 분포 · 로그)</summary>
+      <div style="padding:8px 4px">
+        <div id="dist" class="muted">계산 전입니다.</div>
+      </div>
+    </details>
   </section>
 
   <footer>
@@ -217,11 +245,8 @@
 <script>
 /* ================== 설정 ================== */
 const APP_VERSION = "0.1";
-/* 관리자 접근용: 클라이언트 사이드 게이트(가벼운 숨김) — 반드시 바꾸세요.
-   기본 패스워드 문자열은 공개하지 않고, SHA-256 해시만 저장합니다.
-   기본값은 'changeme' 의 해시입니다. (반드시 교체!)
-   새 비밀번호로 바꾸려면 admin.html 상단 안내 참고. */
-const ADMIN_PASSWORD_HASH = "8d6e8f6b0f6c9d1f0a5a1b7c02a6b2f2f0f8f8d1a5a0a6f3b2f4c7a3e9f6b1e2"; // placeholder text string (length-64 hex 형태가 아님: admin.html에서 갱신하세요)
+/* 관리자 가이드: 실제 배포 시 admin.html에서 SHA-256 해시 검증을 사용하세요. */
+const ADMIN_PASSWORD_HASH = "placeholder";
 
 /* ================== 데이터: 종명 전체 ================== */
 const ALL_PETS = [
@@ -265,12 +290,15 @@ const SEEDS = {
   "모가로스": { s0:{hp:56.62, atk:13.13, def:7.96, agi:8.12}, sg:{hp:9.85, atk:2.28, def:1.38, agi:1.41}, seed:true },
   "케이비": { s0:{hp:30.50, atk:5.86, def:5.86, agi:6.30}, sg:{hp:8.77, atk:1.68, def:1.68, agi:1.81}, seed:true }
 };
+const R_BUCKETS = [435,455,475,495,515,535,555,575];
+const TOTAL_CASES = 178750; // 625 * 286
+
 /* ================== 상태 저장 ================== */
 const LS = {
-  table: "novaPetTable",     // 관리자에서 입력한 S0/Sg 저장(JSON)
-  favs:  "novaFavs",         // 즐겨찾기 배열
-  rec:   "novaRecents",      // 최근 검색 배열
-  admin: "novaAdminAuth"     // 관리자 인증 토큰(간이)
+  table: "novaPetTable",
+  favs:  "novaFavs",
+  rec:   "novaRecents",
+  admin: "novaAdminAuth"
 };
 
 /* ================== 유틸: 초성 ================== */
@@ -288,21 +316,19 @@ function hangulCho(str){
   return res;
 }
 
-/* ================== 상태 ================== */
-let choBuffer="";      // 초성 누적
-let currentName=null;  // 선택 종
+/* ================== 수학 유틸 ================== */
+const EPS = 1e-12;
+const pr = (x)=> Math.round(x*1e12)/1e12; // preciseRound
+const fl = (x)=> Math.floor(x + 1e-9);    // 안정적 floor
+function avg(a){ return a.reduce((s,v)=>s+v,0)/a.length; }
 
 /* ================== 저장/로드 ================== */
 function loadTable(){
   const raw=localStorage.getItem(LS.table);
   let data = raw? JSON.parse(raw): {};
-  // seed 병합(없을 때만)
-  for(const k of Object.keys(SEEDS)){
-    if(!data[k]) data[k]=SEEDS[k];
-  }
+  for(const k of Object.keys(SEEDS)){ if(!data[k]) data[k]=SEEDS[k]; }
   return data;
 }
-function saveTable(tbl){ localStorage.setItem(LS.table, JSON.stringify(tbl)); }
 function loadFavs(){ return JSON.parse(localStorage.getItem(LS.favs)||"[]"); }
 function saveFavs(arr){ localStorage.setItem(LS.favs, JSON.stringify(arr.slice(0,10))); }
 function loadRecents(){ return JSON.parse(localStorage.getItem(LS.rec)||"[]"); }
@@ -313,8 +339,10 @@ const keypadEl=document.getElementById('keypad');
 const candEl=document.getElementById('cand');
 const choEl=document.getElementById('choBuf');
 const qEl=document.getElementById('q');
-
 const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+
+let choBuffer="";
+let currentName=null;
 
 function renderKeypad(){
   keypadEl.innerHTML="";
@@ -325,7 +353,6 @@ function renderKeypad(){
     b.onclick=()=>{ choBuffer+=k; choEl.textContent=choBuffer||"·"; filterAndShow(); };
     keypadEl.appendChild(b);
   });
-  // backspace & reset
   const bk=document.createElement('div');
   bk.className='key'; bk.textContent="←";
   bk.onclick=()=>{ choBuffer=choBuffer.slice(0,-1); choEl.textContent=choBuffer||"·"; filterAndShow(); };
@@ -419,7 +446,7 @@ function removeRecent(name){
 }
 favToggleEl.onclick=()=>{ if(!currentName) return; const favs=loadFavs(); favs.includes(currentName)? removeFav(currentName): addFav(currentName); };
 
-/* ================== 선택 시 좌패널 채우기 & 프리셋 ================== */
+/* ================== 좌패널 채우기 & 프리셋 ================== */
 const s0hp=document.getElementById('s0_hp');
 const s0atk=document.getElementById('s0_atk');
 const s0def=document.getElementById('s0_def');
@@ -458,7 +485,6 @@ function selectPet(name){
     sghp.value=sgatk.value=sgdef.value=sgagi.value="";
     seedHint.textContent="미등록 — 관리자에게 문의 바랍니다.";
   }
-  // 프리셋 기본: 정석 반올림 적용
   applyPreset("round");
 }
 
@@ -480,7 +506,7 @@ document.getElementById('pz_hp_m1').onclick =()=>{ in_hp.value=parseInt(in_hp.va
 document.getElementById('pz_hp_p2').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)+2; };
 document.getElementById('pz_hp_m2').onclick =()=>{ in_hp.value=parseInt(in_hp.value||0,10)-2; };
 
-/* 숫자 스텝 버튼 */
+/* 숫자 스텝 + 마우스 휠 */
 document.querySelectorAll('.step').forEach(el=>{
   el.onclick=()=>{
     const id=el.dataset.step, delta=parseInt(el.dataset.delta,10);
@@ -488,7 +514,6 @@ document.querySelectorAll('.step').forEach(el=>{
     box.value = (parseInt(box.value||0,10) + delta);
   };
 });
-/* 마우스 휠 */
 [in_hp,in_atk,in_def,in_agi].forEach(el=>{
   el.addEventListener('wheel',(e)=>{
     e.preventDefault();
@@ -497,43 +522,264 @@ document.querySelectorAll('.step').forEach(el=>{
   }, {passive:false});
 });
 
-/* ================== 계산 버튼 (엔진 미연결: 자리표시자) ================== */
-const progressEl=document.getElementById('progress');
+/* ================== 계산 엔진 ================== */
+/* 1) S0로부터 원시 x=(xhp,xatk,xdef,xagi) 복원 (M의 역행렬 적용) */
+function solveXFromS0(S0){
+  const z = S0.agi; // xagi
+  const y1 = S0.hp  - z;
+  const y2 = S0.atk - 0.05*z;
+  const y3 = S0.def - 0.05*z;
+
+  // 연립 방정식
+  // 3.9*xh + 0.9*xd = y1 - y2
+  // 0.09*xh + 0.99*xd = y3 - 0.1*y2
+  const a1=3.9, b1=0.9, c1=y1 - y2;
+  const a2=0.09,b2=0.99,c2=y3 - 0.1*y2;
+  const det = a1*b2 - a2*b1; // 3.78
+  const xh = (c1*b2 - b1*c2)/det;
+  const xd = (a1*c2 - c1*a2)/det;
+  const xa = y2 - 0.1*xh - 0.1*xd;
+  const xg = z;
+
+  return { hp:pr(xh), atk:pr(xa), def:pr(xd), agi:pr(xg) };
+}
+
+/* 2) Sg와 R버킷으로 k(initnum/100) 추정 — MAPE 최소 R 선택 */
+function chooseRAndK(S0, Sg){
+  let best=null;
+  for(const R of R_BUCKETS){
+    const ks=[];
+    if(Sg.hp>0)  ks.push(R * S0.hp  / (10000 * Sg.hp));
+    if(Sg.atk>0) ks.push(R * S0.atk / (10000 * Sg.atk));
+    if(Sg.def>0) ks.push(R * S0.def / (10000 * Sg.def));
+    if(Sg.agi>0) ks.push(R * S0.agi / (10000 * Sg.agi));
+    if(ks.length===0) continue;
+    const kbar = avg(ks);
+    const mape = avg(ks.map(k=>Math.abs(k-kbar)/kbar))*100;
+    if(!best || mape<best.mape) best = {R, k:kbar, mape};
+  }
+  return best; // {R,k,mape}
+}
+
+/* 3) 전수 조합 (base 625, bonus 286) 미리 생성 */
+const BASES = (()=>{ // [-2..2]^4
+  const arr=[];
+  for(let a=-2;a<=2;a++)
+  for(let b=-2;b<=2;b++)
+  for(let c=-2;c<=2;c++)
+  for(let d=-2;d<=2;d++)
+    arr.push({hp:a,atk:b,def:c,agi:d,sum:a+b+c+d});
+  return arr;
+})();
+const BONUSES = (()=>{ // 합 10, 비음수
+  const arr=[];
+  for(let h=0;h<=10;h++){
+    for(let a=0;a<=10-h;a++){
+      for(let d=0;d<=10-h-a;d++){
+        const g = 10 - h - a - d;
+        arr.push({hp:h,atk:a,def:d,agi:g});
+      }
+    }
+  }
+  return arr;
+})();
+
+/* 4) one pass 계산 함수 (진행률/취소 지원) */
+function runSimulation(petRow, inputInts, onProgress, onDone){
+  const S0 = petRow.s0, Sg = petRow.sg;
+  if(!S0 || !Sg){ onDone({error:"정석 S0/Sg 데이터가 없습니다."}); return; }
+
+  // x(원시) & k,R 추정
+  const x = solveXFromS0(S0);
+  const rk = chooseRAndK(S0,Sg);
+  if(!rk){ onDone({error:"성장치(Sg)로부터 R/k 추정 실패"}); return; }
+  const k = rk.k;
+
+  // 검사 대상 입력 정수
+  const target = {
+    hp: inputInts[0],
+    atk:inputInts[1],
+    def:inputInts[2],
+    agi:inputInts[3]
+  };
+
+  let matches=0;
+  const byRank={}; // sum -> count
+  const Nbase=BASES.length, Nbon=BONUSES.length;
+  let ib=0, jb=0, cancelled=false, done=false;
+
+  const stepSize = 4000; // 한 번에 처리할 iteration 수
+
+  function step(){
+    if(cancelled || done) return;
+    let iter=0;
+
+    while(ib<Nbase && !cancelled && iter<stepSize){
+      const B = BASES[ib];
+      const startJ = jb;
+      for(let j=startJ;j<Nbon;j++){
+        const G = BONUSES[j];
+        // 원시값 + (base+bonus)*k
+        const hp  = x.hp  + k*(B.hp  + G.hp);
+        const atk = x.atk + k*(B.atk + G.atk);
+        const def = x.def + k*(B.def + G.def);
+        const agi = x.agi + k*(B.agi + G.agi);
+
+        // 표기식 M 적용
+        const o_hp  = fl( 4*hp + atk + def + agi );
+        const o_atk = fl( 0.1*hp + atk + 0.1*def + 0.05*agi );
+        const o_def = fl( 0.1*hp + 0.1*atk + def + 0.05*agi );
+        const o_agi = fl( agi );
+
+        if(o_hp===target.hp && o_atk===target.atk && o_def===target.def && o_agi===target.agi){
+          matches++;
+          byRank[B.sum] = (byRank[B.sum]||0)+1;
+        }
+
+        iter++;
+        if(iter>=stepSize){ jb=j+1; break; }
+      }
+      if(iter>=stepSize) break;
+      ib++; jb=0;
+    }
+
+    const progressed = ib*Nbon + jb;
+    if(onProgress) onProgress(progressed, Nbase*Nbon);
+
+    if(ib>=Nbase){ done=true; onDone({matches, byRank, rk, x, k}); return; }
+    if(cancelled){ onDone({cancelled:true}); return; }
+    setTimeout(step,0);
+  }
+
+  step();
+
+  return ()=>{ cancelled=true; };
+}
+
+/* ================== 결과 UI 바인딩 ================== */
 const pHall=document.getElementById('pHall');
 const pSpawn=document.getElementById('pSpawn');
 const expected=document.getElementById('expected');
-document.getElementById('btnCalc').onclick=()=>{
+const pHallHint=document.getElementById('pHallHint');
+const dist=document.getElementById('dist');
+const btnCalc=document.getElementById('btnCalc');
+const btnCancel=document.getElementById('btnCancel');
+const bar=document.getElementById('bar');
+const progressTxt=document.getElementById('progressTxt');
+const progressBarWrapper=document.querySelector('.progress');
+
+let cancelRunner=null;
+
+btnCalc.onclick=()=>{
   if(!currentName){ alert("펫을 먼저 선택해주세요."); return; }
   const vals=[in_hp,in_atk,in_def,in_agi].map(i=>i.value.trim()).map(v=>v===""?null:parseInt(v,10));
   if(vals.some(v=>v===null||Number.isNaN(v))){ alert("내 1레벨 표기치 4개 모두 정수로 입력해주세요."); return; }
-  // 자리표시 결과
-  progressEl.textContent="(시뮬레이션 준비 중 — 엔진 연결 예정)";
-  pHall.textContent="—";
-  pSpawn.textContent="—";
-  expected.textContent="—";
-  document.getElementById('dist').textContent="엔진 연결 전입니다. (등급 분포/로그)";
+
+  const table=loadTable();
+  const row=table[currentName];
+  if(!row||!row.s0||!row.sg){ alert("정석 데이터가 없습니다. 관리자에게 문의하세요."); return; }
+
+  // 초기화
+  pHall.textContent="—"; pSpawn.textContent="—"; expected.textContent="—"; pHallHint.textContent="";
+  dist.textContent="계산 중...";
+  progressBarWrapper.style.display="block"; bar.style.width="0%"; progressTxt.textContent="0%";
+  btnCancel.style.display="inline-block"; btnCalc.disabled=true;
+
+  cancelRunner = runSimulation(
+    row, vals,
+    (done,total)=>{
+      const pct = Math.floor((done/total)*100);
+      bar.style.width = pct+"%";
+      progressTxt.textContent = pct+"%";
+    },
+    (res)=>{
+      btnCancel.style.display="none"; btnCalc.disabled=false; progressTxt.textContent="";
+      bar.style.width="100%";
+
+      if(res.cancelled){ dist.textContent="취소되었습니다."; return; }
+      if(res.error){ dist.textContent="오류: "+res.error; return; }
+
+      const {matches, byRank, rk} = res;
+      const success = (byRank[8]||0);
+      const p1 = matches>0 ? (success/matches*100) : 0;
+      const p2 = (matches/TOTAL_CASES*100);
+      const exp = p1>0 ? (100/p1) : null;
+
+      pHall.textContent = matches>0 ? p1.toFixed(4)+"%" : "0%";
+      pSpawn.textContent = p2.toFixed(4)+"%";
+      expected.textContent = exp? exp.toFixed(2)+"회" : "불가능";
+
+      pHallHint.textContent = matches>0
+        ? `일치 ${matches}건 중 환각 ${success}건`
+        : "일치 케이스 없음";
+
+      // 등급 분포 표
+      const ranks = Object.keys(byRank).map(x=>parseInt(x,10)).sort((a,b)=>b-a);
+      if(matches===0){
+        dist.innerHTML = `일치하는 경우의 수가 없습니다.<br/><small>선택한 프리셋/입력을 다시 확인해 주세요.</small>`;
+      }else{
+        let html = `<div><b>총 경우의 수</b> : ${matches.toLocaleString()} / 178,750</div>`;
+        html += `<div><b>R 추정</b> : ${rk.R} (MAPE ${rk.mape.toFixed(3)}%)</div>`;
+        html += `<div style="margin-top:6px"><b>등급 분포</b></div>`;
+        html += `<table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:13px">
+                  <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid #eee">등급</th>
+                  <th style="text-align:right;padding:6px;border-bottom:1px solid #eee">건수</th>
+                  <th style="text-align:right;padding:6px;border-bottom:1px solid #eee">비율</th></tr></thead><tbody>`;
+        for(const r of ranks){
+          const c = byRank[r];
+          const pp = (c/matches*100).toFixed(2)+"%";
+          html += `<tr>
+            <td style="padding:6px;border-bottom:1px solid #f1f5f9;${r===8?'color:#0f766e;font-weight:700':''}">${r===8?'8 (환각)':r}</td>
+            <td style="padding:6px;border-bottom:1px solid #f1f5f9;text-align:right">${c.toLocaleString()}</td>
+            <td style="padding:6px;border-bottom:1px solid #f1f5f9;text-align:right">${pp}</td>
+          </tr>`;
+        }
+        html += `</tbody></table>`;
+        dist.innerHTML = html;
+      }
+    }
+  );
 };
+
+btnCancel.onclick=()=>{ if(cancelRunner){ cancelRunner(); } };
 
 /* ================== 검색/초성 바인딩 ================== */
 document.getElementById('btnClear').onclick=()=>{ qEl.value=""; choBuffer=""; choEl.textContent="·"; filterAndShow(); };
 qEl.addEventListener('input',()=> filterAndShow());
 
-/* ================== 관리자 이동(간이 게이트) ================== */
-document.getElementById('adminLink').onclick=async()=>{
-  const pw = prompt("관리자 비밀번호를 입력하세요.");
-  if(!pw) return;
-  // 해시 체크는 admin.html에서 처리(여기선 토큰만 남겨둠). 간이 토큰:
-  localStorage.setItem(LS.admin, "1");
-  location.href="./admin.html";
-};
+/* ================== 관리자 이동(간이 토큰) ================== */
+document.getElementById('adminLink').onclick=()=>{ localStorage.setItem(LS.admin,"1"); location.href="./admin.html"; };
 
 /* ================== 부트 ================== */
 document.getElementById('ver').textContent=APP_VERSION;
 renderKeypad();
 renderChips();
 filterAndShow(true);
-// 첫 진입시 초성 두 타 기대: 자동 포커스
 qEl.focus();
+function renderChips(){
+  const favs=loadFavs(), rec=loadRecents();
+  const favEl=document.getElementById('fav'), recEl=document.getElementById('recents');
+  favEl.innerHTML=""; recEl.innerHTML="";
+  favs.forEach(n=>{
+    const chip=document.createElement('div'); chip.className='chip';
+    chip.innerHTML=`<span>★ ${n}</span><span class="x" title="삭제">✕</span>`;
+    chip.querySelector('.x').onclick=()=>{ let f=loadFavs().filter(x=>x!==n); saveFavs(f); renderChips(); toggleFavIcon(currentName||""); };
+    chip.onclick=(e)=>{ if(e.target.classList.contains('x')) return; selectPet(n); };
+    favEl.appendChild(chip);
+  });
+  rec.forEach(n=>{
+    const chip=document.createElement('div'); chip.className='chip';
+    chip.innerHTML=`<span>${n}</span><span class="x" title="삭제">✕</span>`;
+    chip.querySelector('.x').onclick=()=>{ let r=loadRecents().filter(x=>x!==n); saveRecents(r); renderChips(); };
+    chip.onclick=(e)=>{ if(e.target.classList.contains('x')) return; selectPet(n); };
+    recEl.appendChild(chip);
+  });
+}
+function toggleFavIcon(name){
+  if(!name){ document.getElementById('favToggle').textContent="☆"; return; }
+  const favs=loadFavs();
+  document.getElementById('favToggle').textContent = favs.includes(name) ? "★" : "☆";
+}
 </script>
 </body>
 </html>
