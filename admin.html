@@ -265,10 +265,22 @@ function renderList(){
   const byText=(n)=> text? n.includes(text): true;
   const byCho=(n)=> choBuffer? hangulCho(n).startsWith(choBuffer): true;
 
-  const eff=effectiveTable();
-  const arr=ALL_PETS.filter(n=>byText(n)&&byCho(n));
+  const eff = effectiveTable(); // 시드 + LocalStorage 저장값 병합
+  const names = new Set([
+    ...Object.keys(eff),                        // 이미 등록된(시드/사용자) 페트들
+    ...(Array.isArray(ALL_PETS)? ALL_PETS : []) // 카탈로그(있다면)
+  ]);
+
+  const arr = Array.from(names)
+    .filter(n=>byText(n)&&byCho(n))
+    .sort((a,b)=>a.localeCompare(b,'ko'));
+
   list.innerHTML="";
-  if(arr.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.textContent="없음"; list.appendChild(empty); return; }
+  if(arr.length===0){
+    const empty=document.createElement('div');
+    empty.className='item'; empty.textContent="없음";
+    list.appendChild(empty); return;
+  }
 
   arr.forEach(n=>{
     const row=document.createElement('div'); row.className='item';
@@ -284,6 +296,7 @@ function renderList(){
     list.appendChild(row);
   });
 }
+
 search.addEventListener('input', renderList);
 renderList();
 
