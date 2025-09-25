@@ -23,7 +23,7 @@
     position:sticky; top:0; z-index:10;
   }
   .brand{font-weight:700; letter-spacing:.3px}
-  .ver{color:var(--muted); font-size:12px}
+  .ver{color:var(--muted); font-size:12px; display:flex; align-items:center; gap:10px}
   .grid{
     max-width:1100px; margin:20px auto; padding:0 16px;
     display:grid; gap:16px; grid-template-columns: 1fr 1fr;
@@ -85,12 +85,21 @@
   .badge{display:inline-block; min-width:34px; text-align:center; padding:2px 6px; border-radius:6px; background:#223; border:1px solid #356}
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
   .footer{max-width:1100px; margin:8px auto 30px; padding:0 16px; color:var(--muted); font-size:12px}
+  /* 이미지 공간 가이드 */
+  .imgbox{
+    width:100%; aspect-ratio: 16/9; border:1px dashed #334055; border-radius:12px;
+    display:grid; place-items:center; background:#0d1117; overflow:hidden;
+  }
+  .imgbox img{width:100%; height:100%; object-fit:cover; display:block}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">노바 서버 펫 계산기</div>
-  <div class="ver">v0.1 · <span class="muted">kokudas.github.io 전용</span></div>
+  <div class="ver">
+    <span>v0.1 · <span class="muted">kokudas.github.io 전용</span></span>
+    <button class="btn ghost" id="btnAdmin">관리자</button>
+  </div>
 </header>
 
 <div class="grid">
@@ -102,6 +111,13 @@
       <div class="col chooser">
         <label>초성 키패드</label>
         <div id="chosung" class="chips"></div>
+
+        <!-- 선택한 초성 토큰 표시 (요구사항 1) -->
+        <div class="row" style="margin-top:6px; align-items:center">
+          <span class="muted" style="min-width:78px">선택한 초성</span>
+          <div id="chosungTokens" class="chips" style="min-height:28px"></div>
+        </div>
+
         <div class="row" style="margin-top:8px">
           <div class="col">
             <input type="text" id="petSearch" placeholder="이름으로 검색 (예: 카르곤, 반기노)" />
@@ -200,18 +216,14 @@
     </details>
   </section>
 
-  <!-- 우하단: 셀프체크(사례 재현) -->
+  <!-- 우하단: 디버그 영역을 이미지 공간으로 교체 (요구사항 3) -->
   <section class="card">
     <h3>디버그 · 셀프체크</h3>
-    <p class="muted">아래 버튼으로 바로 사례 값을 주입 → 계산 결과가 사례와 일치하는지 확인하세요.</p>
-    <div class="row">
-      <button class="btn" id="exKargon">카르곤 (관측 52/10/6/8)</button>
-      <button class="btn" id="exBanGino">반기노 (관측 50/12/7/6)</button>
+    <div class="imgbox">
+      <!-- 원하시는 이미지 경로로 교체하세요 -->
+      <img id="dinoImg" src="" alt="스톤에이지 공룡 이미지 자리 (이미지 경로를 설정하세요)">
     </div>
-    <ul class="code" style="margin-top:10px; line-height:1.6">
-      <li>카르곤 기대값: 총 514건 / 환각 7건(1.36%)</li>
-      <li>반기노 기대값: 총 435건 / 환각 ≈1.38%</li>
-    </ul>
+    <p class="muted" style="margin-top:8px">이미지 경로를 위 &lt;img&gt;의 <span class="code">src</span>에 넣어 사용하세요.</p>
   </section>
 
 </div>
@@ -325,6 +337,7 @@ function enumerate(pet, obs){
 
 /** ========= UI 바인딩 ========= */
 const chosungBar = document.getElementById('chosung');
+const chosungTokens = document.getElementById('chosungTokens');
 const petList = document.getElementById('petList');
 const petSearch = document.getElementById('petSearch');
 
@@ -362,6 +375,30 @@ const btnExB = document.getElementById('exBanGino');
 let currentChosung="";
 let selectedPet = null;
 
+/* ===== 관리자 버튼 (요구사항 2) ===== */
+const ADMIN_PASS = "kokudas"; // ☆ 필요 시 원하는 값으로 변경하세요
+document.getElementById('btnAdmin').addEventListener('click', ()=>{
+  const pw = prompt('관리자 암호를 입력하세요.');
+  if(pw === null) return;
+  if(pw === ADMIN_PASS){
+    window.location.href = "https://kokudas.github.io/admin.html";
+  } else {
+    alert('암호가 올바르지 않습니다.');
+  }
+});
+
+// 초성 토큰 렌더
+function renderChosungTokens(){
+  chosungTokens.innerHTML = "";
+  for(const ch of currentChosung){
+    const t = document.createElement('div');
+    t.className = 'chip';
+    t.style.cursor = 'default';
+    t.textContent = ch;
+    chosungTokens.appendChild(t);
+  }
+}
+
 // 초성 키패드 렌더
 CHO.forEach(c=>{
   const chip=document.createElement('div');
@@ -370,6 +407,7 @@ CHO.forEach(c=>{
   chip.addEventListener('click', ()=>{
     currentChosung += c;
     renderPetList();
+    renderChosungTokens();
     // 칩 highlight
     Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
     chip.classList.add('on');
@@ -398,6 +436,9 @@ function renderPetList(){
     div.addEventListener('click', ()=>selectPet(p));
     petList.appendChild(div);
   });
+
+  // 토큰 표시 동기화
+  renderChosungTokens();
 }
 renderPetList();
 
@@ -489,17 +530,21 @@ btnClear.addEventListener('click', ()=>{
 // 검색 입력 즉시 반영
 petSearch.addEventListener('input', renderPetList);
 
-// 셀프체크 프리셋
-btnExK.addEventListener('click', ()=>{
-  const p = PETS.find(x=>x.name==="카르곤");
-  selectPet(p);
-  obshp.value=52; obsatk.value=10; obsdef.value=6; obsagi.value=8;
-});
-btnExB.addEventListener('click', ()=>{
-  const p = PETS.find(x=>x.name==="반기노");
-  selectPet(p);
-  obshp.value=50; obsatk.value=12; obsdef.value=7; obsagi.value=6;
-});
+// 셀프체크 프리셋 (요소가 없으면 무시)
+if(btnExK){
+  btnExK.addEventListener('click', ()=>{
+    const p = PETS.find(x=>x.name==="카르곤");
+    selectPet(p);
+    obshp.value=52; obsatk.value=10; obsdef.value=6; obsagi.value=8;
+  });
+}
+if(btnExB){
+  btnExB.addEventListener('click', ()=>{
+    const p = PETS.find(x=>x.name==="반기노");
+    selectPet(p);
+    obshp.value=50; obsatk.value=12; obsdef.value=7; obsagi.value=6;
+  });
+}
 </script>
 </body>
 </html>
