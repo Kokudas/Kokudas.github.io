@@ -37,7 +37,7 @@
     .divider{height:1px;background:#eee;margin:8px 0}
     footer{padding:30px 0;color:var(--muted);font-size:12px;text-align:center}
     /* 로그인 화면 */
-    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a}
+    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a;  z-index:9999;}
     #gate .box{width:92%;max-width:420px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
     #gate input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
     #gate .hint{font-size:12px;color:#9ca3af}
@@ -186,7 +186,7 @@
 const APP_VERSION="0.7";
 const LS_TABLE="novaPetTable";
 const ADMIN_TOKEN="novaAdminAuth";
-const ADMIN_PASSWORD_HASH="/* TODO: SHA-256 hex 64자리로 교체 */";
+const ADMIN_PASSWORD_HASH="NIMDA";
 const MAPE_THRESHOLD=0.2; // % 기본 임계
 
 /* GitHub 서버 설정(여기를 여러분 레포로 바꾸세요) */
@@ -250,6 +250,8 @@ const btnServerPush=document.getElementById('btnServerPush');
 const serverInfo=document.getElementById('serverInfo');
 
 proToggle.onchange=()=>{ pro.classList.toggle('hidden', !proToggle.checked); };
+pw.focus();
+pw.addEventListener('keydown', e=>{ if(e.key==='Enter') btnLogin.click(); });
 
 /* 인증 */
 async function sha256Hex(s){
@@ -259,13 +261,19 @@ async function sha256Hex(s){
 btnLogin.onclick=async()=>{
   const v=pw.value||"";
   const h=await sha256Hex(v);
-  if(ADMIN_PASSWORD_HASH.length===64 ? (h===ADMIN_PASSWORD_HASH) : true){
-    localStorage.setItem(ADMIN_TOKEN,"1"); gate.style.display="none";
-  }else alert("비밀번호가 올바르지 않습니다.");
+  if (ADMIN_PASSWORD_HASH.length===64 && h===ADMIN_PASSWORD_HASH){
+    localStorage.setItem(ADMIN_TOKEN,"1"); // '한 번 인증하면 유지' 모드 (아래 2번 참고)
+    gate.style.display="none";             // 또는 gate.remove();
+  } else {
+    alert("비밀번호가 올바르지 않습니다.");
+  }
 };
-btnBack.onclick=()=>{ location.href="./index.html"; };
-if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
 
+btnBack.onclick=()=>{ location.href="./index.html"; };
+if(sessionStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
+// 로그인 성공 시 저장
+// localStorage.setItem(ADMIN_TOKEN,"1");
+sessionStorage.setItem(ADMIN_TOKEN,"1");
 /* 키패드 */
 function renderKeypad(){
   keypad.innerHTML="";
