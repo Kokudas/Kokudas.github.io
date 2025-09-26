@@ -3,8 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 (v0.6)</title>
+<title>노바 서버 펫 계산기 (v0.7)</title>
 <style>
+  /* 스크롤바 공간 항상 확보 → 폭 고정 */
+html { scrollbar-gutter: stable; }
+/* 구형 브라우저 대비 — 항상 스크롤바 표시 */
+@supports not (scrollbar-gutter: stable) {
+  body { overflow-y: scroll; }
+}
+  
   :root{
     --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
@@ -98,7 +105,7 @@
 <header>
   <div class="brand">NOVA SERVER PET Calculator</div>
   <div class="ver">
-    <span>v0.6 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
+    <span>v0.7 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
     <button class="btn ghost" id="btnAdmin">★</button>
   </div>
 </header>
@@ -127,7 +134,7 @@
         <div class="list" id="petList"></div>
       </div>
     </div>
-    <p class="muted" style="margin-top:8px">팁: 초성만 두세 번 눌러도 후보가 빠르게 걸러집니다. (예: <span class="kbd">ㅂ</span>→<span class="kbd">ㄱ</span>)</p>
+    <p class="muted" style="margin-top:8px">팁: 초성만 두세 번 눌러도 후보가 빠르게 걸러집니다. (예: 반기노 = <span class="kbd">ㅂ</span>→<span class="kbd">ㄱ</span>)</p>
   </section>
 
   <!-- 우: 표기 S0 / Sg + 관측 입력 -->
@@ -243,7 +250,13 @@
   <section class="card">
     <h3>Made by. 과장 (kokodas#0339)</h3>
     <div class="imgbox">
-      <img id="dinoImg" src="" alt=https://github.com/Kokudas/Kokudas.github.io/blob/main/67269_179791_1130-Photoroom.png?raw=true>
+      <img
+  id="dinoImg"
+  src="https://raw.githubusercontent.com/Kokudas/Kokudas.github.io/main/67269_179791_1130-Photoroom.png"
+  alt="StoneAge Dino"
+  loading="lazy"
+  decoding="async"
+/>
     </div>
     <p class="muted" style="margin-top:8px">본 계산기는 오픈 소스로 만들어졌습니다. 상업적 행위를 금지합니다.</p>
   </section>
