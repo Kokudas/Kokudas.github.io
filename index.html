@@ -270,6 +270,29 @@ html { scrollbar-gutter: stable; }
 </div>
 
 <script>
+  // 서버 JSON (여기만 레포에 맞게)
+const GH_OWNER  = "kokudas";
+const GH_REPO   = "kokudas.github.io";
+const GH_BRANCH = "main";
+const GH_PATH   = "data/pets.json";
+const REMOTE_JSON = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${GH_PATH}`;
+const LS_TABLE="novaPetTable";
+
+// 1) 원격 → 성공 시 그걸 사용(그리고 LS에도 덮어쓰기), 실패 시 LS 폴백
+async function loadGlobalTable(){
+  try{
+    const res = await fetch(REMOTE_JSON + `?v=${Date.now()}`, {cache:"no-store"});
+    if(!res.ok) throw 0;
+    const obj = await res.json();
+    if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
+    localStorage.setItem(LS_TABLE, JSON.stringify(obj)); // 캐시 겸 폴백
+    return obj;
+  }catch{
+    try{
+      return JSON.parse(localStorage.getItem(LS_TABLE)||"{}");
+    }catch{ return {}; }
+  }
+}
 /** ========= 공통 상수 ========= */
 const APP_VERSION = "0.6";
 const LS_TABLE = "novaPetTable";
