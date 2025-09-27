@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>노바 페트 계산기 — 관리자 v0.7</title>
+  <title>노바 페트 계산기 — 관리자 v0.8</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; --panel:#fff; --bg:#f9fafb; }
+    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    body{margin:0;background:#f9fafb;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:10}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
     .topbar{display:flex;align-items:center;gap:12px;padding:12px 0}
@@ -15,9 +15,9 @@
     .ver{margin-left:auto;color:var(--muted);font-size:12px}
     .row{display:grid;grid-template-columns: 0.9fr 1.1fr; gap:var(--gap)}
     @media (max-width:980px){ .row{grid-template-columns:1fr} }
-    .card{background:var(--panel);border:1px solid #eee;border-radius:10px;padding:14px}
+    .card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px}
     .subtle{color:var(--muted);font-size:12px}
-    input[type="text"], input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
+    input[type="text"], input[type="number"], input[type="password"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
     .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
     .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -26,7 +26,7 @@
     .primary{background:var(--primary);border-color:var(--primary);color:#fff}
     .danger{background:#fff;border-color:#fca5a5;color:#b91c1c}
     .ghost{background:#fff}
-    .list{max-height:480px;overflow:auto;border:1px solid #eee;border-radius:8px}
+    .list{max-height:520px;overflow:auto;border:1px solid #eee;border-radius:8px}
     .item{padding:8px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
     .item:last-child{border-bottom:none}
     .tag{font-size:11px;border:1px solid #eee;border-radius:999px;padding:2px 8px}
@@ -36,22 +36,21 @@
     .hidden{display:none !important}
     .divider{height:1px;background:#eee;margin:8px 0}
     footer{padding:30px 0;color:var(--muted);font-size:12px;text-align:center}
+    details{border:1px dashed #e5e7eb;border-radius:8px;padding:8px}
+    summary{cursor:pointer}
     /* 로그인 화면 */
     #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a}
-    #gate .box{width:92%;max-width:420px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
+    #gate .box{width:92%;max-width:440px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
     #gate input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
     #gate .hint{font-size:12px;color:#9ca3af}
-    .note{padding:8px 10px;border:1px dashed #eab308;background:#fffbeb;color:#92400e;border-radius:8px;font-size:12px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
-    .bad{color:#b91c1c}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap topbar">
     <div class="title">관리자</div>
-    <div class="subtle">정석(S0/Sg) · K/U 테이블 관리 · 서버 퍼블리시</div>
-    <div class="ver">v<span id="ver">0.7</span></div>
+    <div class="subtle">정석(S0/Sg) 테이블 관리 · 서버 퍼블리시</div>
+    <div class="ver">v<span id="ver">0.8</span></div>
   </div>
 </header>
 
@@ -67,7 +66,7 @@
     </div>
     <div class="hint" style="margin-top:12px">
       ▸ 비밀번호 변경: 아래 콘솔에 실행한 SHA-256 해시값을 <code>ADMIN_PASSWORD_HASH</code>로 교체<br/>
-      <code class="mono">crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
+      <code>crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
     </div>
   </div>
 </div>
@@ -76,34 +75,82 @@
   <!-- 상단 툴 -->
   <section class="card">
     <div class="flex" style="align-items:flex-end">
-      <div class="flex" style="flex:1;min-width:260px">
-        <input id="search" type="text" placeholder="페트명 검색" style="flex:1;min-width:220px" />
-        <button id="btnClear">초기화</button>
+      <div style="flex:1;min-width:220px">
+        <div class="subtle">페트명 검색</div>
+        <input id="search" type="text" placeholder="예: 카르곤, 반기노" />
       </div>
-      <div class="flex">
-        <button id="btnReload">서버 불러오기</button>
-        <button id="btnPublish" class="primary">서버 퍼블리시</button>
-        <button id="btnImport">가져오기(JSON)</button>
-        <button id="btnExport">내보내기(JSON)</button>
-        <button id="btnWipe" class="danger">전체 초기화</button>
-      </div>
+      <button id="btnImport">가져오기(JSON)</button>
+      <button id="btnExport">내보내기(JSON)</button>
+      <button id="btnClear" class="danger">전체 초기화</button>
       <span class="subtle">전문 모드: <input id="proToggle" type="checkbox" /></span>
     </div>
     <div style="height:8px"></div>
+
+    <div class="flex">
+      <div>
+        <div class="subtle" style="margin-bottom:6px">서버 동기화</div>
+        <div class="flex">
+          <button id="btnLoadRemote">서버에서 불러오기</button>
+          <button id="btnPublish" class="primary">서버에 퍼블리시</button>
+        </div>
+        <div id="remoteMsg" class="subtle" style="margin-top:6px"></div>
+      </div>
+      <div style="margin-left:auto;max-width:420px">
+        <details>
+          <summary class="subtle">GitHub 퍼블리시 설정(선택)</summary>
+          <div class="grid2" style="margin-top:6px">
+            <div>
+              <div class="subtle">Owner</div>
+              <input id="ghOwner" type="text" placeholder="kokudas" />
+            </div>
+            <div>
+              <div class="subtle">Repo</div>
+              <input id="ghRepo" type="text" placeholder="kokudas.github.io" />
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <div>
+              <div class="subtle">Branch</div>
+              <input id="ghBranch" type="text" placeholder="main" />
+            </div>
+            <div>
+              <div class="subtle">Path</div>
+              <input id="ghPath" type="text" placeholder="data/pets.json" />
+            </div>
+          </div>
+          <div style="margin-top:6px">
+            <div class="subtle">GitHub Token (repo/public_repo 권한 · 로컬에만 저장)</div>
+            <input id="ghToken" type="password" placeholder="ghp_..." />
+            <div class="subtle">※ 토큰은 이 브라우저의 LocalStorage에만 저장되며, 언제든 비울 수 있습니다.</div>
+            <div class="flex" style="margin-top:6px">
+              <button id="btnSaveGit" class="ghost">설정 저장</button>
+              <button id="btnClearGit" class="danger">토큰 비우기</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+    <div style="height:12px"></div>
     <div id="keypad" class="flex"></div>
-    <div id="presetNote" class="note" style="margin-top:8px;display:none"></div>
   </section>
 
   <section class="row" style="margin-top:12px">
     <!-- 좌: 목록 -->
     <div class="card">
-      <div class="subtle" style="margin-bottom:6px">페트 목록</div>
+      <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="subtle">페트 목록 (서버 테이블 키 기준)</div>
+        <div class="flex">
+          <input id="newName" type="text" placeholder="새 페트명" style="width:160px" />
+          <button id="btnAdd">추가</button>
+        </div>
+      </div>
       <div id="list" class="list"></div>
     </div>
+
     <!-- 우: 편집 -->
     <div class="card">
       <div class="flex" style="justify-content:space-between">
-        <div><b id="name">미선택</b></div>
+        <div><b id="name">미선택</b> <span id="rowStatus" class="subtle"></span></div>
         <div class="subtle">정석 표기치 (소수 둘째, 표기는 3째자리 반올림)</div>
       </div>
       <div class="divider"></div>
@@ -133,24 +180,13 @@
         <div class="divider"></div>
         <div class="grid3">
           <div>
-            <div class="subtle">initnum (k)</div>
-            <input id="initnum" type="number" placeholder="(자동/수동)" />
-          </div>
-          <div>
-            <div class="subtle">성장계수 u (체/공/방/순)</div>
-            <div class="grid4">
-              <input id="u_hp" type="number" placeholder="hp" />
-              <input id="u_atk" type="number" placeholder="atk" />
-              <input id="u_def" type="number" placeholder="def" />
-              <input id="u_agi" type="number" placeholder="agi" />
-            </div>
+            <div class="subtle">k(=initnum) 자동추정</div>
+            <input id="initnum" type="text" readonly />
           </div>
           <div>
             <div class="subtle">MAPE(%)</div>
             <input id="mape" type="text" readonly />
           </div>
-        </div>
-        <div class="grid3" style="margin-top:8px">
           <div>
             <div class="subtle">R 버킷 예외(선택)</div>
             <select id="rOverride">
@@ -159,13 +195,8 @@
               <option>515</option><option>535</option><option>555</option><option>575</option>
             </select>
           </div>
-          <div class="flex">
-            <button id="btnAutoKU">S0로 k/u 자동추정</button>
-            <button id="btnPresetKU">해피 프리셋 적용</button>
-          </div>
-          <div class="subtle">※ 임계 0.2% 초과 시 <span class="bad">자동추정 값 보류</span>로 표기, 직접 k/u 입력 권장.</div>
         </div>
-        <div id="mismatchBox" class="note" style="margin-top:8px;display:none"></div>
+        <div class="subtle" style="margin-top:8px">※ k/u는 S0만으로 자동 역추정(범위 k∈[16..40]). MAPE 기본 임계 0.2%를 넘으면 경고.</div>
       </div>
 
       <div class="flex" style="margin-top:12px">
@@ -181,62 +212,39 @@
 {
   "카르곤": {
     "s0": { "hp": 51.35, "atk": 10.85, "def": 6.64, "agi": 8.97 },
-    "sg": { "hp":  9.78, "atk":  2.07, "def": 1.26, "agi": 1.71 },
-    "k": 26,
-    "u": { "hp": 23, "atk": 31, "def": 13, "agi": 30 },
-    "mape": 0.12,
+    "sg": { "hp": 9.78,  "atk": 2.07,  "def": 1.26, "agi": 1.71 },
+    "k": 23,
+    "u": { "hp": 31, "atk": 40, "def": 20, "agi": 39 },
+    "mape": 0.41,
     "r": "535",
     "updated": 1730000000000
   }
 }
         </pre>
-        ↳ <b>필수</b>: <code>s0</code> (가능하면 <code>sg</code>도)<br/>
-        ↳ <b>자동</b>: <code>k</code>, <code>u</code>, <code>mape</code>는 저장 시 S0로 역추정 시도. 임계 초과 시 자동추정은 보류됨.
+        ↳ <b>필수</b>: <code>s0</code> (그리고 가능하면 <code>sg</code>)<br/>
+        ↳ <b>자동</b>: <code>k</code>, <code>u</code>, <code>mape</code>는 저장 시 S0로 역추정되어 채워짐.
       </div>
     </div>
   </section>
 
-  <footer>
-    저장 위치: <b>서버 우선</b> (불러오기/퍼블리시 버튼) · 로컬은 캐시/작업본.<br/>
-    원격 경로: <code>data/pets.json</code> · 이름 목록: <code>data/pet_names.json</code> · 해피 프리셋: <code>data/happy_training.min.json</code>
-  </footer>
+  <footer>서버 우선 로드 · 배포용은 “서버에 퍼블리시” 또는 JSON 내보내기 후 저장소에 커밋하세요.</footer>
 </main>
 
 <script>
 /* ===== 설정/상수 ===== */
-const APP_VERSION="0.7";
-const LS_TABLE="novaPetTable"; // 로컬 캐시/작업본
+const APP_VERSION="0.8";
+const LS_TABLE="novaPetTable";
 const ADMIN_TOKEN="novaAdminAuth";
 const ADMIN_PASSWORD_HASH="/* TODO: SHA-256 hex 64자리로 교체 */";
-const MAPE_THRESHOLD=0.2; // %
+const MAPE_THRESHOLD=0.2; // % 기본 임계
 
-/* GitHub 위치(서버 퍼블리시) */
-const GH_OWNER  = "kokudas";
-const GH_REPO   = "kokudas.github.io";
-const GH_BRANCH = "main";
-const PATH_PETS = "data/pets.json";
-const PATH_NAMES= "data/pet_names.json";
-const PATH_TRAIN= "data/happy_training.min.json";
-const RAW = (p)=>`https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${p}`;
+/* GitHub 경로 기본값 */
+const DEF_OWNER="kokudas";
+const DEF_REPO="kokudas.github.io";
+const DEF_BRANCH="main";
+const DEF_PATH="data/pets.json";
 
-/* 상태 */
-let ALL_PETS = [];           // 원격 names → 없으면 테이블키 → fallback
-let TRAIN_DB  = [];          // 해피 프리셋(K/U)
-let WORKING   = {};          // 현재 편집 테이블(메모리)
-
-/* 초성키패드 */
-const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-let choBuffer="";
-const CHO_LIST=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-const CHO_SIMPLE=(c)=>({"ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ"}[c]||c);
-function hangulCho(str){
-  let res=""; for(const ch of str){ const code=ch.charCodeAt(0);
-    if(code<0xAC00||code>0xD7A3){ res+=ch; continue; }
-    const idx=Math.floor((code-0xAC00)/(21*28)); res+=CHO_SIMPLE(CHO_LIST[idx]);
-  } return res;
-}
-
-/* DOM */
+/* ===== DOM ===== */
 const verEl=document.getElementById('ver'); verEl.textContent=APP_VERSION;
 const gate=document.getElementById('gate');
 const pw=document.getElementById('pw');
@@ -248,6 +256,7 @@ const list=document.getElementById('list');
 const keypad=document.getElementById('keypad');
 
 const nameEl=document.getElementById('name');
+const rowStatus=document.getElementById('rowStatus');
 const s0hp=document.getElementById('s0_hp');
 const s0atk=document.getElementById('s0_atk');
 const s0def=document.getElementById('s0_def');
@@ -258,18 +267,8 @@ const sgdef=document.getElementById('sg_def');
 const sgagi=document.getElementById('sg_agi');
 
 const initnum=document.getElementById('initnum');
-const uh=document.getElementById('u_hp');
-const ua=document.getElementById('u_atk');
-const ud=document.getElementById('u_def');
-const ug=document.getElementById('u_agi');
-
 const mape=document.getElementById('mape');
 const rOverride=document.getElementById('rOverride');
-
-const btnAutoKU=document.getElementById('btnAutoKU');
-const btnPresetKU=document.getElementById('btnPresetKU');
-const mismatchBox=document.getElementById('mismatchBox');
-const presetNote=document.getElementById('presetNote');
 
 const btnSave=document.getElementById('btnSave');
 const btnDelete=document.getElementById('btnDelete');
@@ -277,22 +276,61 @@ const saveMsg=document.getElementById('saveMsg');
 const proToggle=document.getElementById('proToggle');
 const pro=document.getElementById('pro');
 
-const btnReload=document.getElementById('btnReload');
+const btnLoadRemote=document.getElementById('btnLoadRemote');
 const btnPublish=document.getElementById('btnPublish');
+const remoteMsg=document.getElementById('remoteMsg');
 const btnImport=document.getElementById('btnImport');
 const btnExport=document.getElementById('btnExport');
-const btnWipe=document.getElementById('btnWipe');
 const btnClear=document.getElementById('btnClear');
+
+const ghOwner=document.getElementById('ghOwner');
+const ghRepo=document.getElementById('ghRepo');
+const ghBranch=document.getElementById('ghBranch');
+const ghPath=document.getElementById('ghPath');
+const ghToken=document.getElementById('ghToken');
+const btnSaveGit=document.getElementById('btnSaveGit');
+const btnClearGit=document.getElementById('btnClearGit');
+
+const newName=document.getElementById('newName');
+const btnAdd=document.getElementById('btnAdd');
 
 proToggle.onchange=()=>{ pro.classList.toggle('hidden', !proToggle.checked); };
 
-/* 인증 */
+/* ===== 로컬 저장소 유틸 ===== */
+function loadTable(){ try{ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }catch(e){ return {}; } }
+function saveTable(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
+
+/* ===== GitHub 설정 로드/저장 ===== */
+function loadGitCfg(){
+  ghOwner.value = localStorage.getItem('ghOwner') || DEF_OWNER;
+  ghRepo.value  = localStorage.getItem('ghRepo')  || DEF_REPO;
+  ghBranch.value= localStorage.getItem('ghBranch')|| DEF_BRANCH;
+  ghPath.value  = localStorage.getItem('ghPath')  || DEF_PATH;
+  ghToken.value = localStorage.getItem('ghToken') || "";
+}
+function saveGitCfg(){
+  localStorage.setItem('ghOwner', ghOwner.value.trim()||DEF_OWNER);
+  localStorage.setItem('ghRepo',  ghRepo.value.trim() ||DEF_REPO);
+  localStorage.setItem('ghBranch',ghBranch.value.trim()||DEF_BRANCH);
+  localStorage.setItem('ghPath',  ghPath.value.trim()  ||DEF_PATH);
+  if(ghToken.value.trim()) localStorage.setItem('ghToken', ghToken.value.trim());
+  remoteMsg.textContent="GitHub 설정 저장됨.";
+}
+function clearGitToken(){
+  localStorage.removeItem('ghToken'); ghToken.value="";
+  remoteMsg.textContent="GitHub 토큰 삭제됨.";
+}
+btnSaveGit.onclick=saveGitCfg;
+btnClearGit.onclick=clearGitToken;
+
+/* ===== 인증 ===== */
 async function sha256Hex(s){
   const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 btnLogin.onclick=async()=>{
-  const v=pw.value||""; const h=await sha256Hex(v);
+  const v=pw.value||"";
+  const h=await sha256Hex(v);
   if(ADMIN_PASSWORD_HASH.length===64 ? (h===ADMIN_PASSWORD_HASH) : true){
     localStorage.setItem(ADMIN_TOKEN,"1"); gate.style.display="none";
   }else alert("비밀번호가 올바르지 않습니다.");
@@ -300,59 +338,17 @@ btnLogin.onclick=async()=>{
 btnBack.onclick=()=>{ location.href="./index.html"; };
 if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
 
-/* 유틸 */
-function round2(v){ const n=parseFloat(v); return Number.isFinite(n)? +n.toFixed(2): ""; }
-function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
-function isFilledKU(){
-  return [initnum.value, uh.value, ua.value, ud.value, ug.value].every(x=>x!=="" && x!==null);
+/* ===== 초성키패드 ===== */
+const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+let choBuffer="";
+const CHO_LIST=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const CHO_SIMPLE=(c)=>({"ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ"}[c]||c);
+function hangulCho(str){
+  let res=""; for(const ch of str){ const code=ch.charCodeAt(0);
+    if(code<0xAC00||code>0xD7A3){ res+=ch; continue; }
+    const idx=Math.floor((code-0xAC00)/(21*28)); res+=CHO_SIMPLE(CHO_LIST[idx]);
+  } return res;
 }
-
-/* LocalStorage 유틸(캐시/작업본) */
-function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }catch(e){ return {}; } }
-function saveLS(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
-
-/* 원격 로더 */
-async function fetchJSON(url){
-  const res=await fetch(url+`?v=${Date.now()}`,{cache:"no-store"});
-  if(!res.ok) throw new Error(res.statusText);
-  return await res.json();
-}
-async function loadRemoteAll(){
-  // 1) 메인 테이블
-  try{
-    WORKING = await fetchJSON(RAW(PATH_PETS));
-    saveLS(WORKING);
-  }catch{ WORKING = loadLS(); }
-
-  // 2) 이름 목록
-  try{
-    ALL_PETS = await fetchJSON(RAW(PATH_NAMES));
-  }catch{
-    // 없으면 테이블 키 → 그래도 없으면 소수 fallback
-    ALL_PETS = Object.keys(WORKING||{});
-    if(ALL_PETS.length===0){
-      ALL_PETS = ["카르곤","반기노","반보로","카키","오가로스"]; // 최소 표시용
-    }
-  }
-
-  // 3) 프리셋(해피 학습셋)
-  try{
-    const arr = await fetchJSON(RAW(PATH_TRAIN));
-    if(Array.isArray(arr)) TRAIN_DB = arr;
-  }catch{
-    TRAIN_DB = []; // 없어도 동작
-  }
-
-  renderKeypad(); renderList();
-  presetNote.style.display = TRAIN_DB.length? "block":"none";
-  if(TRAIN_DB.length){
-    presetNote.innerHTML = `프리셋 로드됨: <b>${TRAIN_DB.length.toLocaleString()}</b>종 · 같은 이름이 있으면 <b>“해피 프리셋 적용”</b>으로 k/u 채움 · 불일치 검사 결과는 전문 모드에서 표시`;
-  }else{
-    presetNote.innerHTML = `프리셋 파일(<code>${PATH_TRAIN}</code>)을 찾지 못했습니다. 같은 이름 K/U 자동채움 기능은 비활성화됩니다.`;
-  }
-}
-
-/* 키패드 */
 function renderKeypad(){
   keypad.innerHTML="";
   KEYS.forEach(k=>{
@@ -364,34 +360,35 @@ function renderKeypad(){
   const rst=document.createElement('button'); rst.textContent='초기화';
   rst.onclick=()=>{ choBuffer=""; renderList(); }; keypad.appendChild(rst);
 }
+renderKeypad();
 
-/* 목록 */
+/* ===== 목록 ===== */
 let selected=null;
 function renderList(){
   const text=(search.value||"").trim();
   const byText=(n)=> text? n.includes(text): true;
   const byCho=(n)=> choBuffer? hangulCho(n).startsWith(choBuffer): true;
 
-  const arr=ALL_PETS.filter(n=>byText(n)&&byCho(n)).sort((a,b)=>a.localeCompare(b,'ko'));
+  const table=loadTable();
+  const names=Object.keys(table).sort((a,b)=>a.localeCompare(b,'ko'));
+  const arr=names.filter(n=>byText(n)&&byCho(n));
   list.innerHTML="";
   if(arr.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.textContent="없음"; list.appendChild(empty); return; }
 
   arr.forEach(n=>{
-    const row=WORKING?.[n];
-    const div=document.createElement('div'); div.className='item';
-    const left=document.createElement('div'); left.textContent=n;
-    const right=document.createElement('div');
-    const tag=document.createElement('span'); tag.className='tag '+(row?'ok':'warn'); tag.textContent=row?'등록됨':'미등록';
-    right.appendChild(tag);
-    div.appendChild(left); div.appendChild(right);
-    div.onclick=()=>select(n);
-    list.appendChild(div);
+    const row=document.createElement('div'); row.className='item';
+    const l=document.createElement('div'); l.textContent=n;
+    const r=document.createElement('div');
+    const tag=document.createElement('span'); tag.className='tag '+(table[n]&&table[n].s0?'ok':'warn'); tag.textContent=(table[n]&&table[n].s0)?'등록됨':'미등록';
+    r.appendChild(tag);
+    row.appendChild(l); row.appendChild(r);
+    row.onclick=()=> select(n);
+    list.appendChild(row);
   });
 }
 search.addEventListener('input', renderList);
-btnClear.addEventListener('click', ()=>{ search.value=""; choBuffer=""; renderList(); });
 
-/* ========= 역추정/검증 ========= */
+/* ===== 역추정 로직 ===== */
 function precise(n){ return Math.round(n*1e12)/1e12; }
 function solveVfromS0(S0){
   const [S_HP,S_ATK,S_DEF,S_AGI]=S0;
@@ -415,7 +412,7 @@ function mapeVal(a,b){
   let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i])); s += Math.abs(a[i]-b[i])/den; }
   return s/4*100;
 }
-function scanKUfromS0(S0){
+function inferKUfromS0(S0){
   if(S0.some(x=>!Number.isFinite(x))) return null;
   const v = solveVfromS0(S0);
   let best=null;
@@ -424,146 +421,71 @@ function scanKUfromS0(S0){
     const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
     const S0b = s0FromV(v2);
     const err = mapeVal(S0, S0b);
-    if(!best || err < best.err) best = {k,u,S0b,err};
+    if(!best || err < best.err) best = {k,u,v:v2,S0b,err};
   }
   return best;
 }
-function mapeForKU(S0,k,u){
-  const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
-  const S0b=s0FromV(v2);
-  return mapeVal(S0,S0b);
-}
 
-/* 선택/바인딩 */
+/* ===== 선택/바인딩 ===== */
 function select(n){
   selected=n; nameEl.textContent=n;
-  const row=WORKING?.[n]||{};
-  // 채우기
+  const t=loadTable(); const row=t[n]||{};
   s0hp.value=row.s0?.hp??""; s0atk.value=row.s0?.atk??""; s0def.value=row.s0?.def??""; s0agi.value=row.s0?.agi??"";
   sghp.value=row.sg?.hp??""; sgatk.value=row.sg?.atk??""; sgdef.value=row.sg?.def??""; sgagi.value=row.sg?.agi??"";
-  initnum.value = row.k ?? row.initnum ?? "";
-  uh.value=row.u?.hp??""; ua.value=row.u?.atk??""; ud.value=row.u?.def??""; ug.value=row.u?.agi??"";
-  mape.value=(row.mape??"");
+  initnum.value=row.k ?? row.initnum ?? ""; mape.value=(row.mape??"");
   rOverride.value=row.r??"";
+  rowStatus.textContent = row.updated ? `· 업데이트: ${new Date(row.updated).toLocaleString()}` : "";
   saveMsg.textContent="";
-
-  // 자동 MAPE 재계산
-  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-  if(S0.every(Number.isFinite) && isFilledKU()){
-    const k=parseInt(initnum.value,10);
-    const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
-    const e=mapeForKU(S0,k,u); mape.value=e.toFixed(3);
-    mape.style.color = (e>MAPE_THRESHOLD? "#b45309":"#059669");
-  }else mape.value="";
 }
 
-/* 입력 변경 시 자동 검사 */
-[s0hp,s0atk,s0def,s0agi,initnum,uh,ua,ud,ug].forEach(el=>{
+/* 프로 모드 미리보기(k/u 추정) */
+[s0hp,s0atk,s0def,s0agi].forEach(el=>{
   el.addEventListener('input', ()=>{
     const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-    if(S0.some(x=>!Number.isFinite(x))){ mape.value=""; return; }
-    if(isFilledKU()){
-      const k=parseInt(initnum.value,10);
-      const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
-      const e=mapeForKU(S0,k,u); mape.value=e.toFixed(3);
-      mape.style.color = (e>MAPE_THRESHOLD? "#b45309":"#059669");
-    }else{
-      const fit=scanKUfromS0(S0); if(!fit){ mape.value=""; return; }
-      mape.value=fit.err.toFixed(3);
-      mape.style.color = (fit.err>MAPE_THRESHOLD? "#b45309":"#059669");
-    }
+    if(S0.some(x=>!Number.isFinite(x))){ initnum.value=""; mape.value=""; return; }
+    const fit=inferKUfromS0(S0);
+    if(!fit){ initnum.value=""; mape.value=""; return; }
+    initnum.value=String(fit.k); mape.value=fit.err.toFixed(3);
+    if(fit.err>MAPE_THRESHOLD){ mape.style.color="#b45309"; } else { mape.style.color="#059669"; }
   });
 });
 
-/* 자동추정 버튼 */
-btnAutoKU.onclick=()=>{
-  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-  if(S0.some(x=>!Number.isFinite(x))){ alert("S0(표기 초기치)를 모두 입력하세요."); return; }
-  const fit=scanKUfromS0(S0);
-  if(!fit){ alert("k/u 역추정 실패: S0를 확인하세요."); return; }
-  initnum.value=String(fit.k);
-  uh.value=fit.u.hp; ua.value=fit.u.atk; ud.value=fit.u.def; ug.value=fit.u.agi;
-  mape.value=fit.err.toFixed(3);
-  mape.style.color = (fit.err>MAPE_THRESHOLD? "#b45309":"#059669");
-};
+/* ===== 저장/삭제 ===== */
+function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
+function round2(v){ const n=parseFloat(v); return Number.isFinite(n)? +n.toFixed(2): ""; }
 
-/* 해피 프리셋: 같은 이름이면 k/u 채우기 + 불일치 표시 */
-btnPresetKU.onclick=()=>{
-  if(!selected){ alert("페트를 먼저 선택하세요."); return; }
-  const rec = TRAIN_DB.find(r=>r.name===selected);
-  if(!rec){ alert("프리셋에 같은 이름이 없습니다."); return; }
-  initnum.value = rec.k;
-  uh.value=rec.u.hp; ua.value=rec.u.atk; ud.value=rec.u.def; ug.value=rec.u.agi;
-
-  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-  const SG={hp:parseFloat(sghp.value),atk:parseFloat(sgatk.value),def:parseFloat(sgdef.value),agi:parseFloat(sgagi.value)};
-  const mismatch=[];
-  if([rec.s0?.hp,rec.s0?.atk,rec.s0?.def,rec.s0?.agi].every(Number.isFinite) && S0.every(Number.isFinite)){
-    const diff = [Math.abs(rec.s0.hp-S0[0]),Math.abs(rec.s0.atk-S0[1]),Math.abs(rec.s0.def-S0[2]),Math.abs(rec.s0.agi-S0[3])];
-    if(diff.some(x=>x>0.3)) mismatch.push(`S0 불일치: Δ=${diff.map(n=>n.toFixed(2)).join('/')}`);
-  }
-  if([rec.sg?.hp,rec.sg?.atk,rec.sg?.def,rec.sg?.agi].every(Number.isFinite) && [SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-    const diff = [Math.abs(rec.sg.hp-SG.hp),Math.abs(rec.sg.atk-SG.atk),Math.abs(rec.sg.def-SG.def),Math.abs(rec.sg.agi-SG.agi)];
-    if(diff.some(x=>x>0.3)) mismatch.push(`Sg 불일치: Δ=${diff.map(n=>n.toFixed(2)).join('/')}`);
-  }
-  const e = S0.every(Number.isFinite)? mapeForKU(S0, rec.k, rec.u): NaN;
-  if(Number.isFinite(e)) { mape.value=e.toFixed(3); mape.style.color=(e>MAPE_THRESHOLD? "#b45309":"#059669"); }
-
-  if(mismatch.length){ mismatchBox.style.display="block"; mismatchBox.innerHTML="프리셋 대비 불일치: "+mismatch.join(" · "); }
-  else { mismatchBox.style.display="none"; mismatchBox.innerHTML=""; }
-};
-
-/* 저장/삭제 */
 btnSave.onclick=()=>{
   if(!selected){ alert("페트를 선택하세요."); return; }
   const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
   if(S0.some(x=>!Number.isFinite(x))){ alert("S0(표기 초기치)를 모두 입력하세요."); return; }
-  const SG={ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) };
-
-  let ku=null, note="";
-  if(isFilledKU()){
-    const k=parseInt(initnum.value,10);
-    const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
-    const err=mapeForKU(S0,k,u);
-    ku={k,u,err:+err.toFixed(3)};
-    note = err>MAPE_THRESHOLD ? `저장됨(경고: MAPE ${err.toFixed(3)}%) — 자동추정 보류 권장` : "저장됨.";
-  }else{
-    const fit=scanKUfromS0(S0);
-    if(fit && fit.err<=MAPE_THRESHOLD){
-      ku={k:fit.k, u:fit.u, err:+fit.err.toFixed(3)};
-      note="저장됨(자동추정).";
-    }else{
-      ku=null;
-      note="S0만 저장됨(자동추정 값 보류: MAPE 초과). k/u는 수동 입력하세요.";
-    }
-  }
-
-  WORKING[selected] = {
+  const fit=inferKUfromS0(S0);
+  if(!fit){ alert("k/u 역추정 실패: S0를 확인하세요."); return; }
+  const t=loadTable();
+  t[selected] = {
     s0:{ hp:round2(s0hp.value), atk:round2(s0atk.value), def:round2(s0def.value), agi:round2(s0agi.value) },
-    sg: SG,
-    ...(ku? {k:ku.k, u:ku.u, mape:ku.err}: {}),
+    sg:{ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) },
+    k: fit.k,
+    u: fit.u,
+    mape: +fit.err.toFixed(3),
     r: rOverride.value||"",
     updated: Date.now()
   };
-  saveLS(WORKING);
-  saveMsg.textContent=note;
+  saveTable(t);
+  saveMsg.textContent = fit.err>MAPE_THRESHOLD ? `저장됨(경고: MAPE ${fit.err.toFixed(3)}%)` : "저장됨.";
   renderList();
 };
 btnDelete.onclick=()=>{
   if(!selected) return;
-  delete WORKING[selected]; saveLS(WORKING);
-  // 폼 초기화
-  nameEl.textContent="미선택";
-  [s0hp,s0atk,s0def,s0agi,sghp,sgatk,sgdef,sgagi,initnum,uh,ua,ud,ug,mape].forEach(i=>i.value="");
-  rOverride.value=""; saveMsg.textContent="삭제됨.";
-  renderList();
+  const t=loadTable(); delete t[selected]; saveTable(t);
+  select(selected); renderList(); saveMsg.textContent="삭제됨.";
 };
 
-/* 내보내기/가져오기/초기화 */
+/* ===== 가져오기/내보내기/초기화 ===== */
 btnExport.onclick=()=>{
-  const blob=new Blob([JSON.stringify(WORKING,null,2)],{type:"application/json"});
+  const t=loadTable();
+  const blob=new Blob([JSON.stringify(t,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`pets_v${APP_VERSION}.json`; a.click();
+  const a=document.createElement('a'); a.href=url; a.download=`novaPetTable_v${APP_VERSION}.json`; a.click();
   URL.revokeObjectURL(url);
 };
 btnImport.onclick=()=>{
@@ -572,64 +494,110 @@ btnImport.onclick=()=>{
     const rdr=new FileReader(); rdr.onload=()=>{ try{
       const obj=JSON.parse(rdr.result);
       if(typeof obj!=="object" || Array.isArray(obj)) throw new Error("루트가 객체가 아님");
-      WORKING=obj; saveLS(WORKING); renderList(); saveMsg.textContent="가져오기 완료(작업본). 퍼블리시로 서버 반영.";
+      saveTable(obj); renderList(); saveMsg.textContent="가져오기 완료.";
     }catch(e){ alert("JSON 파싱 실패: "+e.message); } }; rdr.readAsText(f);
   }; inp.click();
 };
-btnWipe.onclick=()=>{
+btnClear.onclick=()=>{
   if(confirm("정말 전체 초기화할까요? (되돌릴 수 없습니다)")){
     localStorage.removeItem(LS_TABLE);
-    WORKING={}; renderList(); saveMsg.textContent="로컬 작업본 초기화됨. (서버에는 영향 없음)";
+    selected=null; nameEl.textContent="미선택";
+    s0hp.value=s0atk.value=s0def.value=s0agi.value="";
+    sghp.value=sgatk.value=sgdef.value=sgagi.value="";
+    initnum.value=mape.value=""; rOverride.value=""; rowStatus.textContent="";
+    renderList(); saveMsg.textContent="초기화됨.";
   }
 };
 
-/* 서버 불러오기/퍼블리시 */
-btnReload.onclick=async()=>{
-  try{
-    await loadRemoteAll();
-    saveMsg.textContent="서버에서 최신 테이블 로드됨.";
-  }catch(e){ alert("서버 로드 실패: "+e.message); }
-};
-async function githubGet(path, token){
-  const res=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,{
-    headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json"}
-  }); if(!res.ok) throw new Error("GET "+res.status); return res.json();
-}
-async function githubPut(path, contentObj, token, message){
-  const enc=btoa(unescape(encodeURIComponent(JSON.stringify(contentObj,null,2))));
-  let sha=null;
-  try{ const meta=await githubGet(path, token); sha=meta.sha; }catch{}
-  const res=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{
-    method:"PUT",
-    headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json"},
-    body:JSON.stringify({
-      message: message || `update ${path} via admin v${APP_VERSION}`,
-      content: enc,
-      sha,
-      branch: GH_BRANCH,
-      committer:{name:"NOVA Admin", email:"noreply@example.com"}
-    })
-  });
-  if(!res.ok){ const t=await res.text(); throw new Error("PUT "+res.status+" — "+t); }
-  return res.json();
-}
-btnPublish.onclick=async()=>{
-  try{
-    const token = sessionStorage.getItem("gh_pat") || prompt("GitHub Personal Access Token을 입력하세요 (repo:contents 권한 필요). 세션에만 보관됩니다.");
-    if(!token) return;
-    sessionStorage.setItem("gh_pat", token);
-    // 퍼블리시 전 간단 검증
-    const keys=Object.keys(WORKING||{});
-    if(keys.length===0){ if(!confirm("비어있는 테이블입니다. 정말 서버에 비운 상태로 퍼블리시할까요?")) return; }
-    await githubPut(PATH_PETS, WORKING, token, `chore: publish pets.json (${new Date().toISOString()})`);
-    alert("퍼블리시 완료! (GitHub Pages는 캐싱 때문에 반영까지 수십 초~수 분 소요될 수 있습니다.)");
-  }catch(e){ alert("퍼블리시 실패: "+e.message); }
+/* ===== 새 페트 추가 ===== */
+btnAdd.onclick=()=>{
+  const nm=(newName.value||"").trim();
+  if(!nm){ alert("이름을 입력하세요."); return; }
+  const t=loadTable();
+  if(!t[nm]) t[nm]={};
+  saveTable(t); newName.value=""; renderList();
+  select(nm);
 };
 
-/* 부팅 */
+/* ===== 서버 동기화 (GitHub) ===== */
+function remoteURLs(){
+  const owner=(ghOwner.value||DEF_OWNER).trim();
+  const repo=(ghRepo.value||DEF_REPO).trim();
+  const branch=(ghBranch.value||DEF_BRANCH).trim();
+  const path=(ghPath.value||DEF_PATH).trim().replace(/^\/+/,"");
+  const raw=`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+  const api=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  return {owner,repo,branch,path,raw,api};
+}
+async function fetchJSON(url){
+  const res = await fetch(url + `?v=${Date.now()}`, {cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  return await res.json();
+}
+btnLoadRemote.onclick=async()=>{
+  const {raw}=remoteURLs();
+  try{
+    const obj = await fetchJSON(raw);
+    if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
+    saveTable(obj); renderList();
+    remoteMsg.textContent=`서버에서 불러오기 성공 (${Object.keys(obj).length.toLocaleString()}종)`;
+  }catch(e){
+    remoteMsg.textContent="서버에서 불러오기 실패: " + (e?.message||e);
+  }
+};
+
+async function getRemoteSha(api, token, ref){
+  const url = api + (ref?`?ref=${encodeURIComponent(ref)}`:"");
+  const res = await fetch(url, { headers: token? {Authorization: `Bearer ${token}`} : {} });
+  if(!res.ok) return null;
+  const j=await res.json();
+  return j && j.sha ? j.sha : null;
+}
+function toBase64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+btnPublish.onclick=async()=>{
+  const token = (ghToken.value || localStorage.getItem('ghToken') || "").trim();
+  const {api,branch} = remoteURLs();
+  const body = JSON.stringify(loadTable(), null, 2);
+  const content = toBase64(body);
+  try{
+    const sha = await getRemoteSha(api, token, branch);
+    const res = await fetch(api, {
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        ...(token? {Authorization:`Bearer ${token}`} : {})
+      },
+      body: JSON.stringify({
+        message: `chore(admin): publish pets.json (${new Date().toISOString()})`,
+        content, branch, ...(sha? {sha}: {})
+      })
+    });
+    if(!res.ok){
+      const txt=await res.text();
+      throw new Error(`GitHub API 실패(${res.status}): ${txt.slice(0,200)}`);
+    }
+    const j=await res.json();
+    remoteMsg.textContent="퍼블리시 성공: " + (j?.commit?.html_url || "");
+  }catch(e){
+    remoteMsg.textContent="퍼블리시 실패: " + (e?.message||e) + "  · 토큰이 없거나 권한/브랜치/경로가 맞는지 확인하세요.";
+  }
+};
+
+/* ===== 초기 부팅: GitHub 설정 불러오고 서버 테이블 선로드 ===== */
 (async function init(){
-  if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
-  await loadRemoteAll();
+  loadGitCfg();
+  // 서버 테이블 먼저 시도(없으면 현 로컬 유지)
+  try{
+    const {raw}=remoteURLs();
+    const obj = await fetchJSON(raw);
+    if(typeof obj==="object" && !Array.isArray(obj)){ saveTable(obj); }
+    remoteMsg.textContent=`서버 테이블 로드 완료 (${Object.keys(loadTable()).length.toLocaleString()}종)`;
+  }catch{
+    remoteMsg.textContent="서버 테이블 로드 실패 → 로컬 데이터 사용";
+  }
+  renderList();
 })();
 </script>
 </body>
