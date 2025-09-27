@@ -267,6 +267,24 @@
 </div>
 
 <script>
+/* ========= 라운딩/모델 옵션 =========
+  intMode:
+   - "floor"            : 현재 방식(전부 내림)
+   - "nearest"          : 최종 정수는 반올림(Math.round)
+   - "round2_then_floor": s_*를 소수 둘째 자리로 반올림한 뒤 정수로 내림 (Nova2 유사)
+*/
+const MODEL = {
+  intMode: "round2_then_floor", // Nova2 유사 기본값
+  baseRange: [-2, 2],           // 베이스 범위(해피/Nova 모두 기본 -2..+2로 가정)
+  bonusSum: 10                  // 보너스 총합
+};
+function toShownInt(x){
+  if (MODEL.intMode === "nearest") return Math.round(x);
+  if (MODEL.intMode === "round2_then_floor") return Math.floor(Math.round(x*100)/100 + 1e-9);
+  return Math.floor(x + 1e-9); // "floor"
+}
+  
+  
 /* ========= 서버 경로 ========= */
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
@@ -615,33 +633,43 @@ function refineKU_local(k0,u0,S0){
 /* ========= 해피식 엔진(전수) ========= */
 function enumerate(pku, obs){
   const k=pku.k, u=pku.u;
+
+  // 보너스 분배 생성
   const bonuses=[];
-  for(let h=0; h<=10; h++){
-    for(let a=0; a<=10-h; a++){
-      for(let d=0; d<=10-h-a; d++){
-        const g=10-h-a-d; bonuses.push([h,a,d,g]);
+  for(let h=0; h<=MODEL.bonusSum; h++){
+    for(let a=0; a<=MODEL.bonusSum-h; a++){
+      for(let d=0; d<=MODEL.bonusSum-h-a; d++){
+        const g=MODEL.bonusSum-h-a-d; bonuses.push([h,a,d,g]);
       }
     }
   }
-  let matches=0, rank8=0;
-  const dist={};
-  for(let bh=-2; bh<=2; bh++){
-    for(let ba=-2; ba<=2; ba++){
-      for(let bd=-2; bd<=2; bd++){
-        for(let bg=-2; bg<=2; bg++){
+
+  let matches=0, rank8=0; const dist={};
+  const [br0,br1]=MODEL.baseRange;
+
+  for(let bh=br0; bh<=br1; bh++){
+    for(let ba=br0; ba<=br1; ba++){
+      for(let bd=br0; bd<=br1; bd++){
+        for(let bg=br0; bg<=br1; bg++){
           for(const B of bonuses){
             const vhp=precise(k*(u.hp + bh + B[0])/100);
             const vatk=precise(k*(u.atk+ ba + B[1])/100);
             const vdef=precise(k*(u.def+ bd + B[2])/100);
             const vagi=precise(k*(u.agi+ bg + B[3])/100);
 
+            // S0 조합
             const s_hp = precise(vhp*4 + vatk + vdef + vagi);
             const s_atk= precise(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
             const s_def= precise(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
             const s_agi= vagi;
 
-            if(Math.floor(s_hp)===obs[0] && Math.floor(s_atk)===obs[1] &&
-               Math.floor(s_def)===obs[2] && Math.floor(s_agi)===obs[3]){
+            // ★ Nova2 호환 라운딩 방식으로 정수화
+            const ihp  = toShownInt(s_hp);
+            const iatk = toShownInt(s_atk);
+            const idef = toShownInt(s_def);
+            const iagi = toShownInt(s_agi);
+
+            if(ihp===obs[0] && iatk===obs[1] && idef===obs[2] && iagi===obs[3]){
               matches++;
               const r=bh+ba+bd+bg;
               dist[r]=(dist[r]||0)+1;
