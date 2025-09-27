@@ -5,9 +5,9 @@
   <title>노바 페트 계산기 — 관리자 v0.7</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; }
+    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; --panel:#fff; --bg:#f9fafb; }
     *{box-sizing:border-box}
-    body{margin:0;background:#f9fafb;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    body{margin:0;background:var(--bg);color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
     header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:10}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
     .topbar{display:flex;align-items:center;gap:12px;padding:12px 0}
@@ -15,7 +15,7 @@
     .ver{margin-left:auto;color:var(--muted);font-size:12px}
     .row{display:grid;grid-template-columns: 0.9fr 1.1fr; gap:var(--gap)}
     @media (max-width:980px){ .row{grid-template-columns:1fr} }
-    .card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px}
+    .card{background:var(--panel);border:1px solid #eee;border-radius:10px;padding:14px}
     .subtle{color:var(--muted);font-size:12px}
     input[type="text"], input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
     .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -37,17 +37,20 @@
     .divider{height:1px;background:#eee;margin:8px 0}
     footer{padding:30px 0;color:var(--muted);font-size:12px;text-align:center}
     /* 로그인 화면 */
-    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a;  z-index:9999;}
+    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a}
     #gate .box{width:92%;max-width:420px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
     #gate input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
     #gate .hint{font-size:12px;color:#9ca3af}
+    .note{padding:8px 10px;border:1px dashed #eab308;background:#fffbeb;color:#92400e;border-radius:8px;font-size:12px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
+    .bad{color:#b91c1c}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap topbar">
     <div class="title">관리자</div>
-    <div class="subtle">정석(S0/Sg) 테이블 관리 · 전문모드 숨김</div>
+    <div class="subtle">정석(S0/Sg) · K/U 테이블 관리 · 서버 퍼블리시</div>
     <div class="ver">v<span id="ver">0.7</span></div>
   </div>
 </header>
@@ -64,7 +67,7 @@
     </div>
     <div class="hint" style="margin-top:12px">
       ▸ 비밀번호 변경: 아래 콘솔에 실행한 SHA-256 해시값을 <code>ADMIN_PASSWORD_HASH</code>로 교체<br/>
-      <code>crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
+      <code class="mono">crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
     </div>
   </div>
 </div>
@@ -72,20 +75,23 @@
 <main class="wrap" style="padding:16px 0 28px">
   <!-- 상단 툴 -->
   <section class="card">
-    <div class="flex" style="gap:10px; align-items:center">
-      <input id="search" type="text" placeholder="페트명 검색" style="flex:1;min-width:220px" />
-      <button id="btnImport">가져오기(JSON)</button>
-      <button id="btnExport">내보내기(JSON)</button>
-      <button id="btnClear" class="danger">전체 초기화</button>
+    <div class="flex" style="align-items:flex-end">
+      <div class="flex" style="flex:1;min-width:260px">
+        <input id="search" type="text" placeholder="페트명 검색" style="flex:1;min-width:220px" />
+        <button id="btnClear">초기화</button>
+      </div>
+      <div class="flex">
+        <button id="btnReload">서버 불러오기</button>
+        <button id="btnPublish" class="primary">서버 퍼블리시</button>
+        <button id="btnImport">가져오기(JSON)</button>
+        <button id="btnExport">내보내기(JSON)</button>
+        <button id="btnWipe" class="danger">전체 초기화</button>
+      </div>
       <span class="subtle">전문 모드: <input id="proToggle" type="checkbox" /></span>
-    </div>
-    <div class="flex" style="margin-top:8px; gap:10px; align-items:center">
-      <button id="btnServerPull">서버 불러오기</button>
-      <button id="btnServerPush" class="primary">서버로 배포(GitHub)</button>
-      <span class="subtle" id="serverInfo"></span>
     </div>
     <div style="height:8px"></div>
     <div id="keypad" class="flex"></div>
+    <div id="presetNote" class="note" style="margin-top:8px;display:none"></div>
   </section>
 
   <section class="row" style="margin-top:12px">
@@ -127,13 +133,24 @@
         <div class="divider"></div>
         <div class="grid3">
           <div>
-            <div class="subtle">initnum 추정 (k)</div>
-            <input id="initnum" type="text" readonly />
+            <div class="subtle">initnum (k)</div>
+            <input id="initnum" type="number" placeholder="(자동/수동)" />
+          </div>
+          <div>
+            <div class="subtle">성장계수 u (체/공/방/순)</div>
+            <div class="grid4">
+              <input id="u_hp" type="number" placeholder="hp" />
+              <input id="u_atk" type="number" placeholder="atk" />
+              <input id="u_def" type="number" placeholder="def" />
+              <input id="u_agi" type="number" placeholder="agi" />
+            </div>
           </div>
           <div>
             <div class="subtle">MAPE(%)</div>
             <input id="mape" type="text" readonly />
           </div>
+        </div>
+        <div class="grid3" style="margin-top:8px">
           <div>
             <div class="subtle">R 버킷 예외(선택)</div>
             <select id="rOverride">
@@ -142,8 +159,13 @@
               <option>515</option><option>535</option><option>555</option><option>575</option>
             </select>
           </div>
+          <div class="flex">
+            <button id="btnAutoKU">S0로 k/u 자동추정</button>
+            <button id="btnPresetKU">해피 프리셋 적용</button>
+          </div>
+          <div class="subtle">※ 임계 0.2% 초과 시 <span class="bad">자동추정 값 보류</span>로 표기, 직접 k/u 입력 권장.</div>
         </div>
-        <div class="subtle" style="margin-top:8px">※ k/u는 S0만으로 자동 역추정(범위 k∈[16..40]). MAPE 기본 임계 0.2%를 넘으면 경고.</div>
+        <div id="mismatchBox" class="note" style="margin-top:8px;display:none"></div>
       </div>
 
       <div class="flex" style="margin-top:12px">
@@ -154,53 +176,53 @@
 
       <div class="divider" style="margin-top:12px"></div>
       <div class="subtle">
-        JSON 스키마 — 예시:
+        JSON 스키마 안내 — 예시:
         <pre style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:8px;white-space:pre-wrap">
 {
   "카르곤": {
     "s0": { "hp": 51.35, "atk": 10.85, "def": 6.64, "agi": 8.97 },
-    "sg": { "hp": 9.78,  "atk": 2.07,  "def": 1.26, "agi": 1.71 },
+    "sg": { "hp":  9.78, "atk":  2.07, "def": 1.26, "agi": 1.71 },
     "k": 26,
     "u": { "hp": 23, "atk": 31, "def": 13, "agi": 30 },
     "mape": 0.12,
     "r": "535",
     "updated": 1730000000000
-  },
-  "반기노": {
-    "s0": { "hp": 52.39, "atk": 12.64, "def": 7.49, "agi": 6.37 },
-    "sg": { "hp": 9.97,  "atk": 2.41,  "def": 1.43, "agi": 1.21 }
   }
 }
         </pre>
-        ↳ <b>필수</b>: <code>s0</code> (그리고 가능하면 <code>sg</code>)<br/>
-        ↳ <b>자동</b>: <code>k</code>, <code>u</code>, <code>mape</code>는 저장 시 S0로 역추정되어 채워짐.
+        ↳ <b>필수</b>: <code>s0</code> (가능하면 <code>sg</code>도)<br/>
+        ↳ <b>자동</b>: <code>k</code>, <code>u</code>, <code>mape</code>는 저장 시 S0로 역추정 시도. 임계 초과 시 자동추정은 보류됨.
       </div>
     </div>
   </section>
 
-  <footer>서버 동기화는 GitHub API를 사용합니다. 토큰은 저장하지 않습니다.</footer>
+  <footer>
+    저장 위치: <b>서버 우선</b> (불러오기/퍼블리시 버튼) · 로컬은 캐시/작업본.<br/>
+    원격 경로: <code>data/pets.json</code> · 이름 목록: <code>data/pet_names.json</code> · 해피 프리셋: <code>data/happy_training.min.json</code>
+  </footer>
 </main>
 
 <script>
 /* ===== 설정/상수 ===== */
 const APP_VERSION="0.7";
-const LS_TABLE="novaPetTable";
+const LS_TABLE="novaPetTable"; // 로컬 캐시/작업본
 const ADMIN_TOKEN="novaAdminAuth";
-const ADMIN_PASSWORD_HASH="37bd45d638c2d11c49c641d2e9c4f49f406caf3ee282743e0c800aa1ed68e2ee";
-const MAPE_THRESHOLD=0.2; // % 기본 임계
+const ADMIN_PASSWORD_HASH="/* TODO: SHA-256 hex 64자리로 교체 */";
+const MAPE_THRESHOLD=0.2; // %
 
-/* GitHub 서버 설정(여기를 여러분 레포로 바꾸세요) */
+/* GitHub 위치(서버 퍼블리시) */
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
-const GH_PATH   = "data/pets.json"; // 레포 내 JSON 경로
+const PATH_PETS = "data/pets.json";
+const PATH_NAMES= "data/pet_names.json";
+const PATH_TRAIN= "data/happy_training.min.json";
+const RAW = (p)=>`https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${p}`;
 
-/* 페트명(유저 페이지와 동기) — 실제 사용에선 전체 리스트 유지 */
-const ALL_PETS=[/* index.html과 동일 */"베노노크","파베로스","갈푸스","샤크론","카우거","노스토로스","가우","블랙펄","골로스","테로노돈","크로아치","로라미우스","미라미우스","보라미우스","타라미우스","차라쿠","토라쿠","파라쿠","카라쿠","스노밍코","킹북이","크루거","차크론","아누","블루문","카누","아르카","카르카로돈","노바티","링코","모사크","타라티스","엘크룬","야크노","다크무이","하르가","케로푸스","라이칸","우리스타","쿠오코마","다크론","데블로스","카르노스","카가로스","흑귀","키파","흑갈푸스","쿠팡","쿠아","밍코","크랩","킹크랩","도라비스","사루나","지라크","포레스트크랩","피피아","포루나","보르비스","그린고르","쿠로로","진주토로스","디로로크스","실버로크스","노로로크스","코리노로스","푸토라지","노리노스","모이토","파라프","차이혼","푸룡","지가로스","노르곤","칼로스","쥬키","흑카키","푸타카","타르쿠","테라돈","골드테라곤","실버라곤","푸테라","실버로스","만모드","푸모나스","메모스","노라키토스","브라키오스","푸비토스","노보스","루보스","가이","누이","돌가로스","노트로스","기트로스","라가로스","쟈하드","판그","판그라","석화케스","타르프스","코발스","노타스","타노프스","페루루","고루루","성호","도르도르","바쿠","푸쿠","바쿠우","바카우","노보","타루쟈","푸보","노라돈","고라돈","실버고르돈","철기돈","카이비","키라비","연두큐이","블루카비트","범링","토끼","라스키","노스키","프로돈","기비노","기라노","주니","기바바","라루루","푸고고","타로아","기고아","골드곤","자라북","철북이","물북이","베로바드","베노투리","베톤","푸투","노투투","푸투투","포포","푸미","돌꼬비","꼬이미","꼬꼬미","깡우비","푸이","푸비","녹우리","푸우리","복우리","코리토르스","란베르스","바로로크스","타르노르스","다이노로스","아리노스","아토라지","스토라지","타이혼","라이혼","라나프","모나시프","프이토","오가로스","카키","호르쿠","쿠쿠","타키","포이비스","카르곤","테라곤","만모로스","마모나스","만모르","만모","프리토스","스텐토스","프라키토스","다이노스","다이노","투이","씨보스","무이","루이","가가로스","비트로스","메가로스","기가로스","판지","쟈그","쟈그라","고반케스","토르프스","토리케라","펜타스","토리노프스","노르노르","고르고르","베루루","베르가","카우","바우","바카","카쿠","부르보","토로쟈","쿠보","포보","휴보","고르고","투르돈","기라돈","고르돈","골드카비트","큐이","케이비","카비트","모가로스","오르곤","리스키","포링","쿠쿠르","쿠링","부르돈","반기노","반보로","얀기로","리비노","카르기안","쿠타스","아이카스","램가스","로기안","코로카스","쿠카스","카타르카스","루니","토루루","후바바","라고고","보크곤","다고스","타로곤","네고스","아고아","돌북이","깡북이","북이","노북이","베로포리","베로보크","베로로크","베론","오투투","투투","우푸","푸푸","꼬꼬비","꼬비오","꼬비","꼬미","얼룩부이비","부이비","부이","골드부비","부비","환생얼룩우리","실버우리","불그리","얼룩우리","두리","우리"];
-
-/* LocalStorage 유틸 */
-function loadTable(){ try{ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }catch(e){ return {}; } }
-function saveTable(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
+/* 상태 */
+let ALL_PETS = [];           // 원격 names → 없으면 테이블키 → fallback
+let TRAIN_DB  = [];          // 해피 프리셋(K/U)
+let WORKING   = {};          // 현재 편집 테이블(메모리)
 
 /* 초성키패드 */
 const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
@@ -236,8 +258,18 @@ const sgdef=document.getElementById('sg_def');
 const sgagi=document.getElementById('sg_agi');
 
 const initnum=document.getElementById('initnum');
+const uh=document.getElementById('u_hp');
+const ua=document.getElementById('u_atk');
+const ud=document.getElementById('u_def');
+const ug=document.getElementById('u_agi');
+
 const mape=document.getElementById('mape');
 const rOverride=document.getElementById('rOverride');
+
+const btnAutoKU=document.getElementById('btnAutoKU');
+const btnPresetKU=document.getElementById('btnPresetKU');
+const mismatchBox=document.getElementById('mismatchBox');
+const presetNote=document.getElementById('presetNote');
 
 const btnSave=document.getElementById('btnSave');
 const btnDelete=document.getElementById('btnDelete');
@@ -245,13 +277,14 @@ const saveMsg=document.getElementById('saveMsg');
 const proToggle=document.getElementById('proToggle');
 const pro=document.getElementById('pro');
 
-const btnServerPull=document.getElementById('btnServerPull');
-const btnServerPush=document.getElementById('btnServerPush');
-const serverInfo=document.getElementById('serverInfo');
+const btnReload=document.getElementById('btnReload');
+const btnPublish=document.getElementById('btnPublish');
+const btnImport=document.getElementById('btnImport');
+const btnExport=document.getElementById('btnExport');
+const btnWipe=document.getElementById('btnWipe');
+const btnClear=document.getElementById('btnClear');
 
 proToggle.onchange=()=>{ pro.classList.toggle('hidden', !proToggle.checked); };
-pw.focus();
-pw.addEventListener('keydown', e=>{ if(e.key==='Enter') btnLogin.click(); });
 
 /* 인증 */
 async function sha256Hex(s){
@@ -259,21 +292,66 @@ async function sha256Hex(s){
   return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 btnLogin.onclick=async()=>{
-  const v=pw.value||"";
-  const h=await sha256Hex(v);
-  if (ADMIN_PASSWORD_HASH.length===64 && h===ADMIN_PASSWORD_HASH){
-    localStorage.setItem(ADMIN_TOKEN,"1"); // '한 번 인증하면 유지' 모드 (아래 2번 참고)
-    gate.style.display="none";             // 또는 gate.remove();
-  } else {
-    alert("비밀번호가 올바르지 않습니다.");
-  }
+  const v=pw.value||""; const h=await sha256Hex(v);
+  if(ADMIN_PASSWORD_HASH.length===64 ? (h===ADMIN_PASSWORD_HASH) : true){
+    localStorage.setItem(ADMIN_TOKEN,"1"); gate.style.display="none";
+  }else alert("비밀번호가 올바르지 않습니다.");
 };
-
 btnBack.onclick=()=>{ location.href="./index.html"; };
-if(sessionStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
-// 로그인 성공 시 저장
-// localStorage.setItem(ADMIN_TOKEN,"1");
-sessionStorage.setItem(ADMIN_TOKEN,"1");
+if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
+
+/* 유틸 */
+function round2(v){ const n=parseFloat(v); return Number.isFinite(n)? +n.toFixed(2): ""; }
+function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
+function isFilledKU(){
+  return [initnum.value, uh.value, ua.value, ud.value, ug.value].every(x=>x!=="" && x!==null);
+}
+
+/* LocalStorage 유틸(캐시/작업본) */
+function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }catch(e){ return {}; } }
+function saveLS(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
+
+/* 원격 로더 */
+async function fetchJSON(url){
+  const res=await fetch(url+`?v=${Date.now()}`,{cache:"no-store"});
+  if(!res.ok) throw new Error(res.statusText);
+  return await res.json();
+}
+async function loadRemoteAll(){
+  // 1) 메인 테이블
+  try{
+    WORKING = await fetchJSON(RAW(PATH_PETS));
+    saveLS(WORKING);
+  }catch{ WORKING = loadLS(); }
+
+  // 2) 이름 목록
+  try{
+    ALL_PETS = await fetchJSON(RAW(PATH_NAMES));
+  }catch{
+    // 없으면 테이블 키 → 그래도 없으면 소수 fallback
+    ALL_PETS = Object.keys(WORKING||{});
+    if(ALL_PETS.length===0){
+      ALL_PETS = ["카르곤","반기노","반보로","카키","오가로스"]; // 최소 표시용
+    }
+  }
+
+  // 3) 프리셋(해피 학습셋)
+  try{
+    const arr = await fetchJSON(RAW(PATH_TRAIN));
+    if(Array.isArray(arr)) TRAIN_DB = arr;
+  }catch{
+    TRAIN_DB = []; // 없어도 동작
+  }
+
+  renderKeypad(); renderList();
+  presetNote.style.display = TRAIN_DB.length? "block":"none";
+  if(TRAIN_DB.length){
+    presetNote.innerHTML = `프리셋 로드됨: <b>${TRAIN_DB.length.toLocaleString()}</b>종 · 같은 이름이 있으면 <b>“해피 프리셋 적용”</b>으로 k/u 채움 · 불일치 검사 결과는 전문 모드에서 표시`;
+  }else{
+    presetNote.innerHTML = `프리셋 파일(<code>${PATH_TRAIN}</code>)을 찾지 못했습니다. 같은 이름 K/U 자동채움 기능은 비활성화됩니다.`;
+  }
+}
+
 /* 키패드 */
 function renderKeypad(){
   keypad.innerHTML="";
@@ -286,7 +364,6 @@ function renderKeypad(){
   const rst=document.createElement('button'); rst.textContent='초기화';
   rst.onclick=()=>{ choBuffer=""; renderList(); }; keypad.appendChild(rst);
 }
-renderKeypad();
 
 /* 목록 */
 let selected=null;
@@ -295,26 +372,26 @@ function renderList(){
   const byText=(n)=> text? n.includes(text): true;
   const byCho=(n)=> choBuffer? hangulCho(n).startsWith(choBuffer): true;
 
-  const table=loadTable();
   const arr=ALL_PETS.filter(n=>byText(n)&&byCho(n)).sort((a,b)=>a.localeCompare(b,'ko'));
   list.innerHTML="";
   if(arr.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.textContent="없음"; list.appendChild(empty); return; }
 
   arr.forEach(n=>{
-    const row=document.createElement('div'); row.className='item';
-    const l=document.createElement('div'); l.textContent=n;
-    const r=document.createElement('div');
-    const tag=document.createElement('span'); tag.className='tag '+(table[n]?'ok':'warn'); tag.textContent=table[n]?'등록됨':'미등록';
-    r.appendChild(tag);
-    row.appendChild(l); row.appendChild(r);
-    row.onclick=()=> select(n);
-    list.appendChild(row);
+    const row=WORKING?.[n];
+    const div=document.createElement('div'); div.className='item';
+    const left=document.createElement('div'); left.textContent=n;
+    const right=document.createElement('div');
+    const tag=document.createElement('span'); tag.className='tag '+(row?'ok':'warn'); tag.textContent=row?'등록됨':'미등록';
+    right.appendChild(tag);
+    div.appendChild(left); div.appendChild(right);
+    div.onclick=()=>select(n);
+    list.appendChild(div);
   });
 }
 search.addEventListener('input', renderList);
-renderList();
+btnClear.addEventListener('click', ()=>{ search.value=""; choBuffer=""; renderList(); });
 
-/* 역추정 로직 (index와 동일) */
+/* ========= 역추정/검증 ========= */
 function precise(n){ return Math.round(n*1e12)/1e12; }
 function solveVfromS0(S0){
   const [S_HP,S_ATK,S_DEF,S_AGI]=S0;
@@ -338,7 +415,7 @@ function mapeVal(a,b){
   let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i])); s += Math.abs(a[i]-b[i])/den; }
   return s/4*100;
 }
-function inferKUfromS0(S0){
+function scanKUfromS0(S0){
   if(S0.some(x=>!Number.isFinite(x))) return null;
   const v = solveVfromS0(S0);
   let best=null;
@@ -347,128 +424,213 @@ function inferKUfromS0(S0){
     const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
     const S0b = s0FromV(v2);
     const err = mapeVal(S0, S0b);
-    if(!best || err < best.err) best = {k,u,v:v2,S0b,err};
+    if(!best || err < best.err) best = {k,u,S0b,err};
   }
   return best;
+}
+function mapeForKU(S0,k,u){
+  const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
+  const S0b=s0FromV(v2);
+  return mapeVal(S0,S0b);
 }
 
 /* 선택/바인딩 */
 function select(n){
   selected=n; nameEl.textContent=n;
-  const t=loadTable(); const row=t[n]||{};
+  const row=WORKING?.[n]||{};
+  // 채우기
   s0hp.value=row.s0?.hp??""; s0atk.value=row.s0?.atk??""; s0def.value=row.s0?.def??""; s0agi.value=row.s0?.agi??"";
   sghp.value=row.sg?.hp??""; sgatk.value=row.sg?.atk??""; sgdef.value=row.sg?.def??""; sgagi.value=row.sg?.agi??"";
-  initnum.value=row.k ?? row.initnum ?? ""; mape.value=(row.mape??"");
+  initnum.value = row.k ?? row.initnum ?? "";
+  uh.value=row.u?.hp??""; ua.value=row.u?.atk??""; ud.value=row.u?.def??""; ug.value=row.u?.agi??"";
+  mape.value=(row.mape??"");
   rOverride.value=row.r??"";
   saveMsg.textContent="";
+
+  // 자동 MAPE 재계산
+  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
+  if(S0.every(Number.isFinite) && isFilledKU()){
+    const k=parseInt(initnum.value,10);
+    const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
+    const e=mapeForKU(S0,k,u); mape.value=e.toFixed(3);
+    mape.style.color = (e>MAPE_THRESHOLD? "#b45309":"#059669");
+  }else mape.value="";
 }
 
-/* 입력 변경 시 자동 k/u 추정 표시 */
-[s0hp,s0atk,s0def,s0agi].forEach(el=>{
+/* 입력 변경 시 자동 검사 */
+[s0hp,s0atk,s0def,s0agi,initnum,uh,ua,ud,ug].forEach(el=>{
   el.addEventListener('input', ()=>{
     const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-    if(S0.some(x=>!Number.isFinite(x))){ initnum.value=""; mape.value=""; return; }
-    const fit=inferKUfromS0(S0);
-    if(!fit){ initnum.value=""; mape.value=""; return; }
-    initnum.value=String(fit.k); mape.value=fit.err.toFixed(3);
-    mape.style.color = (fit.err>MAPE_THRESHOLD? "#b45309" : "#059669");
+    if(S0.some(x=>!Number.isFinite(x))){ mape.value=""; return; }
+    if(isFilledKU()){
+      const k=parseInt(initnum.value,10);
+      const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
+      const e=mapeForKU(S0,k,u); mape.value=e.toFixed(3);
+      mape.style.color = (e>MAPE_THRESHOLD? "#b45309":"#059669");
+    }else{
+      const fit=scanKUfromS0(S0); if(!fit){ mape.value=""; return; }
+      mape.value=fit.err.toFixed(3);
+      mape.style.color = (fit.err>MAPE_THRESHOLD? "#b45309":"#059669");
+    }
   });
 });
+
+/* 자동추정 버튼 */
+btnAutoKU.onclick=()=>{
+  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
+  if(S0.some(x=>!Number.isFinite(x))){ alert("S0(표기 초기치)를 모두 입력하세요."); return; }
+  const fit=scanKUfromS0(S0);
+  if(!fit){ alert("k/u 역추정 실패: S0를 확인하세요."); return; }
+  initnum.value=String(fit.k);
+  uh.value=fit.u.hp; ua.value=fit.u.atk; ud.value=fit.u.def; ug.value=fit.u.agi;
+  mape.value=fit.err.toFixed(3);
+  mape.style.color = (fit.err>MAPE_THRESHOLD? "#b45309":"#059669");
+};
+
+/* 해피 프리셋: 같은 이름이면 k/u 채우기 + 불일치 표시 */
+btnPresetKU.onclick=()=>{
+  if(!selected){ alert("페트를 먼저 선택하세요."); return; }
+  const rec = TRAIN_DB.find(r=>r.name===selected);
+  if(!rec){ alert("프리셋에 같은 이름이 없습니다."); return; }
+  initnum.value = rec.k;
+  uh.value=rec.u.hp; ua.value=rec.u.atk; ud.value=rec.u.def; ug.value=rec.u.agi;
+
+  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
+  const SG={hp:parseFloat(sghp.value),atk:parseFloat(sgatk.value),def:parseFloat(sgdef.value),agi:parseFloat(sgagi.value)};
+  const mismatch=[];
+  if([rec.s0?.hp,rec.s0?.atk,rec.s0?.def,rec.s0?.agi].every(Number.isFinite) && S0.every(Number.isFinite)){
+    const diff = [Math.abs(rec.s0.hp-S0[0]),Math.abs(rec.s0.atk-S0[1]),Math.abs(rec.s0.def-S0[2]),Math.abs(rec.s0.agi-S0[3])];
+    if(diff.some(x=>x>0.3)) mismatch.push(`S0 불일치: Δ=${diff.map(n=>n.toFixed(2)).join('/')}`);
+  }
+  if([rec.sg?.hp,rec.sg?.atk,rec.sg?.def,rec.sg?.agi].every(Number.isFinite) && [SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+    const diff = [Math.abs(rec.sg.hp-SG.hp),Math.abs(rec.sg.atk-SG.atk),Math.abs(rec.sg.def-SG.def),Math.abs(rec.sg.agi-SG.agi)];
+    if(diff.some(x=>x>0.3)) mismatch.push(`Sg 불일치: Δ=${diff.map(n=>n.toFixed(2)).join('/')}`);
+  }
+  const e = S0.every(Number.isFinite)? mapeForKU(S0, rec.k, rec.u): NaN;
+  if(Number.isFinite(e)) { mape.value=e.toFixed(3); mape.style.color=(e>MAPE_THRESHOLD? "#b45309":"#059669"); }
+
+  if(mismatch.length){ mismatchBox.style.display="block"; mismatchBox.innerHTML="프리셋 대비 불일치: "+mismatch.join(" · "); }
+  else { mismatchBox.style.display="none"; mismatchBox.innerHTML=""; }
+};
 
 /* 저장/삭제 */
 btnSave.onclick=()=>{
   if(!selected){ alert("페트를 선택하세요."); return; }
   const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
   if(S0.some(x=>!Number.isFinite(x))){ alert("S0(표기 초기치)를 모두 입력하세요."); return; }
-  const fit=inferKUfromS0(S0);
-  if(!fit){ alert("k/u 역추정 실패: S0를 확인하세요."); return; }
-  const t=loadTable();
-  t[selected] = {
+  const SG={ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) };
+
+  let ku=null, note="";
+  if(isFilledKU()){
+    const k=parseInt(initnum.value,10);
+    const u={hp:+uh.value, atk:+ua.value, def:+ud.value, agi:+ug.value};
+    const err=mapeForKU(S0,k,u);
+    ku={k,u,err:+err.toFixed(3)};
+    note = err>MAPE_THRESHOLD ? `저장됨(경고: MAPE ${err.toFixed(3)}%) — 자동추정 보류 권장` : "저장됨.";
+  }else{
+    const fit=scanKUfromS0(S0);
+    if(fit && fit.err<=MAPE_THRESHOLD){
+      ku={k:fit.k, u:fit.u, err:+fit.err.toFixed(3)};
+      note="저장됨(자동추정).";
+    }else{
+      ku=null;
+      note="S0만 저장됨(자동추정 값 보류: MAPE 초과). k/u는 수동 입력하세요.";
+    }
+  }
+
+  WORKING[selected] = {
     s0:{ hp:round2(s0hp.value), atk:round2(s0atk.value), def:round2(s0def.value), agi:round2(s0agi.value) },
-    sg:{ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) },
-    k: fit.k,
-    u: fit.u,
-    mape: +fit.err.toFixed(3),
+    sg: SG,
+    ...(ku? {k:ku.k, u:ku.u, mape:ku.err}: {}),
     r: rOverride.value||"",
     updated: Date.now()
   };
-  saveTable(t);
-  saveMsg.textContent = fit.err>MAPE_THRESHOLD ? `저장됨(경고: MAPE ${fit.err.toFixed(3)}%)` : "저장됨.";
+  saveLS(WORKING);
+  saveMsg.textContent=note;
   renderList();
 };
 btnDelete.onclick=()=>{
   if(!selected) return;
-  const t=loadTable(); delete t[selected]; saveTable(t);
-  select(selected); renderList(); saveMsg.textContent="삭제됨.";
-};
-function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
-function round2(v){ const n=parseFloat(v); return Number.isFinite(n)? +n.toFixed(2): ""; }
-
-/* ===== 서버 동기화(GitHub) ===== */
-function toBase64(str){ return btoa(unescape(encodeURIComponent(str))); }
-function fromBase64(b64){ return decodeURIComponent(escape(atob(b64))); }
-const RAW_URL = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${GH_PATH}`;
-
-async function githubGetFileMeta(token){
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
-  const res = await fetch(url, {
-    headers:{
-      "Accept":"application/vnd.github+json",
-      ...(token? {"Authorization":`Bearer ${token}`} : {})
-    }
-  });
-  if(res.status===404) return null; // 파일 없음
-  if(!res.ok) throw new Error("GitHub GET 실패: "+res.status);
-  return res.json(); // { content(base64), sha, path, ... }
-}
-async function serverPull(){
-  // 읽기는 토큰 없이 raw가 더 간단/빠름
-  const res = await fetch(RAW_URL + `?v=${Date.now()}`, {cache:"no-store"});
-  if(!res.ok) throw new Error(`서버 JSON 없음 또는 권한 문제(${res.status})`);
-  const obj = await res.json();
-  if(typeof obj!=="object" || Array.isArray(obj)) throw new Error("JSON 스키마가 객체가 아님");
-  saveTable(obj);
+  delete WORKING[selected]; saveLS(WORKING);
+  // 폼 초기화
+  nameEl.textContent="미선택";
+  [s0hp,s0atk,s0def,s0agi,sghp,sgatk,sgdef,sgagi,initnum,uh,ua,ud,ug,mape].forEach(i=>i.value="");
+  rOverride.value=""; saveMsg.textContent="삭제됨.";
   renderList();
-  serverInfo.textContent = "서버에서 불러옴 ✓";
-}
-async function serverPush(){
-  const token = prompt("GitHub Personal Access Token을 입력하세요 (repo:contents 권한). 저장하지 않습니다.");
-  if(!token) return;
+};
 
-  // 1) 현재 서버 파일 sha 조회(없으면 null)
-  const meta = await githubGetFileMeta(token);
-  const sha = meta?.sha;
-
-  // 2) 로컬 테이블 직렬화
-  const table = loadTable();
-  const json = JSON.stringify(table, null, 2) + "\n";
-  const body = {
-    message: `Update ${GH_PATH} via admin.html (${new Date().toISOString()})`,
-    content: toBase64(json),
-    branch: GH_BRANCH,
-    ...(sha? {sha}: {})
-  };
-
-  // 3) PUT 커밋
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
-  const res = await fetch(url, {
-    method:"PUT",
-    headers:{
-      "Accept":"application/vnd.github+json",
-      "Authorization":`Bearer ${token}`
-    },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok){
-    const t = await res.text().catch(()=>res.statusText);
-    throw new Error(`배포 실패: ${res.status} ${t}`);
+/* 내보내기/가져오기/초기화 */
+btnExport.onclick=()=>{
+  const blob=new Blob([JSON.stringify(WORKING,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`pets_v${APP_VERSION}.json`; a.click();
+  URL.revokeObjectURL(url);
+};
+btnImport.onclick=()=>{
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
+    const rdr=new FileReader(); rdr.onload=()=>{ try{
+      const obj=JSON.parse(rdr.result);
+      if(typeof obj!=="object" || Array.isArray(obj)) throw new Error("루트가 객체가 아님");
+      WORKING=obj; saveLS(WORKING); renderList(); saveMsg.textContent="가져오기 완료(작업본). 퍼블리시로 서버 반영.";
+    }catch(e){ alert("JSON 파싱 실패: "+e.message); } }; rdr.readAsText(f);
+  }; inp.click();
+};
+btnWipe.onclick=()=>{
+  if(confirm("정말 전체 초기화할까요? (되돌릴 수 없습니다)")){
+    localStorage.removeItem(LS_TABLE);
+    WORKING={}; renderList(); saveMsg.textContent="로컬 작업본 초기화됨. (서버에는 영향 없음)";
   }
-  serverInfo.textContent = "서버로 배포 완료 ✓ (잠시 후 모든 기기 반영)";
-}
+};
 
-btnServerPull.onclick=()=>serverPull().catch(e=>alert(e.message));
-btnServerPush.onclick=()=>serverPush().catch(e=>alert(e.message));
-serverInfo.textContent = `${GH_OWNER}/${GH_REPO}@${GH_BRANCH} · ${GH_PATH}`;
+/* 서버 불러오기/퍼블리시 */
+btnReload.onclick=async()=>{
+  try{
+    await loadRemoteAll();
+    saveMsg.textContent="서버에서 최신 테이블 로드됨.";
+  }catch(e){ alert("서버 로드 실패: "+e.message); }
+};
+async function githubGet(path, token){
+  const res=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,{
+    headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json"}
+  }); if(!res.ok) throw new Error("GET "+res.status); return res.json();
+}
+async function githubPut(path, contentObj, token, message){
+  const enc=btoa(unescape(encodeURIComponent(JSON.stringify(contentObj,null,2))));
+  let sha=null;
+  try{ const meta=await githubGet(path, token); sha=meta.sha; }catch{}
+  const res=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,{
+    method:"PUT",
+    headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json"},
+    body:JSON.stringify({
+      message: message || `update ${path} via admin v${APP_VERSION}`,
+      content: enc,
+      sha,
+      branch: GH_BRANCH,
+      committer:{name:"NOVA Admin", email:"noreply@example.com"}
+    })
+  });
+  if(!res.ok){ const t=await res.text(); throw new Error("PUT "+res.status+" — "+t); }
+  return res.json();
+}
+btnPublish.onclick=async()=>{
+  try{
+    const token = sessionStorage.getItem("gh_pat") || prompt("GitHub Personal Access Token을 입력하세요 (repo:contents 권한 필요). 세션에만 보관됩니다.");
+    if(!token) return;
+    sessionStorage.setItem("gh_pat", token);
+    // 퍼블리시 전 간단 검증
+    const keys=Object.keys(WORKING||{});
+    if(keys.length===0){ if(!confirm("비어있는 테이블입니다. 정말 서버에 비운 상태로 퍼블리시할까요?")) return; }
+    await githubPut(PATH_PETS, WORKING, token, `chore: publish pets.json (${new Date().toISOString()})`);
+    alert("퍼블리시 완료! (GitHub Pages는 캐싱 때문에 반영까지 수십 초~수 분 소요될 수 있습니다.)");
+  }catch(e){ alert("퍼블리시 실패: "+e.message); }
+};
+
+/* 부팅 */
+(async function init(){
+  if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
+  await loadRemoteAll();
+})();
 </script>
 </body>
 </html>
