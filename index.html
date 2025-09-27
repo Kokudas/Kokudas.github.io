@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 (v0.7)</title>
+<title>노바 서버 펫 계산기 (v0.8)</title>
 <style>
   html { scrollbar-gutter: stable; }
   @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
@@ -72,6 +72,7 @@
   .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
   .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
   .tag.warn{border-color:#7a5b0e; background:#241a05; color:#ffb300}
+
   .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
   @media (max-width: 720px){ .kpis{grid-template-columns: 1fr} }
   .kpi{
@@ -91,13 +92,15 @@
   .imgbox{width:100%; aspect-ratio: 16/9; border:1px dashed #334055; border-radius:12px; display:grid; place-items:center; background:#0d1117; overflow:hidden;}
   .imgbox img{width:100%; height:100%; object-fit:cover; display:block}
   .stepper{display:flex; gap:6px; margin-top:6px}
+  .hint{font-size:12px; color:var(--muted); margin-top:8px}
+  .mini{font-size:11px; color:#9aa3b1}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">NOVA SERVER PET Calculator</div>
   <div class="ver">
-    <span>v0.7 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
+    <span>v0.8 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
     <button class="btn ghost" id="btnAdmin">★</button>
   </div>
 </header>
@@ -124,6 +127,7 @@
           <button class="btn" id="btnClear">지우기</button>
         </div>
         <div class="list" id="petList"></div>
+        <div id="dataStatus" class="hint"></div>
       </div>
     </div>
     <p class="muted" style="margin-top:8px">팁: 초성만 두세 번 눌러도 후보가 빠르게 걸러집니다. (예: 반기노 = <span class="kbd">ㅂ</span>→<span class="kbd">ㄱ</span>)</p>
@@ -187,6 +191,7 @@
             </div>
           </div>
         </div>
+        <div id="kuStatus" class="mini"></div>
       </div>
     </div>
 
@@ -250,7 +255,7 @@
         decoding="async"
       />
     </div>
-    <p class="muted" style="margin-top:8px">본 계산기는 오픈 소스로 만들어졌습니다. </p>
+    <p class="muted" style="margin-top:8px">본 계산기는 오픈 소스로 만들어졌습니다.</p>
   </section>
 
 </div>
@@ -266,13 +271,13 @@
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json";                // 관리자가 커밋하는 메인 테이블
-const TRAIN_PATH= "data/happy_training.min.json";  // 해피 서버 학습셋(대용량 가능)
+const PETS_PATH = "data/pets.json";                // 관리자 퍼블리시(메인 테이블)
+const TRAIN_PATH= "data/happy_training.min.json";  // 해피 서버 학습셋
 const REMOTE_PETS  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
 const REMOTE_TRAIN = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${TRAIN_PATH}`;
 
 /* ========= 상수 ========= */
-const APP_VERSION = "0.7";
+const APP_VERSION = "0.8";
 const LS_TABLE = "novaPetTable";
 const TOTAL = 178750;
 const ADMIN_PASS = "kokudas";
@@ -282,177 +287,16 @@ function precise(n){ return Math.round(n*1e12)/1e12; }
 function toNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? v : NaN; }
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function setJSONLS(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
-const unique = arr => [...new Set(arr)];
-
-/* ========= 원격 로드(서버 우선, 실패 시 로컬) ========= */
 async function fetchJSON(url){
   const res = await fetch(url + `?v=${Date.now()}`, {cache:"no-store"});
   if(!res.ok) throw new Error("HTTP "+res.status);
   return await res.json();
 }
-async function loadGlobalTable(){
-  try{
-    const obj0 = await fetchJSON(REMOTE_PETS);
-    let obj = obj0;
-    if(Array.isArray(obj)) obj = Object.fromEntries(obj.map(r => [r.name, r]));
-    if(!obj || typeof obj!=="object" || Array.isArray(obj)) throw 0;
-    setJSONLS(LS_TABLE, obj);
-    return obj;
-  }catch{
-    return getJSONLS(LS_TABLE, {});
-  }
-}
 
-/* ========= 학습셋 로드(KNN용) =========
-   - 없으면 최소 백업 4종(반기노/반보로/카키/오가로스)으로 작동
-*/
-const TRAIN_FALLBACK=[
-  {name:"반기노", s0:{hp:52.39, atk:12.64, def:7.49, agi:6.37}, sg:{hp:9.97, atk:2.41, def:1.43, agi:1.21}, k:26, u:{hp:24, atk:38, def:16, agi:20}},
-  {name:"반보로", s0:{hp:55.48, atk:12.90, def:7.80, agi:6.88}, sg:{hp:10.17,atk:2.36, def:1.43, agi:1.26}, k:27, u:{hp:25, atk:37, def:16, agi:21}},
-  {name:"카키",   s0:{hp:33.30, atk:6.62,  def:4.46, agi:7.50},  sg:{hp:9.24, atk:1.84, def:1.24, agi:2.08},  k:20, u:{hp:17, atk:23, def:11, agi:33}},
-  {name:"오가로스",s0:{hp:55.80, atk:11.84, def:9.89, agi:5.88}, sg:{hp:10.11,atk:2.15, def:1.79, agi:1.07}, k:24, u:{hp:30, atk:37, def:28, agi:20}},
-];
-let TRAIN_DB = TRAIN_FALLBACK; // 로드 후 대체
-async function loadTraining(){
-  try{
-    const arr = await fetchJSON(REMOTE_TRAIN);
-    if(!Array.isArray(arr)) throw 0;
-    return arr.filter(r => r && r.s0 && r.k && r.u);
-  }catch{
-    return TRAIN_FALLBACK;
-  }
-}
-
-/* ========= KNN 추정기 ========= */
-function standardizeDataset(rows){
-  const feats = rows.map(r=>{
-    const S0=r.s0, SG=r.sg||{};
-    return [
-      S0.hp, S0.atk, S0.def, S0.agi,
-      SG.hp||0, SG.atk||0, SG.def||0, SG.agi||0
-    ];
-  });
-  const mu = Array(8).fill(0), sd = Array(8).fill(0);
-  for(const v of feats){ for(let i=0;i<8;i++) mu[i]+=v[i]; }
-  for(let i=0;i<8;i++) mu[i]/=feats.length || 1;
-  for(const v of feats){ for(let i=0;i<8;i++){ const d=v[i]-mu[i]; sd[i]+=d*d; } }
-  for(let i=0;i<8;i++) sd[i] = Math.sqrt(sd[i]/Math.max(1,feats.length-1)) || 1;
-  return {mu, sd};
-}
-function vecFrom(S0,SG){
-  return [
-    S0.hp, S0.atk, S0.def, S0.agi,
-    (SG?.hp)||0, (SG?.atk)||0, (SG?.def)||0, (SG?.agi)||0
-  ];
-}
-function knnKU(S0, SG, K=5){
-  if(!Array.isArray(TRAIN_DB) || TRAIN_DB.length===0) return null;
-  const {mu,sd} = standardizeDataset(TRAIN_DB);
-  const q = vecFrom(S0,SG);
-  function distRow(r){
-    const v=vecFrom(r.s0,r.sg);
-    let s=0; for(let i=0;i<8;i++){
-      const z=( (v[i]-mu[i]) / sd[i] );
-      const zq=((q[i]-mu[i])/sd[i]);
-      const d=z-zq; s+=d*d;
-    }
-    return Math.sqrt(s);
-  }
-  const scored = TRAIN_DB.map(r=>({r, d:distRow(r)})).sort((a,b)=>a.d-b.d).slice(0, Math.min(K, TRAIN_DB.length));
-  const eps=1e-6;
-  let wsum=0, ksum=0, uh=0, ua=0, ud=0, ug=0;
-  for(const {r,d} of scored){
-    const w=1/(d+eps);
-    wsum+=w; ksum+=w*r.k;
-    uh+=w*r.u.hp; ua+=w*r.u.atk; ud+=w*r.u.def; ug+=w*r.u.agi;
-  }
-  const k = Math.round(ksum/wsum);
-  const u = { hp:Math.round(uh/wsum), atk:Math.round(ua/wsum), def:Math.round(ud/wsum), agi:Math.round(ug/wsum) };
-  return {k,u,neighbors:scored};
-}
-
-/* ========= 선형 역산 + k스캔(보조) ========= */
-function solveVfromS0(S0){
-  const [S_HP,S_ATK,S_DEF,S_AGI]=S0;
-  const G=S_AGI;
-  const SHPp=S_HP-G, SATKp=S_ATK-0.05*G, SDEFp=S_DEF-0.05*G;
-  const alpha=0.9/0.99, denom=3.9-0.09*alpha;
-  const H=((SHPp-SATKp) - alpha*SDEFp + alpha*0.1*SATKp)/denom;
-  const D=(SDEFp - 0.09*H - 0.1*SATKp)/0.99;
-  const A=SATKp - 0.1*H - 0.1*D;
-  return [H,A,D,G];
-}
-function s0FromV([H,A,D,G]){
-  return [
-    precise(4*H + A + D + G),
-    precise(0.1*H + A + 0.1*D + 0.05*G),
-    precise(0.1*H + 0.1*A + D + 0.05*G),
-    precise(G)
-  ];
-}
-function mape(a,b){
-  let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i])); s += Math.abs(a[i]-b[i])/den; }
-  return s/4*100;
-}
-function scanKUfromS0(S0){
-  const v = solveVfromS0(S0);
-  let best=null;
-  for(let k=16;k<=40;k++){
-    const u = { hp:Math.round(v[0]*100/k), atk:Math.round(v[1]*100/k), def:Math.round(v[2]*100/k), agi:Math.round(v[3]*100/k) };
-    const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
-    const S0b = s0FromV(v2);
-    const err = mape(S0, S0b);
-    if(!best || err < best.err) best = {k,u,S0b,err};
-  }
-  return best; // {k,u,err}
-}
-
-/* ========= 해피식 엔진 ========= */
-function enumerate(pku, obs){
-  const k=pku.k, u=pku.u;
-  const bonuses=[];
-  for(let h=0; h<=10; h++){
-    for(let a=0; a<=10-h; a++){
-      for(let d=0; d<=10-h-a; d++){
-        const g=10-h-a-d; bonuses.push([h,a,d,g]);
-      }
-    }
-  }
-  let matches=0, rank8=0;
-  const dist={};
-  for(let bh=-2; bh<=2; bh++){
-    for(let ba=-2; ba<=2; ba++){
-      for(let bd=-2; bd<=2; bd++){
-        for(let bg=-2; bg<=2; bg++){
-          for(const B of bonuses){
-            const vhp=precise(k*(u.hp + bh + B[0])/100);
-            const vatk=precise(k*(u.atk+ ba + B[1])/100);
-            const vdef=precise(k*(u.def+ bd + B[2])/100);
-            const vagi=precise(k*(u.agi+ bg + B[3])/100);
-
-            const s_hp = precise(vhp*4 + vatk + vdef + vagi);
-            const s_atk= precise(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-            const s_def= precise(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-            const s_agi= vagi;
-
-            if(Math.floor(s_hp)===obs[0] && Math.floor(s_atk)===obs[1] &&
-               Math.floor(s_def)===obs[2] && Math.floor(s_agi)===obs[3]){
-              matches++;
-              const r=bh+ba+bd+bg;
-              dist[r]=(dist[r]||0)+1;
-              if(r===8) rank8++;
-            }
-          }
-        }
-      }
-    }
-  }
-  return {matches, rank8, dist};
-}
-
-/* ========= 이름 인덱스 ========= */
-let NAME_INDEX = [];
-const ALL_PETS = []; // 폴백이지만, 서버/학습셋으로 채우므로 비워도 동작
+/* ========= 전역 상태 ========= */
+let TRAIN_DB = [];          // 학습셋
+let MODELS = null;          // 회귀 모델
+let ALL_PETS = [];          // 표시용 이름 배열(원격 테이블 키)
 
 /* ========= DOM ========= */
 const chosungBar = document.getElementById('chosung');
@@ -483,6 +327,8 @@ const ringAppear = document.getElementById('ringAppear');
 const totMatches = document.getElementById('totMatches');
 const rank8Matches = document.getElementById('rank8Matches');
 const distBox = document.getElementById('dist');
+const dataStatus = document.getElementById('dataStatus');
+const kuStatus = document.getElementById('kuStatus');
 
 const btnCalc = document.getElementById('btnCalc');
 const btnReset= document.getElementById('btnReset');
@@ -538,8 +384,8 @@ let selectedName=null; let selectedRow=null;
 function renderPetList(){
   const kw = (petSearch.value||"").trim();
   const table = loadTable();
-  const base = NAME_INDEX.length ? NAME_INDEX : ALL_PETS; // 안전 폴백
-  const list = base
+  const names = ALL_PETS.length ? ALL_PETS : Object.keys(table);
+  const list = names
     .filter(n=>{
       const a = kw? n.includes(kw): true;
       const b = currentChosung? getChosung(n).startsWith(currentChosung): true;
@@ -550,7 +396,8 @@ function renderPetList(){
   petList.innerHTML="";
   if(list.length===0){
     const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음';
-    petList.appendChild(d); return;
+    petList.appendChild(d);
+    return;
   }
 
   list.forEach(n=>{
@@ -591,15 +438,248 @@ function selectPetName(n){
   }else{
     obshp.value=obsatk.value=obsdef.value=obsagi.value="";
   }
+  kuStatus.textContent="";
   showKpis(null);
 }
+
+/* ========= 학습셋 로드 ========= */
+async function loadTraining(){
+  try{
+    const arr = await fetchJSON(REMOTE_TRAIN);
+    if(!Array.isArray(arr)) throw 0;
+    const clean = arr.filter(r => r && r.s0 && r.sg && r.k && r.u);
+    console.log("[TRAIN] loaded:", clean.length);
+    return clean;
+  }catch(e){
+    console.warn("[TRAIN] load failed, fallback to 4 seeds.");
+    return [
+      {name:"반기노", s0:{hp:52.39, atk:12.64, def:7.49, agi:6.37}, sg:{hp:9.97, atk:2.41, def:1.43, agi:1.21}, k:26, u:{hp:24, atk:38, def:16, agi:20}},
+      {name:"반보로", s0:{hp:55.48, atk:12.90, def:7.80, agi:6.88}, sg:{hp:10.17,atk:2.36, def:1.43, agi:1.26}, k:27, u:{hp:25, atk:37, def:16, agi:21}},
+      {name:"카키",   s0:{hp:33.30, atk:6.62,  def:4.46, agi:7.50},  sg:{hp:9.24, atk:1.84, def:1.24, agi:2.08},  k:20, u:{hp:17, atk:23, def:11, agi:33}},
+      {name:"오가로스",s0:{hp:55.80, atk:11.84, def:9.89, agi:5.88}, sg:{hp:10.11,atk:2.15, def:1.79, agi:1.07}, k:24, u:{hp:30, atk:37, def:28, agi:20}},
+    ];
+  }
+}
+
+/* ========= 메인 테이블 로드(서버→LS, 그리고 이름목록 동기) ========= */
+async function loadGlobalTable(){
+  try{
+    const obj = await fetchJSON(REMOTE_PETS);
+    if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
+    setJSONLS(LS_TABLE, obj);
+    ALL_PETS = Object.keys(obj);
+    dataStatus.textContent = `서버 테이블 로드: ${ALL_PETS.length.toLocaleString()}종`;
+    return obj;
+  }catch{
+    const local = getJSONLS(LS_TABLE,{});
+    ALL_PETS = Object.keys(local);
+    dataStatus.textContent = `로컬 테이블 로드(폴백): ${ALL_PETS.length.toLocaleString()}종`;
+    return local;
+  }
+}
+
+/* ========= KNN ========= */
+function standardizeDataset(rows){
+  const feats = rows.map(r=>{
+    const S0=r.s0, SG=r.sg||{};
+    return [
+      S0.hp, S0.atk, S0.def, S0.agi,
+      SG.hp||0, SG.atk||0, SG.def||0, SG.agi||0
+    ];
+  });
+  const mu = Array(8).fill(0), sd = Array(8).fill(0);
+  for(const v of feats){ for(let i=0;i<8;i++) mu[i]+=v[i]; }
+  for(let i=0;i<8;i++) mu[i]/=feats.length;
+  for(const v of feats){ for(let i=0;i<8;i++){ const d=v[i]-mu[i]; sd[i]+=d*d; } }
+  for(let i=0;i<8;i++) sd[i] = Math.sqrt(sd[i]/Math.max(1,feats.length-1)) || 1;
+  return {mu, sd};
+}
+function vecFrom(S0,SG){
+  return [
+    S0.hp, S0.atk, S0.def, S0.agi,
+    (SG?.hp)||0, (SG?.atk)||0, (SG?.def)||0, (SG?.agi)||0
+  ];
+}
+function knnKU(S0, SG, K=7){
+  if(!Array.isArray(TRAIN_DB) || TRAIN_DB.length===0) return null;
+  const {mu,sd} = standardizeDataset(TRAIN_DB);
+  const q = vecFrom(S0,SG);
+  function distRow(r){
+    const v=vecFrom(r.s0,r.sg);
+    let s=0; for(let i=0;i<8;i++){ const z=( (v[i]-mu[i]) / sd[i] ); const zq=((q[i]-mu[i])/sd[i]); const d=z-zq; s+=d*d; }
+    return Math.sqrt(s);
+  }
+  const eps=1e-6;
+  const scored = TRAIN_DB.map(r=>({r, d:distRow(r)})).sort((a,b)=>a.d-b.d).slice(0, Math.min(K, TRAIN_DB.length));
+  let wsum=0, ksum=0, uh=0, ua=0, ud=0, ug=0;
+  for(const {r,d} of scored){
+    const w=1/(d+eps);
+    wsum+=w; ksum+=w*r.k;
+    uh+=w*r.u.hp; ua+=w*r.u.atk; ud+=w*r.u.def; ug+=w*r.u.agi;
+  }
+  const k = Math.round(ksum/wsum);
+  const u = { hp:Math.round(uh/wsum), atk:Math.round(ua/wsum), def:Math.round(ud/wsum), agi:Math.round(ug/wsum) };
+  return {k,u,neighbors:scored};
+}
+
+/* ========= 선형(릿지) 회귀 ========= */
+function transpose(A){ return A[0].map((_,j)=>A.map(r=>r[j])); }
+function matMul(A,B){ const m=A.length,n=B[0].length,p=A[0].length; const C=Array.from({length:m},()=>Array(n).fill(0));
+  for(let i=0;i<m;i++) for(let k=0;k<p;k++) for(let j=0;j<n;j++) C[i][j]+=A[i][k]*B[k][j]; return C; }
+function matVec(A,v){ return A.map(row=>row.reduce((s,x,i)=>s+x*v[i],0)); }
+function solveLinearSystem(A,b){
+  const n=A.length; const M=A.map(r=>r.slice()); const v=b.slice();
+  for(let i=0;i<n;i++){
+    let piv=i; for(let r=i+1;r<n;r++) if(Math.abs(M[r][i])>Math.abs(M[piv][i])) piv=r;
+    if(piv!==i){ [M[i],M[piv]]=[M[piv],M[i]]; [v[i],v[piv]]=[v[piv],v[i]]; }
+    const diag=M[i][i]||1e-12;
+    for(let j=i;j<n;j++) M[i][j]/=diag; v[i]/=diag;
+    for(let r=0;r<n;r++){ if(r===i) continue; const factor=M[r][i];
+      for(let j=i;j<n;j++) M[r][j]-=factor*M[i][j]; v[r]-=factor*v[i];
+    }
+  }
+  return v;
+}
+function ridgeSolve(X,y,lambda){
+  const XT = transpose(X);
+  const XTX = matMul(XT, X);
+  for(let i=0;i<XTX.length;i++) XTX[i][i] += lambda;
+  const XTy = matVec(XT, y);
+  return solveLinearSystem(XTX, XTy);
+}
+function fitModelsFromTraining(rows){
+  const X=[], yk=[], yuh=[], yua=[], yud=[], yug=[];
+  rows.forEach(r=>{
+    const f=[1, r.s0.hp, r.s0.atk, r.s0.def, r.s0.agi, r.sg.hp, r.sg.atk, r.sg.def, r.sg.agi];
+    X.push(f); yk.push(r.k); yuh.push(r.u.hp); yua.push(r.u.atk); yud.push(r.u.def); yug.push(r.u.agi);
+  });
+  const lambda=1e-3;
+  const Wk  = ridgeSolve(X, yk, lambda);
+  const Wuh = ridgeSolve(X, yuh,lambda);
+  const Wua = ridgeSolve(X, yua,lambda);
+  const Wud = ridgeSolve(X, yud,lambda);
+  const Wug = ridgeSolve(X, yug,lambda);
+  return {Wk,Wuh,Wua,Wud,Wug};
+}
+function predictKU_byModel(models, S0, SG){
+  if(!models) return null;
+  const f=[1,S0.hp,S0.atk,S0.def,S0.agi, SG.hp||0,SG.atk||0,SG.def||0,SG.agi||0];
+  const dot=(w)=>w.reduce((s,x,i)=>s+x*f[i],0);
+  let k = Math.round(dot(models.Wk));
+  let u = {hp:Math.round(dot(models.Wuh)), atk:Math.round(dot(models.Wua)), def:Math.round(dot(models.Wud)), agi:Math.round(dot(models.Wug))};
+  k = Math.max(16, Math.min(40, k));
+  for(const key of ['hp','atk','def','agi']) u[key]=Math.max(5,Math.min(80,u[key]));
+  return {k,u};
+}
+
+/* ========= S0 재구성 & MAPE ========= */
+function s0FromKU(k,u){
+  const vhp=k*u.hp/100, vatk=k*u.atk/100, vdef=k*u.def/100, vagi=k*u.agi/100;
+  return [
+    precise(4*vhp + vatk + vdef + vagi),
+    precise(0.1*vhp + vatk + 0.1*vdef + 0.05*vagi),
+    precise(0.1*vhp + 0.1*vatk + vdef + 0.05*vagi),
+    precise(vagi),
+  ];
+}
+function mapeS0(target, est){
+  let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(target[i])); s += Math.abs(target[i]-est[i])/den; }
+  return s/4*100;
+}
+
+/* ========= 모델 근방 정수 리파인 ========= */
+function refineKU_local(k0,u0,S0){
+  let best={k:k0,u:{...u0}}; let bestLoss=1e9; let bestMape=1e9;
+  const S0vec=[S0.hp,S0.atk,S0.def,S0.agi];
+  for(let dk=-2; dk<=2; dk++){
+    const k = Math.max(16, Math.min(40, k0+dk));
+    for(let dh=-2; dh<=2; dh++){
+      for(let da=-2; da<=2; da++){
+        for(let dd=-2; dd<=2; dd++){
+          for(let dg=-2; dg<=2; dg++){
+            const u={ hp:Math.max(5,u0.hp+dh), atk:Math.max(5,u0.atk+da), def:Math.max(5,u0.def+dd), agi:Math.max(5,u0.agi+dg) };
+            const est = s0FromKU(k,u);
+            const mape = mapeS0(S0vec, est);
+            const penalty = 0.02*Math.abs(dk) + 0.005*(Math.abs(dh)+Math.abs(da)+Math.abs(dd)+Math.abs(dg));
+            const loss = mape + penalty;
+            if(loss<bestLoss){ bestLoss=loss; best={k,u}; bestMape=mape; }
+          }
+        }
+      }
+    }
+  }
+  best.mape = bestMape;
+  return best;
+}
+
+/* ========= 해피식 엔진(전수) ========= */
+function enumerate(pku, obs){
+  const k=pku.k, u=pku.u;
+  const bonuses=[];
+  for(let h=0; h<=10; h++){
+    for(let a=0; a<=10-h; a++){
+      for(let d=0; d<=10-h-a; d++){
+        const g=10-h-a-d; bonuses.push([h,a,d,g]);
+      }
+    }
+  }
+  let matches=0, rank8=0;
+  const dist={};
+  for(let bh=-2; bh<=2; bh++){
+    for(let ba=-2; ba<=2; ba++){
+      for(let bd=-2; bd<=2; bd++){
+        for(let bg=-2; bg<=2; bg++){
+          for(const B of bonuses){
+            const vhp=precise(k*(u.hp + bh + B[0])/100);
+            const vatk=precise(k*(u.atk+ ba + B[1])/100);
+            const vdef=precise(k*(u.def+ bd + B[2])/100);
+            const vagi=precise(k*(u.agi+ bg + B[3])/100);
+
+            const s_hp = precise(vhp*4 + vatk + vdef + vagi);
+            const s_atk= precise(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+            const s_def= precise(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+            const s_agi= vagi;
+
+            if(Math.floor(s_hp)===obs[0] && Math.floor(s_atk)===obs[1] &&
+               Math.floor(s_def)===obs[2] && Math.floor(s_agi)===obs[3]){
+              matches++;
+              const r=bh+ba+bd+bg;
+              dist[r]=(dist[r]||0)+1;
+              if(r===8) rank8++;
+            }
+          }
+        }
+      }
+    }
+  }
+  return {matches, rank8, dist};
+}
+
+/* ========= 관측치 편의 ========= */
+function enableWheelStep(el){
+  el.addEventListener('wheel',(e)=>{
+    if(document.activeElement!==el) return;
+    e.preventDefault();
+    const delta = e.deltaY<0? 1 : -1;
+    const curr = parseInt(el.value||"0",10);
+    el.value = String(curr + delta);
+  }, {passive:false});
+}
+[obsatk,obshp,obsdef,obsagi].forEach(enableWheelStep);
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-delta][data-target]'); if(!btn) return;
+  const id = btn.getAttribute('data-target'); const delta = parseInt(btn.getAttribute('data-delta'),10);
+  const input=document.getElementById(id); if(!input) return;
+  const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
+});
 
 /* ========= KPI 렌더 ========= */
 function showKpis(res){
   if(!res){
     kpiSuccess.textContent="—%"; kpiAppear.textContent="—%"; kpiTries.textContent="—";
     ringSuccess.style.setProperty("--p","0deg"); ringAppear.style.setProperty("--p","0deg");
-    totMatches.textContent="—"; rank8Matches.textContent="—"; distBox.innerHTML=""; return;
+    totMatches.textContent="—"; rank8Matches.textContent="—"; distBox.innerHTML="";
+    return;
   }
   const {matches, rank8}=res;
   const appear = matches/TOTAL*100;
@@ -628,24 +708,6 @@ function showKpis(res){
   distBox.innerHTML = html;
 }
 
-/* ========= 관측치 편의 ========= */
-function enableWheelStep(el){
-  el.addEventListener('wheel',(e)=>{
-    if(document.activeElement!==el) return;
-    e.preventDefault();
-    const delta = e.deltaY<0? 1 : -1;
-    const curr = parseInt(el.value||"0",10);
-    el.value = String(curr + delta);
-  }, {passive:false});
-}
-[obsatk,obshp,obsdef,obsagi].forEach(enableWheelStep);
-document.addEventListener('click', (e)=>{
-  const btn = e.target.closest('[data-delta][data-target]'); if(!btn) return;
-  const id = btn.getAttribute('data-target'); const delta = parseInt(btn.getAttribute('data-delta'),10);
-  const input=document.getElementById(id); if(!input) return;
-  const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
-});
-
 /* ========= 계산 ========= */
 btnCalc.addEventListener('click', async ()=>{
   if(!selectedName){ alert("펫을 먼저 선택하세요."); return; }
@@ -664,24 +726,61 @@ btnCalc.addEventListener('click', async ()=>{
 
   // 1) 테이블에서 k/u 시도
   const table=loadTable(); const row=table[selectedName]||{};
-  let k=row.k ?? row.initnum; let u=row.u;
+  let k=row.k ?? row.initnum; let u=row.u; let source=null;
 
-  // 2) 없으면 KNN 시도
-  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp) && Number.isFinite(u.atk) && Number.isFinite(u.def) && Number.isFinite(u.agi))){
+  // 2) 없으면 모델 예측(+리파인)
+  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp)&&Number.isFinite(u.atk)&&Number.isFinite(u.def)&&Number.isFinite(u.agi))){
+    if(MODELS){
+      const s0Obj={hp:S0[0], atk:S0[1], def:S0[2], agi:S0[3]};
+      const pred = predictKU_byModel(MODELS, s0Obj, SG);
+      if(pred){
+        const ref = refineKU_local(pred.k, pred.u, s0Obj);
+        k=ref.k; u=ref.u; source=`모델+리파인 (MAPE ${ref.mape.toFixed(3)}%)`;
+      }
+    }
+  }
+
+  // 3) 그래도 없으면 KNN(+리파인)
+  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp)&&Number.isFinite(u.atk)&&Number.isFinite(u.def)&&Number.isFinite(u.agi))){
     const s0Obj={hp:S0[0], atk:S0[1], def:S0[2], agi:S0[3]};
-    const knn = knnKU(s0Obj, SG);
-    if(knn){ k=knn.k; u=knn.u; }
+    const knn = knnKU(s0Obj, SG, 7);
+    if(knn){
+      const ref = refineKU_local(knn.k, knn.u, s0Obj);
+      k=ref.k; u=ref.u; source=`KNN+리파인 (MAPE ${ref.mape.toFixed(3)}%)`;
+    }
   }
 
-  // 3) 그래도 없으면 보조(역산+스캔)
-  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp) && Number.isFinite(u.atk) && Number.isFinite(u.def) && Number.isFinite(u.agi))){
-    const fit = scanKUfromS0(S0);
-    if(fit){ k=fit.k; u=fit.u; }
+  // 4) 마지막: S0 스캔(최후수단)
+  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp)&&Number.isFinite(u.atk)&&Number.isFinite(u.def)&&Number.isFinite(u.agi))){
+    const fit = (function scanKUfromS0(S0){
+      const [S_HP,S_ATK,S_DEF,S_AGI]=S0;
+      const G=S_AGI;
+      const SHPp=S_HP-G, SATKp=S_ATK-0.05*G, SDEFp=S_DEF-0.05*G;
+      const alpha=0.9/0.99, denom=3.9-0.09*alpha;
+      const H=((SHPp-SATKp) - alpha*SDEFp + alpha*0.1*SATKp)/denom;
+      const D=(SDEFp - 0.09*H - 0.1*SATKp)/0.99;
+      const A=SATKp - 0.1*H - 0.1*D;
+      const v=[H,A,D,G];
+      let best=null;
+      for(let k=16;k<=40;k++){
+        const u = { hp:Math.round(v[0]*100/k), atk:Math.round(v[1]*100/k), def:Math.round(v[2]*100/k), agi:Math.round(v[3]*100/k) };
+        const est = s0FromKU(k,u);
+        const err = mapeS0(S0, est);
+        if(!best || err < best.err) best = {k,u,err};
+      }
+      return best;
+    })(S0);
+    if(fit){ k=fit.k; u=fit.u; source=`S0스캔 (MAPE ${fit.err.toFixed(3)}%)`; }
   }
 
-  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp) && Number.isFinite(u.atk) && Number.isFinite(u.def) && Number.isFinite(u.agi))){
+  if(!(Number.isFinite(k) && u && Number.isFinite(u.hp)&&Number.isFinite(u.atk)&&Number.isFinite(u.def)&&Number.isFinite(u.agi))){
     alert("k/u 추정 실패: S0/SG를 확인하세요."); return;
   }
+
+  // 상태 디버깅
+  const s0Est = s0FromKU(k,u);
+  const s0Mape = mapeS0([S0[0],S0[1],S0[2],S0[3]], s0Est);
+  kuStatus.textContent = `k=${k}, u=(${u.hp},${u.atk},${u.def},${u.agi}) · S0 MAPE=${s0Mape.toFixed(3)}%` + (source? ` · ${source}`:"");
 
   const res = enumerate({k,u}, obs);
   showKpis(res);
@@ -693,7 +792,7 @@ btnReset.addEventListener('click', ()=>{
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
   renderPetList();
   [s0hp,s0atk,s0def,s0agi,sghp,sgatk,sgdef,sgagi,obshp,obsatk,obsdef,obsagi].forEach(i=>i.value="");
-  showKpis(null);
+  showKpis(null); kuStatus.textContent="";
 });
 btnClear.addEventListener('click', ()=>{
   petSearch.value=""; currentChosung="";
@@ -702,20 +801,11 @@ btnClear.addEventListener('click', ()=>{
 });
 petSearch.addEventListener('input', renderPetList);
 
-/* ========= 부팅(원격 먼저 로드) ========= */
+/* ========= 부팅 ========= */
 (async function init(){
   TRAIN_DB = await loadTraining();
-  const server = await loadGlobalTable(); // 성공 시 LS에 최신으로 덮음
-  const serverNames = Object.keys(server || {});
-  const knnNames = TRAIN_DB.map(r => r.name).filter(Boolean);
-
-  // ① 서버키 우선, ② 없으면 ALL_PETS, ③ 그것도 없으면 KNN 백업
-  NAME_INDEX = (serverNames.length
-    ? unique([...serverNames, ...knnNames])
-    : (ALL_PETS.length ? ALL_PETS.slice() : knnNames)
-  ).sort((a,b)=>a.localeCompare(b,'ko'));
-
-  currentChosung = ""; petSearch.value = "";
+  MODELS = (TRAIN_DB && TRAIN_DB.length>=20) ? fitModelsFromTraining(TRAIN_DB) : null;
+  await loadGlobalTable(); // 성공 시 LS에 최신으로 덮음 + ALL_PETS 동기
   renderPetList();
 })();
 </script>
