@@ -282,6 +282,7 @@ function precise(n){ return Math.round(n*1e12)/1e12; }
 function toNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? v : NaN; }
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function setJSONLS(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+const unique = arr => [...new Set(arr)];
 
 /* ========= 원격 로드(서버 우선, 실패 시 로컬) ========= */
 async function fetchJSON(url){
@@ -291,8 +292,10 @@ async function fetchJSON(url){
 }
 async function loadGlobalTable(){
   try{
-    const obj = await fetchJSON(REMOTE_PETS);
-    if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
+    const obj0 = await fetchJSON(REMOTE_PETS);
+    let obj = obj0;
+    if(Array.isArray(obj)) obj = Object.fromEntries(obj.map(r => [r.name, r]));
+    if(!obj || typeof obj!=="object" || Array.isArray(obj)) throw 0;
     setJSONLS(LS_TABLE, obj);
     return obj;
   }catch{
@@ -310,12 +313,10 @@ const TRAIN_FALLBACK=[
   {name:"오가로스",s0:{hp:55.80, atk:11.84, def:9.89, agi:5.88}, sg:{hp:10.11,atk:2.15, def:1.79, agi:1.07}, k:24, u:{hp:30, atk:37, def:28, agi:20}},
 ];
 let TRAIN_DB = TRAIN_FALLBACK; // 로드 후 대체
-
 async function loadTraining(){
   try{
     const arr = await fetchJSON(REMOTE_TRAIN);
     if(!Array.isArray(arr)) throw 0;
-    // 간단 검증
     return arr.filter(r => r && r.s0 && r.k && r.u);
   }catch{
     return TRAIN_FALLBACK;
@@ -324,7 +325,6 @@ async function loadTraining(){
 
 /* ========= KNN 추정기 ========= */
 function standardizeDataset(rows){
-  // 피처: S0 4개 + SG 4개 (SG 없으면 0으로)
   const feats = rows.map(r=>{
     const S0=r.s0, SG=r.sg||{};
     return [
@@ -333,10 +333,8 @@ function standardizeDataset(rows){
     ];
   });
   const mu = Array(8).fill(0), sd = Array(8).fill(0);
-  // mean
   for(const v of feats){ for(let i=0;i<8;i++) mu[i]+=v[i]; }
-  for(let i=0;i<8;i++) mu[i]/=feats.length;
-  // std
+  for(let i=0;i<8;i++) mu[i]/=feats.length || 1;
   for(const v of feats){ for(let i=0;i<8;i++){ const d=v[i]-mu[i]; sd[i]+=d*d; } }
   for(let i=0;i<8;i++) sd[i] = Math.sqrt(sd[i]/Math.max(1,feats.length-1)) || 1;
   return {mu, sd};
@@ -353,11 +351,14 @@ function knnKU(S0, SG, K=5){
   const q = vecFrom(S0,SG);
   function distRow(r){
     const v=vecFrom(r.s0,r.sg);
-    let s=0; for(let i=0;i<8;i++){ const z=( (v[i]-mu[i]) / sd[i] ); const zq=((q[i]-mu[i])/sd[i]); const d=z-zq; s+=d*d; }
+    let s=0; for(let i=0;i<8;i++){
+      const z=( (v[i]-mu[i]) / sd[i] );
+      const zq=((q[i]-mu[i])/sd[i]);
+      const d=z-zq; s+=d*d;
+    }
     return Math.sqrt(s);
   }
   const scored = TRAIN_DB.map(r=>({r, d:distRow(r)})).sort((a,b)=>a.d-b.d).slice(0, Math.min(K, TRAIN_DB.length));
-  // 가중 평균 (1/(d+eps))
   const eps=1e-6;
   let wsum=0, ksum=0, uh=0, ua=0, ud=0, ug=0;
   for(const {r,d} of scored){
@@ -449,10 +450,9 @@ function enumerate(pku, obs){
   return {matches, rank8, dist};
 }
 
-/* ========= 전체 페트명 (관리자와 동기) ========= */
-const ALL_PETS = [/* 네가 쓰던 전체 리스트 그대로 붙여넣기 */
-  /* …중략… */
-];
+/* ========= 이름 인덱스 ========= */
+let NAME_INDEX = [];
+const ALL_PETS = []; // 폴백이지만, 서버/학습셋으로 채우므로 비워도 동작
 
 /* ========= DOM ========= */
 const chosungBar = document.getElementById('chosung');
@@ -538,7 +538,8 @@ let selectedName=null; let selectedRow=null;
 function renderPetList(){
   const kw = (petSearch.value||"").trim();
   const table = loadTable();
-  const list = ALL_PETS
+  const base = NAME_INDEX.length ? NAME_INDEX : ALL_PETS; // 안전 폴백
+  const list = base
     .filter(n=>{
       const a = kw? n.includes(kw): true;
       const b = currentChosung? getChosung(n).startsWith(currentChosung): true;
@@ -547,7 +548,10 @@ function renderPetList(){
     .sort((a,b)=>a.localeCompare(b,'ko'));
 
   petList.innerHTML="";
-  if(list.length===0){ const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음'; petList.appendChild(d); return; }
+  if(list.length===0){
+    const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음';
+    petList.appendChild(d); return;
+  }
 
   list.forEach(n=>{
     const div=document.createElement('div'); div.className='item';
@@ -701,7 +705,17 @@ petSearch.addEventListener('input', renderPetList);
 /* ========= 부팅(원격 먼저 로드) ========= */
 (async function init(){
   TRAIN_DB = await loadTraining();
-  await loadGlobalTable(); // 성공 시 LS에 최신으로 덮음
+  const server = await loadGlobalTable(); // 성공 시 LS에 최신으로 덮음
+  const serverNames = Object.keys(server || {});
+  const knnNames = TRAIN_DB.map(r => r.name).filter(Boolean);
+
+  // ① 서버키 우선, ② 없으면 ALL_PETS, ③ 그것도 없으면 KNN 백업
+  NAME_INDEX = (serverNames.length
+    ? unique([...serverNames, ...knnNames])
+    : (ALL_PETS.length ? ALL_PETS.slice() : knnNames)
+  ).sort((a,b)=>a.localeCompare(b,'ko'));
+
+  currentChosung = ""; petSearch.value = "";
   renderPetList();
 })();
 </script>
