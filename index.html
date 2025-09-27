@@ -198,6 +198,12 @@
     <div class="row" style="margin-top:12px">
       <button class="btn primary" id="btnCalc">계산</button>
       <button class="btn ghost" id="btnReset">리셋</button>
+      <!-- 개발용 토글 (선택) -->
+<select id="intModeSel">
+  <option value="round2_then_floor">round2_then_floor (추천)</option>
+  <option value="nearest">nearest</option>
+  <option value="floor">floor</option>
+</select>
       <span class="muted" style="margin-left:auto">스크롤 업/다운으로 수치 조정 가능</span>
     </div>
   </section>
@@ -836,6 +842,10 @@ petSearch.addEventListener('input', renderPetList);
   await loadGlobalTable(); // 성공 시 LS에 최신으로 덮음 + ALL_PETS 동기
   renderPetList();
 })();
+
+const sel=document.getElementById('intModeSel');
+  if(sel){ sel.value = MODEL.intMode; sel.onchange=()=>{ MODEL.intMode = sel.value; }; }
+  
 </script>
 
 </body>
