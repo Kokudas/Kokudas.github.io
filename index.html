@@ -6,6 +6,38 @@
 <title>노바 서버 펫 계산기 1.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
+  /* 커스텀 툴팁 */
+.tag.tip{ position:relative; }
+.tag.tip::before,
+.tag.tip::after{ 
+  position:absolute; opacity:0; pointer-events:none; transition:opacity .12s ease, transform .12s ease; 
+}
+.tag.tip::after{
+  content: attr(data-tip);
+  left: 50%; bottom: calc(100% + 8px);
+  transform: translate(-50%, 4px);
+  background: #0b1320; color: #cfe1ff; border:1px solid #2b3a55;
+  padding:8px 10px; border-radius:10px; font-size:12px; line-height:1.35;
+  white-space: normal; max-width: 320px; z-index: 20;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.tag.tip::before{
+  content:""; width:10px; height:10px; 
+  left: 50%; bottom: calc(100% + 3px); transform: translate(-50%, 8px) rotate(45deg);
+  background:#0b1320; border-left:1px solid #2b3a55; border-top:1px solid #2b3a55; z-index: 21;
+}
+.tag.tip:hover::before,
+.tag.tip:hover::after,
+.tag.tip:focus::before,
+.tag.tip:focus::after,
+.tag.tip.show::before,
+.tag.tip.show::after{
+  opacity:1; transform: translate(-50%, 0);
+}
+
+/* 좁은 화면에서 너무 좌우로 길면 줄바꿈 허용 */
+.tag.tip::after{ word-break: keep-all; }
+
   html { scrollbar-gutter: stable; }
   @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
   :root{
@@ -405,26 +437,35 @@ function renderPetList(){
     tag1.className='tag ' + (GLOBAL_TABLE[n]?'ok':'warn');
     tag1.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
     right.appendChild(tag1);
+//8등급 보장 배지
+const r8 = R8MAP[n];
+if (r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))) {
+  const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8; // 둘 다 지원
+  const tag2 = document.createElement('span');
+  tag2.className = 'tag rank8 tip';
+  tag2.textContent = '8확정';
 
-    // 8등급 보장 배지
-    const r8 = R8MAP[n];
-    if(r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))){
-      const sets = Array.isArray(r8.obs_100_rank8)? r8.obs_100_rank8 : r8; // 둘 다 지원
-      const tag2=document.createElement('span');
-      tag2.className='tag rank8';
-      tag2.textContent='8확정';
-      const maxShow = 8;
-      const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
-      const more = sets.length>maxShow? ` 외 ${sets.length-maxShow}세트` : '';
-      tag2.title = `8등급 보장 초기치: ${preview}${more}`;
-      right.appendChild(tag2);
-    }
+  const maxShow = 8;
+  const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
+  const more = sets.length>maxShow ? ` 외 ${sets.length-maxShow}세트` : '';
+  const tipText = `8등급 보장 초기치\n${preview}${more}`;
+  tag2.setAttribute('data-tip', tipText);
 
-    div.appendChild(left); div.appendChild(right);
-    div.addEventListener('click', ()=>selectPetName(n));
-    petList.appendChild(div);
+  // 키보드 접근성 + 터치 대응
+  tag2.tabIndex = 0;
+
+  // 배지를 탭/클릭해도 행 클릭 이벤트로 전파되지 않도록
+  const stop = (e)=>{ e.stopPropagation(); };
+  tag2.addEventListener('click', stop);
+  tag2.addEventListener('touchstart', stop, {passive:true});
+
+  // 터치 환경에서 잠깐 툴팁 고정
+  tag2.addEventListener('click', ()=>{
+    tag2.classList.add('show');
+    setTimeout(()=>tag2.classList.remove('show'), 1800);
   });
-  renderChosungTokens();
+
+  right.appendChild(tag2);
 }
 
 function selectPetName(n){
