@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 (v0.9)</title>
+<title>노바 서버 펫 계산기 1.0</title>
+
+<!-- ★ 짜얄 계산기와 동일 버전의 Decimal.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
+
 <style>
   html { scrollbar-gutter: stable; }
   @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
-
   :root{
     --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
@@ -44,7 +47,7 @@
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
     background:#0e1218; color:var(--text); outline:none;
   }
-  input[readonly]{ opacity:.7; cursor:not-allowed; }
+  input[readonly]{opacity:.7; cursor:not-allowed}
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .btn{
@@ -98,7 +101,7 @@
 <header>
   <div class="brand">NOVA SERVER PET Calculator</div>
   <div class="ver">
-    <span>v0.9 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
+    <span>1.0 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
     <button class="btn ghost" id="btnAdmin">★</button>
   </div>
 </header>
@@ -136,7 +139,7 @@
 
     <div class="row">
       <div class="col">
-        <label>표기 초기치 S0 (체/공/방/순) <span class="muted">(읽기전용)</span></label>
+        <label>표기 초기치 S0 (체/공/방/순)</label>
         <div class="row">
           <div class="col"><input type="number" id="s0_hp"  step="0.01" placeholder="—" readonly /></div>
           <div class="col"><input type="number" id="s0_atk" step="0.01" placeholder="—" readonly /></div>
@@ -144,7 +147,7 @@
           <div class="col"><input type="number" id="s0_agi" step="0.01" placeholder="—" readonly /></div>
         </div>
 
-        <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순) <span class="muted">(읽기전용)</span></label>
+        <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순)</label>
         <div class="row">
           <div class="col"><input type="number" id="sg_hp"  step="0.01" placeholder="—" readonly /></div>
           <div class="col"><input type="number" id="sg_atk" step="0.01" placeholder="—" readonly /></div>
@@ -268,37 +271,30 @@
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json";                // 관리자가 커밋하는 메인 테이블
-const REMOTE_PETS  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
+const PETS_PATH = "data/pets.json"; // 메인 테이블(서버)
+const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
 
 /* ========= 상수 ========= */
-const APP_VERSION = "0.9";
-const LS_TABLE = "novaPetTable"; // 캐시(백업)
+const LS_TABLE = "novaPetTable_cache";
 const TOTAL = 178750;
 const ADMIN_PASS = "kokudas";
 
-/* ========= 전역 상태 ========= */
-let GLOBAL_TABLE = {};    // 서버 pets.json을 여기에 고정
-let ALL_NAMES = [];       // GLOBAL_TABLE의 키 목록
+/* ========= 전역 ========= */
+let GLOBAL_TABLE = {};
+let ALL_NAMES = [];
 
 /* ========= 유틸 ========= */
 function precise(n){ return Math.round(n*1e12)/1e12; }
-function toNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? v : NaN; }
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function setJSONLS(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+function fetchJSON(url){ return fetch(url+`?v=${Date.now()}`,{cache:"no-store"}).then(r=>{ if(!r.ok) throw 0; return r.json();}); }
 
-/* ========= 원격 로드(서버 우선, 실패 시 로컬 캐시) ========= */
-async function fetchJSON(url){
-  const res = await fetch(url + `?v=${Date.now()}`, {cache:"no-store"});
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  return await res.json();
-}
+/* ========= 원격 로드 ========= */
 async function loadGlobalTable(){
   try{
     const obj = await fetchJSON(REMOTE_PETS);
     if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
-    GLOBAL_TABLE = obj;
-    setJSONLS(LS_TABLE, obj); // 백업 캐시
+    GLOBAL_TABLE = obj; setJSONLS(LS_TABLE, obj);
   }catch{
     GLOBAL_TABLE = getJSONLS(LS_TABLE, {});
   }
@@ -356,6 +352,7 @@ let currentChosung="";
 let selectedName=null;
 let selectedRow=null;
 
+/* ===== 관리자 버튼 ===== */
 document.getElementById('btnAdmin').addEventListener('click', ()=>{
   const pw = prompt('관리자 암호를 입력하세요.');
   if (pw === null) return;
@@ -411,6 +408,7 @@ function renderPetList(){
   });
   renderChosungTokens();
 }
+
 function selectPetName(n){
   selectedName=n;
   selectedRow=GLOBAL_TABLE[n]||null;
@@ -425,7 +423,6 @@ function selectPetName(n){
     sgdef.value=selectedRow.sg.def??""; sgagi.value=selectedRow.sg.agi??"";
   }else{ sghp.value=sgatk.value=sgdef.value=sgagi.value=""; }
 
-  // 관측치 자동: S0 정수부
   if(selectedRow?.s0){
     obshp.value = Math.floor(selectedRow.s0.hp??NaN)||"";
     obsatk.value= Math.floor(selectedRow.s0.atk??NaN)||"";
@@ -489,132 +486,149 @@ document.addEventListener('click', (e)=>{
   const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
 });
 
-/* ========= Nova2 Strict 보조 추정기 (테이블에 k/u 없을 때만 사용) ========= */
+/* ========= 짜얄 호환 k/u 추정 ========= */
+/* e 후보(짜얄과 동일) */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
-const INT_EPS = 0.2;
 
-function s0_from_k_u_Nova2(k,u){
-  const f = k/100;
-  const vH = f*u.hp, vA=f*u.atk, vD=f*u.def, vG=f*u.agi;
-  const s_hp = Math.floor(vH*4 + vA + vD + vG);
-  const s_atk= Math.floor(vH*0.1 + vA + vD*0.1 + vG*0.05);
-  const s_def= Math.floor(vH*0.1 + vA*0.1 + vD + vG*0.05);
-  const s_agi= Math.floor(vG);
+/* SG → u (짜얄 solveEquations 그대로: Decimal.js / ROUND_HALF_UP) */
+function solveUFromSG_JJYAL(SG, e){
+  try{
+    if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
+    Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+
+    const eD = new Decimal(e);
+    const f  = eD.dividedBy(10000);               // factor
+    const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5); // u_agi (before round)
+    const dRound = d.round();                     // integer
+    const dPlus25 = dRound.plus(2.5);             // u_agi + 2.5
+
+    // rhs' (hp',atk',def') = (SG - f*{d-terms}) / f
+    const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
+    const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+    const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+
+    // 3x3: [[4,1,1],[0.1,1,0.1],[0.1,0.1,1]] * [a',b',c'] = rhs
+    // 가우스 소거(Decimal)
+    let A = [
+      [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
+      [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
+      [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
+    ];
+    for(let i=0;i<3;i++){
+      // pivot select
+      let mr=i; let mv=A[i][i].abs();
+      for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
+      if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
+      const piv=A[i][i];
+      for(let j=i;j<4;j++) A[i][j]=A[i][j].dividedBy(piv);
+      for(let k=0;k<3;k++){
+        if(k===i) continue;
+        const fac=A[k][i];
+        for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
+      }
+    }
+    // 해: a', b', c'
+    const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
+
+    // u 정수 = round(a'-2.5) 등
+    const u_hp  = aPrime.minus(2.5).round();
+    const u_atk = bPrime.minus(2.5).round();
+    const u_def = cPrime.minus(2.5).round();
+    const u_agi = dRound;
+
+    // SG 재합성 오차(둘째자리 반올림 후 절대오차 합)
+    const r2 = x => new Decimal(x).toDecimalPlaces(2); // HALF_UP
+    const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
+    const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const agi_chk = r2( f.times( u_agi.plus(2.5) ) );
+
+    const err = hp_chk.minus(r2(SG.hp)).abs()
+               .plus(atk_chk.minus(r2(SG.atk)).abs())
+               .plus(def_chk.minus(r2(SG.def)).abs())
+               .plus(agi_chk.minus(r2(SG.agi)).abs());
+
+    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e, sg_err:+err };
+  }catch(e){ return null; }
+}
+
+/* (u,e,k) 적합도: S0 정수부 일치 우선. k는 10..100 스캔(짜얄 계열 호환) */
+function s0_from_k_u_jjyal(k,u){
+  // S0 '소숫점' 내부 값은 (u+2.5)*k/100 를 사용, 합산 후 floor(짜얄/노바2 방식)
+  const fac = k/100;
+  const vhp  = (u.hp + 2.5) * fac;
+  const vatk = (u.atk+ 2.5) * fac;
+  const vdef = (u.def+ 2.5) * fac;
+  const vagi = (u.agi+ 2.5) * fac;
+  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
+  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+  const s_agi= Math.floor(vagi);
   return [s_hp,s_atk,s_def,s_agi];
 }
-function r2(x){ return Math.round(x*100)/100; }
-function invMul_4_1_1_011_1_01_01_01_1(x1,x2,x3){
-  const A=4,B=1,C=1,D=0.1,E=1,F=0.1,G=0.1,H=0.1,I=1;
-  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
-  if (Math.abs(det)<1e-12) return null;
-  const i11=(E*I-F*H)/det, i12=-(B*I-C*H)/det, i13=(B*F-C*E)/det;
-  const i21=-(D*I-F*G)/det, i22=(A*I-C*G)/det, i23=-(A*F-C*D)/det;
-  const i31=(D*H-E*G)/det, i32=-(A*H-B*G)/det, i33=(A*E-B*D)/det;
-  return [
-    i11*x1 + i12*x2 + i13*x3,
-    i21*x1 + i22*x2 + i23*x3,
-    i31*x1 + i32*x2 + i33*x3
-  ];
-}
-function inferKU_Nova2_strict(S0, SG){
-  if(!S0 || !SG) return null;
-  const S0i = S0.map(v=>Math.floor(v));
+function fitKFromS0_JJYAL(S0int,u){
   let best=null;
-
-  for(const e of ESET){
-    const f = e/10000;
-    const dprime = (SG.agi)/f;
-    const u_agi  = Math.round(dprime - 2.5);
-
-    const rhs1 = (SG.hp  - f*dprime)/f;
-    const rhs2 = (SG.atk - 0.05*f*dprime)/f;
-    const rhs3 = (SG.def - 0.05*f*dprime)/f;
-    const inv = invMul_4_1_1_011_1_01_01_01_1(rhs1,rhs2,rhs3);
-    if(!inv) continue;
-    const [apr, bpr, cpr] = inv;
-
-    const u_hp  = Math.round(apr - 2.5);
-    const u_atk = Math.round(bpr - 2.5);
-    const u_def = Math.round(cpr - 2.5);
-
-    let V=null;
-    for(let i=1;i<100;i++){
-      const g=i/100;
-      const h=(u_hp +2.5)*g, a=(u_atk+2.5)*g, d=(u_def+2.5)*g, g2=(u_agi+2.5)*g;
-      const HP = h*4 + a + d + g2;
-      if(Math.floor(HP)!==S0i[0]) continue;
-      const ATK= h*0.1 + a + d*0.1 + g2*0.05;
-      const DEF= h*0.1 + a*0.1 + d + g2*0.05;
-      const AGI= g2;
-      V=[HP,ATK,DEF,AGI]; break;
-    }
-    if(!V) continue;
-
-    for(let k=10;k<=100;k++){
-      const tmp_agi = (V[3]*100/k) - 4.5;
-      if(Math.abs(tmp_agi - Math.round(tmp_agi)) > INT_EPS) continue;
-      const ug = Math.round(tmp_agi);
-
-      const eq1 = V[0] - V[3];
-      const eq2 = V[1] - 0.05*V[3];
-      const eq3 = V[2] - 0.05*V[3];
-
-      const eq5_rhs = eq3 - 0.1*eq1;
-      const eq4_rhs = eq2 - eq1;
-      const C = ( (eq5_rhs*10) - (eq4_rhs*(3/3.9)) ) / 9.6923;
-      const A = ( (eq5_rhs) - 0.9*C ) / -0.3;
-      const B = eq1 - 4*A - C;
-
-      const uh = (A*100/k) - 4.5;
-      const ua = (B*100/k) - 4.5;
-      const ud = (C*100/k) - 4.5;
-      if([uh,ua,ud].some(v=>!Number.isFinite(v))) continue;
-      if([uh,ua,ud].some(v=>Math.abs(v - Math.round(v))>INT_EPS)) continue;
-
-      const U = {hp:Math.round(uh), atk:Math.round(ua), def:Math.round(ud), agi:ug};
-      const s = s0_from_k_u_Nova2(k,U);
-      if(s[0]!==S0i[0] || s[1]!==S0i[1] || s[2]!==S0i[2] || s[3]!==S0i[3]) continue;
-
-      const score = (k>=16 && k<=40 ? 0 : 1);
-      const cand = {k,u:U,score};
-      if(!best || cand.score < best.score) best = cand;
-    }
+  for(let k=10;k<=100;k++){
+    const s = s0_from_k_u_jjyal(k,u);
+    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
+    const ok = (l1===0);
+    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
+    if(ok) break; // 완전일치면 바로 채택
   }
   return best;
 }
 
-/* ========= Nova2 표기식 기반 엔진 (합산→floor 고정) ========= */
-function enumerateNova2(k, u, obs){
-  // 보너스 분배 총합 10, 베이스 랜덤 −2..2
-  const bonuses=[];
-  for(let h=0; h<=10; h++){
-    for(let a=0; a<=10-h; a++){
-      for(let d=0; d<=10-h-a; d++){
-        const g=10-h-a-d; bonuses.push([h,a,d,g]);
-      }
-    }
+/* 최종 추정: 짜얄 완전호환 */
+function inferKU_JJYAL(S0, SG){
+  const S0int = S0.map(x=>Math.floor(x));
+  let best=null;
+  for(const e of ESET){
+    const sol = solveUFromSG_JJYAL(SG, e);
+    if(!sol) continue;
+    const fit = fitKFromS0_JJYAL(S0int, sol.u);
+    if(!fit) continue;
+    // 점수: S0 완전일치 우선(가중), 그 다음 SG 오차
+    const score = (fit.ok?0:1000) + fit.l1*10 + (sol.sg_err||0);
+    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, s0_ok:fit.ok, score};
+    if(!best || cand.score<best.score) best=cand;
   }
+  return best;
+}
+
+/* ========= 짜얄 호환 엔진(합산 후 floor) ========= */
+function enumerate_jjyal(pku, obs){
+  const k=pku.k, u=pku.u;
   let matches=0, rank8=0; const dist={};
-  for(let bh=-2; bh<=2; bh++){
-    for(let ba=-2; ba<=2; ba++){
-      for(let bd=-2; bd<=2; bd++){
-        for(let bg=-2; bg<=2; bg++){
-          for(const B of bonuses){
-            const vhp  = (k*(u.hp + bh + B[0]))/100;
-            const vatk = (k*(u.atk+ ba + B[1]))/100;
-            const vdef = (k*(u.def+ bd + B[2]))/100;
-            const vagi = (k*(u.agi+ bg + B[3]))/100;
+  for(let ar=-2; ar<=2; ar++){
+    for(let dr=-2; dr<=2; dr++){
+      for(let gr=-2; gr<=2; gr++){
+        for(let hr=-2; hr<=2; hr++){
+          for(let ab=0; ab<=10; ab++){
+            for(let db=0; db<=10; db++){
+              for(let gb=0; gb<=10; gb++){
+                const hb=10 - ab - db - gb;
+                if(hb<0 || hb>10) continue;
 
-            const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
-            const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-            const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-            const s_agi= Math.floor(vagi);
+                const baseA = u.atk + ar + ab;
+                const baseD = u.def + dr + db;
+                const baseG = u.agi + gr + gb;
+                const baseH = u.hp  + hr + hb;
 
-            if(s_hp===obs[0] && s_atk===obs[1] && s_def===obs[2] && s_agi===obs[3]){
-              matches++;
-              const r=bh+ba+bd+bg;
-              dist[r]=(dist[r]||0)+1;
-              if(r===8) rank8++;
+                const fac = k/100;
+                const iA = baseA*fac, iD = baseD*fac, iG = baseG*fac, iH = baseH*fac;
+
+                const calcAtk = Math.floor(iH*0.1 + iA + iD*0.1 + iG*0.05);
+                const calcDef = Math.floor(iH*0.1 + iA*0.1 + iD + iG*0.05);
+                const calcAgi = Math.floor(iG);
+                const calcHp  = Math.floor(iH*4 + iA + iD + iG);
+
+                if(calcAtk===obs[1] && calcDef===obs[2] && calcAgi===obs[3] && calcHp===obs[0]){
+                  matches++;
+                  const r = ar+dr+gr+hr;
+                  dist[r]=(dist[r]||0)+1;
+                  if(r===8) rank8++;
+                }
+              }
             }
           }
         }
@@ -625,28 +639,27 @@ function enumerateNova2(k, u, obs){
 }
 
 /* ========= 계산 ========= */
-function pickKU(name){
-  const row = GLOBAL_TABLE[name] || {};
-  if(Number.isFinite(row?.k) && row?.u && [row.u.hp,row.u.atk,row.u.def,row.u.agi].every(Number.isFinite)){
-    return {k:row.k, u:row.u, src:'table'};
-  }
-  // 테이블에 없으면 Nova2 Strict로 보조 추정 (UI엔 표시 안 함)
-  if(row?.s0 && row?.sg){
-    const fit = inferKU_Nova2_strict([row.s0.hp,row.s0.atk,row.s0.def,row.s0.agi], row.sg);
-    if(fit) return {k:fit.k, u:fit.u, src:'infer'};
-  }
-  return null;
-}
-
 btnCalc.addEventListener('click', async ()=>{
   if(!selectedName){ alert("펫을 먼저 선택하세요."); return; }
   const obs=[obshp,obsatk,obsdef,obsagi].map(e=>parseInt(e.value,10));
   if(obs.some(v=>!Number.isFinite(v))){ alert("관측 표기치(정수)를 모두 입력하세요."); return; }
 
-  const pku = pickKU(selectedName);
-  if(!pku){ alert("k/u가 테이블에 없고 자동 추정도 실패했습니다. admin.html에서 Nova2 Strict로 산출 후 저장해 주세요."); return; }
+  const row=GLOBAL_TABLE[selectedName]||{};
+  if(!row?.s0 || !row?.sg){ alert("이 펫은 S0/SG가 등록되어 있지 않습니다."); return; }
 
-  const res = enumerateNova2(pku.k, pku.u, obs);
+  // 1) 테이블에 k/u 있으면 그대로 사용(테이블이 이미 짜얄 추정치라면 완전 일치)
+  let k=row.k, u=row.u;
+
+  // 2) 없으면 짜얄 방식으로 추정
+  if(!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
+    const S0=[row.s0.hp, row.s0.atk, row.s0.def, row.s0.agi];
+    const SG=row.sg;
+    const fit = inferKU_JJYAL(S0, SG);
+    if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
+    k=fit.k; u=fit.u;
+  }
+
+  const res = enumerate_jjyal({k,u}, obs);
   showKpis(res);
 });
 
@@ -663,7 +676,6 @@ btnClear.addEventListener('click', ()=>{
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
   renderPetList();
 });
-petSearch.addEventListener('input', renderPetList);
 
 /* ========= 부팅 ========= */
 (async function init(){
