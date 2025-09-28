@@ -658,7 +658,7 @@ btnCalc.addEventListener('click', async ()=>{
     if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
     k=fit.k; u=fit.u;
   }
-
+console.log("KU USED =>", k, u, "OBS =>", obs);
   const res = enumerate_jjyal({k,u}, obs);
   showKpis(res);
 });
