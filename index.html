@@ -422,52 +422,64 @@ function renderPetList(){
     const b = currentChosung? getChosung(n).startsWith(currentChosung): true;
     return a && b;
   });
+
   petList.innerHTML="";
   if(list.length===0){
-    const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음'; petList.appendChild(d); return;
+    const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음';
+    petList.appendChild(d);
+    return;
   }
+
   list.forEach(n=>{
     const div=document.createElement('div'); div.className='item';
 
     const left=document.createElement('div'); left.textContent = n;
     const right=document.createElement('div'); right.className="tags";
 
-    // 등록/미등록
+    // 등록/미등록 배지
     const tag1=document.createElement('span');
     tag1.className='tag ' + (GLOBAL_TABLE[n]?'ok':'warn');
     tag1.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
     right.appendChild(tag1);
-//8등급 보장 배지
-const r8 = R8MAP[n];
-if (r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))) {
-  const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8; // 둘 다 지원
-  const tag2 = document.createElement('span');
-  tag2.className = 'tag rank8 tip';
-  tag2.textContent = '8확정';
 
-  const maxShow = 8;
-  const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
-  const more = sets.length>maxShow ? ` 외 ${sets.length-maxShow}세트` : '';
-  const tipText = `8등급 보장 초기치\n${preview}${more}`;
-  tag2.setAttribute('data-tip', tipText);
+    // 8등급 보장 배지
+    const r8 = R8MAP[n];
+    if (r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))) {
+      const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8; // 둘 다 지원
+      const tag2 = document.createElement('span');
+      tag2.className = 'tag rank8 tip';
+      tag2.textContent = '8확정';
 
-  // 키보드 접근성 + 터치 대응
-  tag2.tabIndex = 0;
+      const maxShow = 8;
+      const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
+      const more = sets.length>maxShow ? ` 외 ${sets.length-maxShow}세트` : '';
+      const tipText = `8등급 보장 초기치\n${preview}${more}`;
+      tag2.setAttribute('data-tip', tipText);
 
-  // 배지를 탭/클릭해도 행 클릭 이벤트로 전파되지 않도록
-  const stop = (e)=>{ e.stopPropagation(); };
-  tag2.addEventListener('click', stop);
-  tag2.addEventListener('touchstart', stop, {passive:true});
+      // 배지 클릭 시 선택 이벤트 전파 막기 + 모바일에서 잠깐 툴팁 표시
+      tag2.tabIndex = 0;
+      const stop = (e)=>{ e.stopPropagation(); };
+      tag2.addEventListener('click', stop);
+      tag2.addEventListener('touchstart', stop, {passive:true});
+      tag2.addEventListener('click', ()=>{
+        tag2.classList.add('show');
+        setTimeout(()=>tag2.classList.remove('show'), 1800);
+      });
 
-  // 터치 환경에서 잠깐 툴팁 고정
-  tag2.addEventListener('click', ()=>{
-    tag2.classList.add('show');
-    setTimeout(()=>tag2.classList.remove('show'), 1800);
+      right.appendChild(tag2);
+    }
+
+    // ←←← 여기까지가 forEach 내부 구성. 아래가 빠져 있었음!
+    div.appendChild(left);
+    div.appendChild(right);
+    div.addEventListener('click', ()=>selectPetName(n));
+    petList.appendChild(div);
   });
 
-  right.appendChild(tag2);
+  renderChosungTokens();
 }
 
+/* ========= 펫 선택 ========= */
 function selectPetName(n){
   selectedName=n;
   selectedRow=GLOBAL_TABLE[n]||null;
@@ -492,6 +504,7 @@ function selectPetName(n){
   }
   showKpis(null);
 }
+
 
 /* ========= KPI 렌더 ========= */
 function showKpis(res){
