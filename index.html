@@ -562,7 +562,7 @@ function renderPetList(){
       tag2.className = 'tag rank8 tip';
       tag2.textContent = '100%';
 
-      const maxShow = 8;
+      const maxShow = 12;
       const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
       const more = sets.length>maxShow ? ` 외 ${sets.length-maxShow}세트` : '';
       const tipText = `8등급 보장 초기치\n${preview}${more}`;
