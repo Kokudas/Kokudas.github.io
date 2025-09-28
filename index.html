@@ -441,41 +441,42 @@ function fmtPct(x){
   return x.toFixed(4) + "%";
 }
 
-/* ========= KPI 렌더 ========= */
+/* ========= KPI 렌더 (교체) ========= */
 function showKpis(res){
   if(!res){
     kpiSuccess.textContent = "—%";
-    kpiAppear.textContent  = "—%";
-    kpiTries.textContent   = "—";
+    kpiAppear .textContent = "—%";
+    kpiTries  .textContent = "—";
     ringSuccess.style.setProperty("--p","0deg");
     ringAppear .style.setProperty("--p","0deg");
-    totMatches.textContent = "—";
+    totMatches.textContent   = "—";
     rank8Matches.textContent = "—";
     distBox.innerHTML = "";
     return;
   }
-  const matches    = res.matches|0;
-  const rank8      = res.rank8|0;
-  const appear = matches/TOTAL*100;
-  const success = matches? (rank8/matches*100): 0;
-  const tries = success>0? (100/success) : Infinity;
+
+  const matches    = res.matches | 0;
+  const rank8      = res.rank8    | 0;
+  const appearPct  = matches / TOTAL * 100;                  // 출현 확률(%)
+  const successPct = matches ? (rank8 / matches * 100) : 0;  // 환각 확률(%)
+  const tries      = successPct > 0 ? (100 / successPct) : Infinity;
 
   kpiSuccess.textContent = fmtPct(successPct);
-  kpiAppear .textContent = fmtPct(appear);
+  kpiAppear .textContent = fmtPct(appearPct);
   kpiTries  .textContent = (isFinite(tries) ? tries.toFixed(2) : "—");
 
   ringSuccess.style.setProperty("--p", (360 * successPct / 100) + "deg");
-  ringAppear .style.setProperty("--p", (360 * appear     / 100) + "deg");
+  ringAppear .style.setProperty("--p", (360 * appearPct  / 100) + "deg");
 
   const entries = Object.entries(res.dist)
-    .map(([r,c]) => ({r:parseInt(r,10), c}))
+    .map(([r,c]) => ({ r: parseInt(r,10), c }))
     .sort((a,b) => b.r - a.r || b.c - a.c);
 
   let html = `<table class="table"><thead><tr><th>등급(베이스합)</th><th>건수</th><th>비율</th></tr></thead><tbody>`;
   const total = matches || 1;
   entries.forEach(e=>{
-    const pct = (e.c/total*100).toFixed(2);
-    const cls = (e.r===8 ? "ok" : (e.r>=5 ? "warn" : ""));
+    const pct = (e.c / total * 100).toFixed(2);
+    const cls = (e.r === 8 ? "ok" : (e.r >= 5 ? "warn" : ""));
     html += `<tr><td class="${cls}">${e.r}</td><td>${e.c.toLocaleString()}</td><td>${pct}%</td></tr>`;
   });
   html += `</tbody></table>`;
