@@ -3,11 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 1.0</title>
-
-<!-- ★ 짜얄 계산기와 동일 버전의 Decimal.js -->
+<title>노바 서버 펫 계산기 1.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
-
 <style>
   html { scrollbar-gutter: stable; }
   @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
@@ -20,8 +17,7 @@
   html,body{height:100%}
   body{
     margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%);
-    color:var(--text);
+    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text);
   }
   header{
     display:flex; align-items:center; justify-content:space-between;
@@ -30,15 +26,9 @@
   }
   .brand{font-weight:700; letter-spacing:.3px}
   .ver{color:var(--muted); font-size:12px; display:flex; align-items:center; gap:10px}
-  .grid{
-    max-width:1100px; margin:20px auto; padding:0 16px;
-    display:grid; gap:16px; grid-template-columns: 1fr 1fr;
-  }
+  .grid{ max-width:1100px; margin:20px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
   @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-  .card{
-    background:var(--panel); border:1px solid #232a36; border-radius:14px;
-    padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);
-  }
+  .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
   .card h3{margin:4px 0 12px 0; font-size:16px}
   .row{display:flex; gap:8px; flex-wrap:wrap}
   .col{flex:1 1 0}
@@ -50,38 +40,28 @@
   input[readonly]{opacity:.7; cursor:not-allowed}
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-  .btn{
-    padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer;
-    background:#142033; color:#cfe1ff; font-weight:600;
-  }
+  .btn{ padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600; }
   .btn:hover{filter:brightness(1.1)}
   .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
   .btn.ghost{ background:transparent;}
   .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
   .muted{color:var(--muted)}
   .chips{display:flex; gap:8px; flex-wrap:wrap}
-  .chip{
-    background:var(--chip); color:#cfd6e3; border:1px solid #2b3242; border-radius:999px;
-    padding:6px 10px; font-size:12px; cursor:pointer;
-  }
+  .chip{ background:var(--chip); color:#cfd6e3; border:1px solid #2b3242; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; }
   .chip.on{outline:2px solid var(--accent)}
   .kbd{display:inline-block; border:1px solid #404a5e; border-bottom-width:3px; padding:2px 6px; border-radius:6px; background:#0e131a; font-weight:700}
   .chooser{display:grid; grid-template-columns: 1fr; gap:8px}
-  .list{
-    max-height:220px; overflow:auto; border:1px solid #2a3040; border-radius:10px; padding:6px;
-    background:#0d1117;
-  }
+  .list{ max-height:260px; overflow:auto; border:1px solid #2a3040; border-radius:10px; padding:6px; background:#0d1117; }
   .item{padding:8px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center}
   .item:hover{background:#19202b}
+  .tags{display:flex; gap:6px; align-items:center}
   .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
   .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
   .tag.warn{border-color:#7a5b0e; background:#241a05; color:#ffb300}
+  .tag.rank8{border-color:#2b4a82; background:#0d1a33; color:#88b5ff}
   .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
   @media (max-width: 720px){ .kpis{grid-template-columns: 1fr} }
-  .kpi{
-    display:flex; gap:14px; align-items:center; border:1px solid #2a3040; border-radius:14px;
-    padding:14px; background:radial-gradient(120px 120px at 20% -10%, #11224444, transparent);
-  }
+  .kpi{ display:flex; gap:14px; align-items:center; border:1px solid #2a3040; border-radius:14px; padding:14px; background:radial-gradient(120px 120px at 20% -10%, #11224444, transparent); }
   .ring{width:60px; height:60px; border-radius:50%; background:conic-gradient(var(--accent) 0deg, var(--accent) var(--p,0deg), var(--ring) var(--p,0deg)); display:grid; place-items:center}
   .ring::after{content:""; width:48px; height:48px; background:#0c1016; border-radius:50%; display:block}
   .kpi strong{font-size:20px; color:var(--highlight)}
@@ -101,13 +81,12 @@
 <header>
   <div class="brand">NOVA SERVER PET Calculator</div>
   <div class="ver">
-    <span>1.0 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
+    <span>1.1 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
     <button class="btn ghost" id="btnAdmin">★</button>
   </div>
 </header>
 
 <div class="grid">
-
   <!-- 좌: 펫 선택 -->
   <section class="card">
     <h3>① 펫 선택</h3>
@@ -247,17 +226,10 @@
   <section class="card">
     <h3>Made by. 과장 (kokodas#0339)</h3>
     <div class="imgbox">
-      <img
-        id="dinoImg"
-        src="https://raw.githubusercontent.com/Kokudas/Kokudas.github.io/main/67269_179791_1130-Photoroom.png"
-        alt="StoneAge Dino"
-        loading="lazy"
-        decoding="async"
-      />
+      <img id="dinoImg" src="https://raw.githubusercontent.com/Kokudas/Kokudas.github.io/main/67269_179791_1130-Photoroom.png" alt="StoneAge Dino" loading="lazy" decoding="async"/>
     </div>
     <p class="muted" style="margin-top:8px">본 계산기는 오픈 소스로 만들어졌습니다. </p>
   </section>
-
 </div>
 
 <div class="footer">
@@ -271,8 +243,15 @@
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json"; // 메인 테이블(서버)
+const PETS_PATH = "data/pets.json";
 const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
+
+/* ========= Rank8 JSON (우선순위 로드) ========= */
+const R8_JSON_CANDIDATES = [
+  "data/guaranteed_rank8.full.json",
+  "data/guaranteed_rank8.min.json",
+  "guaranteed_rank8.sample8.json" // 샘플/로컬 테스트용 폴백
+];
 
 /* ========= 상수 ========= */
 const LS_TABLE = "novaPetTable_cache";
@@ -282,12 +261,18 @@ const ADMIN_PASS = "kokudas";
 /* ========= 전역 ========= */
 let GLOBAL_TABLE = {};
 let ALL_NAMES = [];
+let R8MAP = {}; // name -> {count, obs_100_rank8: [[hp,atk,def,agi],...]}
 
 /* ========= 유틸 ========= */
-function precise(n){ return Math.round(n*1e12)/1e12; }
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function setJSONLS(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
 function fetchJSON(url){ return fetch(url+`?v=${Date.now()}`,{cache:"no-store"}).then(r=>{ if(!r.ok) throw 0; return r.json();}); }
+function fmtPct(x){
+  if(!Number.isFinite(x)) return "—%";
+  if(x === 0) return "0.0000%";
+  if(x < 0.001) return x.toFixed(6) + "%";
+  return x.toFixed(4) + "%";
+}
 
 /* ========= 원격 로드 ========= */
 async function loadGlobalTable(){
@@ -299,6 +284,20 @@ async function loadGlobalTable(){
     GLOBAL_TABLE = getJSONLS(LS_TABLE, {});
   }
   ALL_NAMES = Object.keys(GLOBAL_TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
+}
+async function loadRank8Map(){
+  for(const path of R8_JSON_CANDIDATES){
+    try{
+      const m = await fetchJSON(path);
+      if (typeof m==="object" && !Array.isArray(m)){
+        R8MAP = m;
+        console.log("[Rank8] loaded:", path, "keys:", Object.keys(R8MAP).length);
+        return;
+      }
+    }catch{ /* try next */ }
+  }
+  R8MAP = {};
+  console.log("[Rank8] no file found; badge disabled");
 }
 
 /* ========= 초성 ========= */
@@ -386,22 +385,41 @@ CHO.forEach(c=>{
 function renderPetList(){
   const kw = (petSearch.value||"").trim();
   const names = ALL_NAMES.length? ALL_NAMES : Object.keys(GLOBAL_TABLE);
-  const list = names
-    .filter(n=>{
-      const a = kw? n.includes(kw): true;
-      const b = currentChosung? getChosung(n).startsWith(currentChosung): true;
-      return a && b;
-    });
+  const list = names.filter(n=>{
+    const a = kw? n.includes(kw): true;
+    const b = currentChosung? getChosung(n).startsWith(currentChosung): true;
+    return a && b;
+  });
   petList.innerHTML="";
-  if(list.length===0){ const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음'; petList.appendChild(d); return; }
+  if(list.length===0){
+    const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음'; petList.appendChild(d); return;
+  }
   list.forEach(n=>{
     const div=document.createElement('div'); div.className='item';
+
     const left=document.createElement('div'); left.textContent = n;
-    const right=document.createElement('div');
-    const tag=document.createElement('span');
-    tag.className='tag ' + (GLOBAL_TABLE[n]?'ok':'warn');
-    tag.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
-    right.appendChild(tag);
+    const right=document.createElement('div'); right.className="tags";
+
+    // 등록/미등록
+    const tag1=document.createElement('span');
+    tag1.className='tag ' + (GLOBAL_TABLE[n]?'ok':'warn');
+    tag1.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
+    right.appendChild(tag1);
+
+    // 8등급 보장 배지
+    const r8 = R8MAP[n];
+    if(r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))){
+      const sets = Array.isArray(r8.obs_100_rank8)? r8.obs_100_rank8 : r8; // 둘 다 지원
+      const tag2=document.createElement('span');
+      tag2.className='tag rank8';
+      tag2.textContent='8확정';
+      const maxShow = 8;
+      const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
+      const more = sets.length>maxShow? ` 외 ${sets.length-maxShow}세트` : '';
+      tag2.title = `8등급 보장 초기치: ${preview}${more}`;
+      right.appendChild(tag2);
+    }
+
     div.appendChild(left); div.appendChild(right);
     div.addEventListener('click', ()=>selectPetName(n));
     petList.appendChild(div);
@@ -434,14 +452,7 @@ function selectPetName(n){
   showKpis(null);
 }
 
-function fmtPct(x){
-  if(!Number.isFinite(x)) return "—%";
-  if(x === 0) return "0.0000%";
-  if(x < 0.001) return x.toFixed(6) + "%"; // 0.000559%처럼 보이게
-  return x.toFixed(4) + "%";
-}
-
-/* ========= KPI 렌더 (교체) ========= */
+/* ========= KPI 렌더 ========= */
 function showKpis(res){
   if(!res){
     kpiSuccess.textContent = "—%";
@@ -449,34 +460,36 @@ function showKpis(res){
     kpiTries  .textContent = "—";
     ringSuccess.style.setProperty("--p","0deg");
     ringAppear .style.setProperty("--p","0deg");
-    totMatches.textContent   = "—";
+    totMatches.textContent = "—";
     rank8Matches.textContent = "—";
     distBox.innerHTML = "";
     return;
   }
-
-  const matches    = res.matches | 0;
-  const rank8      = res.rank8    | 0;
-  const appearPct  = matches / TOTAL * 100;                  // 출현 확률(%)
-  const successPct = matches ? (rank8 / matches * 100) : 0;  // 환각 확률(%)
-  const tries      = successPct > 0 ? (100 / successPct) : Infinity;
+  const matches = res.matches|0;
+  const rank8   = res.rank8|0;
+  const appear = matches/TOTAL*100;
+  const successPct = matches? (rank8/matches*100): 0;
+  const tries = successPct>0? (100/successPct) : Infinity;
 
   kpiSuccess.textContent = fmtPct(successPct);
-  kpiAppear .textContent = fmtPct(appearPct);
+  kpiAppear .textContent = fmtPct(appear);
   kpiTries  .textContent = (isFinite(tries) ? tries.toFixed(2) : "—");
 
   ringSuccess.style.setProperty("--p", (360 * successPct / 100) + "deg");
-  ringAppear .style.setProperty("--p", (360 * appearPct  / 100) + "deg");
+  ringAppear .style.setProperty("--p", (360 * appear     / 100) + "deg");
+
+  totMatches.textContent   = matches.toLocaleString();
+  rank8Matches.textContent = rank8.toLocaleString();
 
   const entries = Object.entries(res.dist)
-    .map(([r,c]) => ({ r: parseInt(r,10), c }))
+    .map(([r,c]) => ({r:parseInt(r,10), c}))
     .sort((a,b) => b.r - a.r || b.c - a.c);
 
   let html = `<table class="table"><thead><tr><th>등급(베이스합)</th><th>건수</th><th>비율</th></tr></thead><tbody>`;
   const total = matches || 1;
   entries.forEach(e=>{
-    const pct = (e.c / total * 100).toFixed(2);
-    const cls = (e.r === 8 ? "ok" : (e.r >= 5 ? "warn" : ""));
+    const pct = (e.c/total*100).toFixed(2);
+    const cls = (e.r===8 ? "ok" : (e.r>=5 ? "warn" : ""));
     html += `<tr><td class="${cls}">${e.r}</td><td>${e.c.toLocaleString()}</td><td>${pct}%</td></tr>`;
   });
   html += `</tbody></table>`;
@@ -502,35 +515,29 @@ document.addEventListener('click', (e)=>{
 });
 
 /* ========= 짜얄 호환 k/u 추정 ========= */
-/* e 후보(짜얄과 동일) */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
 
-/* SG → u (짜얄 solveEquations 그대로: Decimal.js / ROUND_HALF_UP) */
 function solveUFromSG_JJYAL(SG, e){
   try{
     if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
     Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
 
     const eD = new Decimal(e);
-    const f  = eD.dividedBy(10000);               // factor
-    const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5); // u_agi (before round)
-    const dRound = d.round();                     // integer
-    const dPlus25 = dRound.plus(2.5);             // u_agi + 2.5
+    const f  = eD.dividedBy(10000);
+    const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
+    const dRound = d.round();
+    const dPlus25 = dRound.plus(2.5);
 
-    // rhs' (hp',atk',def') = (SG - f*{d-terms}) / f
     const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
     const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
     const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
 
-    // 3x3: [[4,1,1],[0.1,1,0.1],[0.1,0.1,1]] * [a',b',c'] = rhs
-    // 가우스 소거(Decimal)
     let A = [
       [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
       [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
       [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
     ];
     for(let i=0;i<3;i++){
-      // pivot select
       let mr=i; let mv=A[i][i].abs();
       for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
       if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
@@ -542,17 +549,14 @@ function solveUFromSG_JJYAL(SG, e){
         for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
       }
     }
-    // 해: a', b', c'
     const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
 
-    // u 정수 = round(a'-2.5) 등
     const u_hp  = aPrime.minus(2.5).round();
     const u_atk = bPrime.minus(2.5).round();
     const u_def = cPrime.minus(2.5).round();
     const u_agi = dRound;
 
-    // SG 재합성 오차(둘째자리 반올림 후 절대오차 합)
-    const r2 = x => new Decimal(x).toDecimalPlaces(2); // HALF_UP
+    const r2 = x => new Decimal(x).toDecimalPlaces(2);
     const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
     const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
     const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
@@ -567,9 +571,7 @@ function solveUFromSG_JJYAL(SG, e){
   }catch(e){ return null; }
 }
 
-/* (u,e,k) 적합도: S0 정수부 일치 우선. k는 10..100 스캔(짜얄 계열 호환) */
 function s0_from_k_u_jjyal(k,u){
-  // S0 '소숫점' 내부 값은 (u+2.5)*k/100 를 사용, 합산 후 floor(짜얄/노바2 방식)
   const fac = k/100;
   const vhp  = (u.hp + 2.5) * fac;
   const vatk = (u.atk+ 2.5) * fac;
@@ -588,12 +590,10 @@ function fitKFromS0_JJYAL(S0int,u){
     const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
     const ok = (l1===0);
     if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
-    if(ok) break; // 완전일치면 바로 채택
+    if(ok) break;
   }
   return best;
 }
-
-/* 최종 추정: 짜얄 완전호환 */
 function inferKU_JJYAL(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
   let best=null;
@@ -602,7 +602,6 @@ function inferKU_JJYAL(S0, SG){
     if(!sol) continue;
     const fit = fitKFromS0_JJYAL(S0int, sol.u);
     if(!fit) continue;
-    // 점수: S0 완전일치 우선(가중), 그 다음 SG 오차
     const score = (fit.ok?0:1000) + fit.l1*10 + (sol.sg_err||0);
     const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, s0_ok:fit.ok, score};
     if(!best || cand.score<best.score) best=cand;
@@ -610,7 +609,7 @@ function inferKU_JJYAL(S0, SG){
   return best;
 }
 
-// ★ 기존 enumerate_jjyal 를 이 버전으로 교체
+/* ========= 짜얄 호환 엔진(합산 후 floor) ========= */
 function enumerate_jjyal(pku, obs){
   const k = new Decimal(pku.k);
   const fac = k.dividedBy(100);
@@ -639,7 +638,6 @@ function enumerate_jjyal(pku, obs){
                 const iG = baseG.times(fac);
                 const iH = baseH.times(fac);
 
-                // 짜얄/노바2와 동일: "합산 후 floor"
                 const calcAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
                 const calcDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
                 const calcAgi = iG.floor().toNumber();
@@ -670,7 +668,7 @@ btnCalc.addEventListener('click', async ()=>{
   const row=GLOBAL_TABLE[selectedName]||{};
   if(!row?.s0 || !row?.sg){ alert("이 펫은 S0/SG가 등록되어 있지 않습니다."); return; }
 
-  // 1) 테이블에 k/u 있으면 그대로 사용(테이블이 이미 짜얄 추정치라면 완전 일치)
+  // 1) 테이블에 k/u 있으면 그대로 사용
   let k=row.k, u=row.u;
 
   // 2) 없으면 짜얄 방식으로 추정
@@ -681,7 +679,7 @@ btnCalc.addEventListener('click', async ()=>{
     if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
     k=fit.k; u=fit.u;
   }
-console.log("KU USED =>", k, u, "OBS =>", obs);
+  console.log("KU USED =>", k, u, "OBS =>", obs);
   const res = enumerate_jjyal({k,u}, obs);
   showKpis(res);
 });
@@ -703,6 +701,8 @@ btnClear.addEventListener('click', ()=>{
 /* ========= 부팅 ========= */
 (async function init(){
   await loadGlobalTable();
+  await loadRank8Map();
+  CHO.forEach(()=>{}); // warm
   renderPetList();
 })();
 </script>
