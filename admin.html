@@ -1,517 +1,474 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NOVA 서버 펫 관리자 </title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NOVA Admin 1.0</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
   :root{
-    --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
-    --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
-    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
+    --bg:#0f1115; --panel:#161a22; --muted:#9aa0aa; --accent:#6aa0ff;
+    --text:#e8ecf3; --border:#2a3040; --chip:#232a36; --ok:#35c759; --warn:#ffb300;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%);
-    color:var(--text);
-  }
+  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+       background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text)}
   header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 18px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
     position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); background:rgba(0,0,0,.25);
   }
-  .brand{font-weight:800; letter-spacing:.2px}
+  .brand{font-weight:800}
   .muted{color:var(--muted)}
-  .grid{max-width:1200px; margin:16px auto; padding:0 16px; display:grid; gap:12px; grid-template-columns: 280px 1fr;}
-  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-  .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:12px;}
-  .card h3{margin:6px 0 12px 0; font-size:16px}
-  .btn{padding:9px 12px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600;}
-  .btn:hover{filter:brightness(1.08)}
-  .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
-  .btn.warn{ background:#3e2a00; color:#ffdb8a; border-color:#5a430f;}
-  .btn.ghost{ background:transparent;}
-  input[type="text"],input[type="number"],textarea,select{
-    width:100%; padding:8px 10px; border-radius:10px; border:1px solid #2a3040; background:#0e1218; color:var(--text); outline:none;
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .btn{padding:10px 14px; border-radius:10px; border:1px solid #334055; background:#142033; color:#cfe1ff; cursor:pointer}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:#fff}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:6px 10px; border-radius:8px; font-size:12px}
+  .pill{padding:4px 10px; border:1px solid var(--border); border-radius:999px; background:#0e1218; font-size:12px}
+  .container{max-width:1200px; margin:18px auto; padding:0 16px}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+  .toolbar .left, .toolbar .right{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  input[type="text"], input[type="number"]{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:#0e1218; color:var(--text); outline:none; height:38px;
   }
-  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-  .col{flex:1 1 0}
-  .vspace{height:8px}
-  table{width:100%; border-collapse:collapse; font-size:13px}
-  th,td{border-bottom:1px solid #262d3a; padding:6px 6px; text-align:right; white-space:nowrap}
-  th:first-child,td:first-child{text-align:left; position:sticky; left:0; background:var(--panel)}
-  th.sticky{position:sticky; top:0; background:var(--panel); z-index:2}
-  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-  .pill{padding:4px 8px; border-radius:999px; border:1px solid #2a3040; background:#0e1218; font-size:12px}
-  .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
-  .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
-  .tag.bad{border-color:#7a1e2c; background:#2a0c12; color:#ff5171}
-  .small{font-size:12px}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
-  .flex-between{display:flex; justify-content:space-between; align-items:center}
-  .nowrap{white-space:nowrap}
-  .scroll{overflow:auto}
+  input::placeholder{color:#7b8494}
+  .hint{font-size:12px; color:var(--muted)}
+  /* ======= 표 스타일 (가독성 업) ======= */
+  .tableWrap{overflow:auto; border:1px solid var(--border); border-radius:12px}
+  table{width:100%; border-collapse:separate; border-spacing:0 8px;} /* 행 간격 확보 */
+  thead th{
+    position:sticky; top:0; z-index:1;
+    background:#121722; color:#cfe1ff; font-weight:700;
+    padding:12px 10px; text-align:center; border-bottom:1px solid var(--border);
+  }
+  tbody td{
+    background:#111620; padding:10px 8px; text-align:center; vertical-align:middle;
+    border-top:1px solid #1b2230; border-bottom:1px solid #1b2230;
+  }
+  tbody tr{ box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  tbody tr td:first-child{ border-left:1px solid #1b2230; border-top-left-radius:10px; border-bottom-left-radius:10px}
+  tbody tr td:last-child { border-right:1px solid #1b2230; border-top-right-radius:10px; border-bottom-right-radius:10px}
+  .cell{min-width:86px}
+  .cell.name{min-width:150px; text-align:left; font-weight:700}
+  .cell.compact{min-width:70px}
+  .cell button{white-space:nowrap}
+  .cell input{height:36px; padding:8px 10px; font-size:13px}
+  .seg{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; min-width:380px}
+  .ok{color:var(--ok)} .warn{color:var(--warn)}
+  .stickyFooter{position:sticky; bottom:0; padding:8px 0 0 0}
 </style>
 </head>
 <body>
-<header class="flex-between">
-  <div class="brand">NOVA 서버 펫 관리자 <span class="muted">·</span></div>
-  <div class="muted small">v0.8-admin</div>
+<header>
+  <div class="brand">NOVA Admin 1.0</div>
+  <div class="row">
+    <span class="pill muted">eCandidates: 575/555/535/515/495/475/455/435</span>
+    <a class="btn ghost" href="./index.html">← 사용자 계산기</a>
+  </div>
 </header>
 
-<div class="grid">
-  <!-- 좌측: IO/작업 -->
+<div class="container">
   <section class="card">
-    <h3>① 데이터 불러오기 / 내보내기</h3>
-    <div class="row">
-      <div class="col">
-        <label class="small muted">pets.json URL</label>
-        <input type="text" id="urlJson" placeholder="https://raw.githubusercontent.com/..../data/pets.json" />
+    <div class="toolbar">
+      <div class="left">
+        <button id="btnLoadRemote" class="btn">원격 불러오기 (GitHub pets.json)</button>
+        <label class="btn">
+          로컬 불러오기
+          <input id="fileInput" type="file" accept=".json,.tsv,.csv" style="display:none">
+        </label>
+        <button id="btnDownload" class="btn">JSON 다운로드</button>
+        <button id="btnCopy" class="btn">클립보드 복사</button>
+      </div>
+      <div class="right">
+        <label class="pill"><input id="chkOverwrite" type="checkbox" style="vertical-align:middle"> &nbsp;기존 k/u 덮어쓰기</label>
+        <button id="btnInferAll" class="btn primary">Nova2 추정 실행 (전체)</button>
       </div>
     </div>
-    <div class="row">
-      <button class="btn" id="btnLoadJson">원격 JSON 불러오기</button>
-      <button class="btn" id="btnLoadLocalJson">로컬 JSON 불러오기</button>
-      <button class="btn" id="btnLoadLocalTsv">로컬 TSV 불러오기</button>
-    </div>
-
-    <div class="vspace"></div>
-    <div class="row">
-      <button class="btn primary" id="btnSaveJson">JSON로 내보내기(pets.json)</button>
-      <button class="btn" id="btnSaveTsv">TSV로 내보내기</button>
-      <span class="pill muted" id="badgeCount">— 개 로드됨</span>
-    </div>
-
-    <div class="vspace"></div>
-    <h3>② 일괄 추정/도움</h3>
-    <div class="row">
-      <button class="btn primary" id="btnInferAll">Nova2 Strict 일괄 추정</button>
-      <button class="btn warn" id="btnClearKU">k/u/e/오차 지우기</button>
-    </div>
-    <p class="muted small" style="margin-top:6px">
-      · e 후보: [575, 555, 535, 515, 495, 475, 455, 435] · SG는 둘째자리 반올림, S0는 합산 후 floor<br/>
-      · TSV 내보내기 컬럼: <span class="mono">k, u_hp, u_atk, u_def, u_agi, mape, r</span> (여기서 r = e)
-    </p>
-
-    <div class="vspace"></div>
-    <h3>로그</h3>
-    <textarea id="log" rows="10" class="mono" placeholder="진행 로그" readonly></textarea>
+    <p class="hint" style="margin:8px 2px 0">· S0/SG를 편집 후, 각 행의 [추정] 버튼 또는 상단 [전체] 버튼을 눌러 k/u/e를 채웁니다.  
+    · 로직은 짜얄 계산기와 완전히 동일합니다(Decimal.js, 확장 e, 합산 후 floor).</p>
   </section>
 
-  <!-- 우측: 테이블 -->
-  <section class="card scroll">
-    <h3>등록된 페트</h3>
-    <div class="toolbar">
-      <span class="muted small">셀은 직접 수정 가능 · 숫자 입력 시 자동 저장</span>
-      <span class="pill" id="badgeDirty">저장됨</span>
-    </div>
-    <div class="vspace"></div>
-    <div class="scroll">
+  <section class="card" style="margin-top:14px">
+    <div class="tableWrap">
       <table id="tbl">
         <thead>
           <tr>
-            <th class="sticky">이름</th>
-            <th class="sticky">s0_hp</th><th class="sticky">s0_atk</th><th class="sticky">s0_def</th><th class="sticky">s0_agi</th>
-            <th class="sticky">sg_hp</th><th class="sticky">sg_atk</th><th class="sticky">sg_def</th><th class="sticky">sg_agi</th>
-            <th class="sticky">k</th>
-            <th class="sticky">u_hp</th><th class="sticky">u_atk</th><th class="sticky">u_def</th><th class="sticky">u_agi</th>
-            <th class="sticky">e</th>
-            <th class="sticky">mape</th>
-            <th class="sticky">sg_err</th>
-            <th class="sticky">작업</th>
+            <th>이름</th>
+            <th>S0 (hp/atk/def/agi)</th>
+            <th>SG (hp/atk/def/agi)</th>
+            <th>k</th>
+            <th>u (hp/atk/def/agi)</th>
+            <th>e</th>
+            <th>오차</th>
+            <th>추정</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
+    <div class="stickyFooter">
+      <span class="hint" id="status">—</span>
+    </div>
   </section>
 </div>
 
-<input type="file" id="fileJson" accept=".json,application/json" hidden />
-<input type="file" id="fileTsv"  accept=".tsv,text/tab-separated-values,text/plain" hidden />
-
 <script>
-/* ==============================
-   유틸
-============================== */
-const $ = (id)=>document.getElementById(id);
-function logln(s){ const ta=$('log'); ta.value += s + "\n"; ta.scrollTop = ta.scrollHeight; }
-function r2(x){ return Math.round(x*100)/100; }
-function precise(n){ return Math.round(n*1e12)/1e12; }
-function toNum(s){ const v = parseFloat(s); return Number.isFinite(v)? v : NaN; }
-function mape(a,b){
-  let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i]||0)); s += Math.abs((a[i]||0)-(b[i]||0))/den; }
-  return s/4*100;
-}
-function download(name, text){
-  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+/* ========= 원격 경로 ========= */
+const GH_OWNER  = "kokudas";
+const GH_REPO   = "kokudas.github.io";
+const GH_BRANCH = "main";
+const PETS_PATH = "data/pets.json";
+const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
+
+/* ========= 전역 ========= */
+let TABLE = {}; // { name: { s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{hp,atk,def,agi}, e } }
+let NAMES = [];
+
+/* ========= 도구 ========= */
+const $ = sel => document.querySelector(sel);
+function fmt(n, d=2){ const v=Number(n); return Number.isFinite(v)? v.toFixed(d) : ""; }
+function num(v){ const x=parseFloat(v); return Number.isFinite(x)? x : NaN; }
+function setStatus(msg){ $("#status").textContent = msg; }
+
+/* ========= 짜얄 호환 추정 로직 ========= */
+/* e 후보 (확장) */
+const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
+
+/* SG → u (Decimal.js, ROUND_HALF_UP) */
+function solveUFromSG_JJYAL(SG, e){
+  try{
+    if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
+    Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+
+    const eD = new Decimal(e);
+    const f  = eD.dividedBy(10000); // factor
+
+    // u_agi
+    const d = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
+    const u_agi = d.round();
+    const dPlus25 = u_agi.plus(2.5);
+
+    // rhs' = (SG - f*dTerm)/f
+    const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
+    const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+    const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+
+    // 3x3 가우스 소거
+    let A = [
+      [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
+      [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
+      [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
+    ];
+    for(let i=0;i<3;i++){
+      let mr=i, mv=A[i][i].abs();
+      for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
+      if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
+      const piv=A[i][i];
+      for(let j=i;j<4;j++) A[i][j]=A[i][j].dividedBy(piv);
+      for(let k=0;k<3;k++){
+        if(k===i) continue;
+        const fac=A[k][i];
+        for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
+      }
+    }
+    const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
+
+    const u_hp  = aPrime.minus(2.5).round();
+    const u_atk = bPrime.minus(2.5).round();
+    const u_def = cPrime.minus(2.5).round();
+
+    const r2 = x => new Decimal(x).toDecimalPlaces(2);
+    const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
+    const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const agi_chk = r2( f.times( u_agi.plus(2.5) ) );
+
+    const err = hp_chk.minus(r2(SG.hp)).abs()
+               .plus(atk_chk.minus(r2(SG.atk)).abs())
+               .plus(def_chk.minus(r2(SG.def)).abs())
+               .plus(agi_chk.minus(r2(SG.agi)).abs());
+
+    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e, sg_err:+err };
+  }catch(e){ return null; }
 }
 
-/* ==============================
-   Nova2 Strict 추정기 (짜얄 절차 복제)
-============================== */
-const ESET = [575, 555, 535, 515, 495, 475, 455, 435]; // e candidates
-const INT_EPS = 0.2; // 정수 허용오차
-
-// 합산 후 floor 로 S0 재생성
-function s0_from_k_u_Nova2(k,u){
-  const f = k/100;
-  const vH = f*u.hp, vA=f*u.atk, vD=f*u.def, vG=f*u.agi;
-  const s_hp = Math.floor(vH*4 + vA + vD + vG);
-  const s_atk= Math.floor(vH*0.1 + vA + vD*0.1 + vG*0.05);
-  const s_def= Math.floor(vH*0.1 + vA*0.1 + vD + vG*0.05);
-  const s_agi= Math.floor(vG);
+/* (u,e,k) 적합도: S0 정수부 일치 우선. k는 10..100 스캔 */
+function s0_from_k_u_jjyal(k,u){
+  const fac = k/100;
+  const vhp  = (u.hp + 2.5) * fac;
+  const vatk = (u.atk+ 2.5) * fac;
+  const vdef = (u.def+ 2.5) * fac;
+  const vagi = (u.agi+ 2.5) * fac;
+  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
+  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+  const s_agi= Math.floor(vagi);
   return [s_hp,s_atk,s_def,s_agi];
 }
-
-// SG 재합성(둘째자리)
-function sg_from_u_e_Nova2(u,e){
-  const f=e/10000;
-  const a=u.hp+2.5, b=u.atk+2.5, c=u.def+2.5, d=u.agi+2.5;
-  return {
-    hp:  r2(f*(4*a + b + c + d)),
-    atk: r2(f*(0.1*a + b + 0.1*c + 0.05*d)),
-    def: r2(f*(0.1*a + 0.1*b + c + 0.05*d)),
-    agi: r2(f*(d)),
-  };
-}
-
-// 3x3 역행렬 곱 util (M^-1 * x), M = [[4,1,1],[0.1,1,0.1],[0.1,0.1,1]]
-function invMul_4_1_1_011_1_01_01_01_1(x1,x2,x3){
-  const A=4,B=1,C=1,D=0.1,E=1,F=0.1,G=0.1,H=0.1,I=1;
-  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
-  if (Math.abs(det)<1e-12) return null;
-  const i11=(E*I-F*H)/det, i12=-(B*I-C*H)/det, i13=(B*F-C*E)/det;
-  const i21=-(D*I-F*G)/det, i22=(A*I-C*G)/det, i23=-(A*F-C*D)/det;
-  const i31=(D*H-E*G)/det, i32=-(A*H-B*G)/det, i33=(A*E-B*D)/det;
-  return [
-    i11*x1 + i12*x2 + i13*x3,
-    i21*x1 + i22*x2 + i23*x3,
-    i31*x1 + i32*x2 + i33*x3
-  ];
-}
-
-// Strict 추정
-function inferKU_Nova2_strict(S0, SG){
-  // 검증
-  if(!S0 || !SG) return null;
-  const S0i = S0.map(v=>Math.floor(v));
+function fitKFromS0_JJYAL(S0int,u){
   let best=null;
-
-  for(const e of ESET){
-    const f = e/10000;
-
-    // 1) d' = SG.agi / f  → u_agi = round(d' - 2.5)
-    const dprime = (SG.agi)/f;
-    const u_agi  = Math.round(dprime - 2.5);
-
-    // 2) (a',b',c') = inv(M3)*[(SG - d'항)/f]
-    const rhs1 = (SG.hp  - f*dprime)/f;
-    const rhs2 = (SG.atk - 0.05*f*dprime)/f;
-    const rhs3 = (SG.def - 0.05*f*dprime)/f;
-    const inv = invMul_4_1_1_011_1_01_01_01_1(rhs1,rhs2,rhs3);
-    if(!inv) continue;
-    const [apr, bpr, cpr] = inv;
-
-    // 3) u 정수(4.5 기준) 산출
-    const u_hp  = Math.round(apr - 2.5);
-    const u_atk = Math.round(bpr - 2.5);
-    const u_def = Math.round(cpr - 2.5);
-
-    // 4) g=i/100 스캔으로 V(연속 S0소수)를 복원(HP 정수부 일치 지점)
-    let V=null;
-    for(let i=1;i<100;i++){
-      const g=i/100;
-      const h=(u_hp +2.5)*g, a=(u_atk+2.5)*g, d=(u_def+2.5)*g, g2=(u_agi+2.5)*g;
-      const HP = h*4 + a + d + g2;
-      if(Math.floor(HP)!==S0i[0]) continue; // HP 정수부 맞춤
-      const ATK= h*0.1 + a + d*0.1 + g2*0.05;
-      const DEF= h*0.1 + a*0.1 + d + g2*0.05;
-      const AGI= g2;
-      V=[HP,ATK,DEF,AGI]; break;
-    }
-    if(!V) continue;
-
-    // 5) k=10..100 탐색(정수 허용오차, 재생성 일치, SG 2자리 오차 최소화)
-    for(let k=10;k<=100;k++){
-      const tmp_agi = (V[3]*100/k) - 4.5;
-      if(Math.abs(tmp_agi - Math.round(tmp_agi)) > INT_EPS) continue;
-      const ug = Math.round(tmp_agi);
-
-      const eq1 = V[0] - V[3];
-      const eq2 = V[1] - 0.05*V[3];
-      const eq3 = V[2] - 0.05*V[3];
-
-      const eq5_rhs = eq3 - 0.1*eq1;   // (-3)A + 9C = 10*eq5_rhs
-      const eq4_rhs = eq2 - eq1;       // (-3.9)A + (-0.9)C = eq4_rhs
-      const C = ( (eq5_rhs*10) - (eq4_rhs*(3/3.9)) ) / 9.6923;
-      const A = ( (eq5_rhs) - 0.9*C ) / -0.3;
-      const B = eq1 - 4*A - C;
-
-      const uh = (A*100/k) - 4.5;
-      const ua = (B*100/k) - 4.5;
-      const ud = (C*100/k) - 4.5;
-
-      if([uh,ua,ud].some(v=>!Number.isFinite(v))) continue;
-      if([uh,ua,ud].some(v=>Math.abs(v - Math.round(v))>INT_EPS)) continue;
-
-      const U = {hp:Math.round(uh), atk:Math.round(ua), def:Math.round(ud), agi:ug};
-
-      // (a) S0 재생성 완전일치(합산→floor)
-      const s = s0_from_k_u_Nova2(k,U);
-      if(s[0]!==S0i[0] || s[1]!==S0i[1] || s[2]!==S0i[2] || s[3]!==S0i[3]) continue;
-
-      // (b) SG 2자리 재합성 오차 최소화
-      const sgc = sg_from_u_e_Nova2(U, e);
-      const err = Math.abs(sgc.hp-(SG.hp||0))+Math.abs(sgc.atk-(SG.atk||0))+Math.abs(sgc.def-(SG.def||0))+Math.abs(sgc.agi-(SG.agi||0));
-
-      // (c) tie-break: k∈[16..40] 가산점
-      const score = err + (k>=16 && k<=40 ? 0 : 1);
-
-      const cand = {k,u:U,e,err,score, V};
-      if(!best || cand.score < best.score) best = cand;
-    }
+  for(let k=10;k<=100;k++){
+    const s = s0_from_k_u_jjyal(k,u);
+    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
+    const ok = (l1===0);
+    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
+    if(ok) break;
   }
-  return best; // {k,u,e,err,score,V}
+  return best;
 }
 
-/* ==============================
-   상태 & 렌더
-============================== */
-let ROWS = []; // [{name,s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{...}, e, mape, sg_err}]
-let DIRTY = false;
-
-function setDirty(d=true){
-  DIRTY = d;
-  $('badgeDirty').textContent = d? '변경됨' : '저장됨';
-  $('badgeDirty').style.background = d? '#2a1820' : '#0e1218';
-  $('badgeDirty').style.borderColor = d? '#5a2a3a' : '#2a3040';
+/* 최종 추정 */
+function inferKU_JJYAL(S0, SG){
+  const S0int = S0.map(x=>Math.floor(x));
+  let best=null;
+  for(const e of ESET){
+    const sol = solveUFromSG_JJYAL(SG, e);
+    if(!sol) continue;
+    const fit = fitKFromS0_JJYAL(S0int, sol.u);
+    if(!fit) continue;
+    const score = (fit.ok?0:1000) + fit.l1*10 + (sol.sg_err||0);
+    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, s0_ok:fit.ok, score};
+    if(!best || cand.score<best.score) best=cand;
+  }
+  return best;
 }
 
-function renderTable(){
-  const tb = $('tbody'); tb.innerHTML = '';
-  for(let i=0;i<ROWS.length;i++){
-    const r = ROWS[i];
-    const tr = document.createElement('tr');
+/* ========= 데이터 입출력 ========= */
+async function loadRemote(){
+  setStatus("원격 불러오는 중…");
+  try{
+    const r = await fetch(REMOTE_PETS + `?v=${Date.now()}`, {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const json = await r.json();
+    if(typeof json!=="object" || Array.isArray(json)) throw new Error("형식 오류");
+    TABLE = json;
+    NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
+    render();
+    setStatus(`원격 로드 완료 · ${NAMES.length.toLocaleString()}마리`);
+  }catch(err){
+    setStatus("원격 로드 실패: " + (err?.message||""));
+  }
+}
 
-    function tdEdit(val, cls, oncommit){
-      const td = document.createElement('td');
-      const inp = document.createElement('input');
-      inp.type = 'text';
-      inp.value = (val ?? '');
-      inp.className='mono';
-      inp.addEventListener('change',()=>{ oncommit(inp.value); setDirty(true); });
-      td.appendChild(inp); if(cls) td.className=cls; return td;
-    }
-    function tdNum(val){ const td=document.createElement('td'); td.textContent = (Number.isFinite(val)? val : ''); td.className='mono'; return td; }
+function handleLocalFile(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      let txt = String(fr.result||"");
+      // JSON/TSV/CSV 자동 판별
+      if(txt.trim().startsWith("{")){
+        TABLE = JSON.parse(txt);
+      }else{
+        TABLE = tsvToTable(txt); // 간단 TSV 파서
+      }
+      NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
+      render();
+      setStatus(`로컬 로드 완료 · ${NAMES.length.toLocaleString()}마리`);
+    }catch(e){ alert("파일 파싱 실패: "+e.message); }
+  };
+  fr.readAsText(file, "utf-8");
+}
+function tsvToTable(tsv){
+  const lines = tsv.trim().split(/\r?\n/);
+  const head = lines.shift().split(/\t|,/).map(s=>s.trim());
+  const idx = (h)=> head.indexOf(h);
+  const m = {};
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const c = line.split(/\t|,/).map(s=>s.trim());
+    const name = c[0];
+    const get = h => num(c[idx(h)]);
+    if(!name) continue;
+    m[name] = {
+      s0:{hp:get("s0_hp"), atk:get("s0_atk"), def:get("s0_def"), agi:get("s0_agi")},
+      sg:{hp:get("sg_hp"), atk:get("sg_atk"), def:get("sg_def"), agi:get("sg_agi")},
+    };
+  }
+  return m;
+}
+
+function downloadJSON(){
+  const blob = new Blob([JSON.stringify(TABLE, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "pets.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+async function copyJSON(){
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(TABLE, null, 2));
+    setStatus("JSON을 클립보드에 복사했습니다.");
+  }catch{ alert("클립보드 복사 실패: 권한을 허용해 주세요."); }
+}
+
+/* ========= 렌더 ========= */
+function render(){
+  const tb = $("#tbody");
+  tb.innerHTML = "";
+  NAMES.forEach(name=>{
+    const r = TABLE[name] ||= {};
+    r.s0 ||= {}; r.sg ||= {}; r.u ||= {};
+
+    const tr = document.createElement("tr");
 
     // 이름
-    tr.appendChild(tdEdit(r.name||'', '', v=>r.name=v));
+    const tdName = document.createElement("td"); tdName.className="cell name";
+    tdName.textContent = name;
+    tr.appendChild(tdName);
 
-    // s0
-    tr.appendChild(tdEdit(r.s0?.hp ?? '', '', v=>{r.s0=r.s0||{}; r.s0.hp=toNum(v)}));
-    tr.appendChild(tdEdit(r.s0?.atk?? '', '', v=>{r.s0=r.s0||{}; r.s0.atk=toNum(v)}));
-    tr.appendChild(tdEdit(r.s0?.def?? '', '', v=>{r.s0=r.s0||{}; r.s0.def=toNum(v)}));
-    tr.appendChild(tdEdit(r.s0?.agi?? '', '', v=>{r.s0=r.s0||{}; r.s0.agi=toNum(v)}));
+    // S0 4개
+    const tdS0 = document.createElement("td"); tdS0.className="cell";
+    tdS0.innerHTML = `
+      <div class="seg">
+        <input type="number" step="0.01" placeholder="hp" value="${fmt(r.s0.hp)}" data-name="${name}" data-field="s0.hp">
+        <input type="number" step="0.01" placeholder="atk" value="${fmt(r.s0.atk)}" data-name="${name}" data-field="s0.atk">
+        <input type="number" step="0.01" placeholder="def" value="${fmt(r.s0.def)}" data-name="${name}" data-field="s0.def">
+        <input type="number" step="0.01" placeholder="agi" value="${fmt(r.s0.agi)}" data-name="${name}" data-field="s0.agi">
+      </div>`;
+    tr.appendChild(tdS0);
 
-    // sg
-    tr.appendChild(tdEdit(r.sg?.hp ?? '', '', v=>{r.sg=r.sg||{}; r.sg.hp =toNum(v)}));
-    tr.appendChild(tdEdit(r.sg?.atk?? '', '', v=>{r.sg=r.sg||{}; r.sg.atk=toNum(v)}));
-    tr.appendChild(tdEdit(r.sg?.def?? '', '', v=>{r.sg=r.sg||{}; r.sg.def=toNum(v)}));
-    tr.appendChild(tdEdit(r.sg?.agi?? '', '', v=>{r.sg=r.sg||{}; r.sg.agi=toNum(v)}));
+    // SG 4개
+    const tdSG = document.createElement("td"); tdSG.className="cell";
+    tdSG.innerHTML = `
+      <div class="seg">
+        <input type="number" step="0.01" placeholder="hp" value="${fmt(r.sg.hp)}" data-name="${name}" data-field="sg.hp">
+        <input type="number" step="0.01" placeholder="atk" value="${fmt(r.sg.atk)}" data-name="${name}" data-field="sg.atk">
+        <input type="number" step="0.01" placeholder="def" value="${fmt(r.sg.def)}" data-name="${name}" data-field="sg.def">
+        <input type="number" step="0.01" placeholder="agi" value="${fmt(r.sg.agi)}" data-name="${name}" data-field="sg.agi">
+      </div>`;
+    tr.appendChild(tdSG);
 
-    // k, u, e, mape, sg_err
-    tr.appendChild(tdNum(r.k));
-    tr.appendChild(tdNum(r.u?.hp));
-    tr.appendChild(tdNum(r.u?.atk));
-    tr.appendChild(tdNum(r.u?.def));
-    tr.appendChild(tdNum(r.u?.agi));
-    tr.appendChild(tdNum(r.e));
-    tr.appendChild(tdNum(r.mape));
-    tr.appendChild(tdNum(r.sg_err));
+    // k
+    const tdK = document.createElement("td"); tdK.className="cell compact";
+    tdK.innerHTML = `<input type="number" step="1" placeholder="k" value="${Number.isFinite(r.k)? r.k : ""}" data-name="${name}" data-field="k">`;
+    tr.appendChild(tdK);
 
-    // 작업
-    const tdAct = document.createElement('td'); tdAct.className='nowrap';
-    const b1 = document.createElement('button'); b1.className='btn btn-sm'; b1.textContent='Nova2 추정';
-    b1.onclick=()=>{
-      const out = inferKU_Nova2_strict([r.s0?.hp, r.s0?.atk, r.s0?.def, r.s0?.agi], r.sg);
-      if(!out){ logln(`✖ ${r.name}: 추정 실패`); return; }
-      r.k = out.k; r.u = out.u; r.e = out.e; r.sg_err = precise(out.err);
-      // mape: 연속 S0(합산 전)과 제공 S0(소수) 사이
-      const f = r.k/100;
-      const vhp=f*r.u.hp, vatk=f*r.u.atk, vdef=f*r.u.def, vagi=f*r.u.agi;
-      const scont=[vhp*4+vatk+vdef+vagi, vhp*0.1+vatk+vdef*0.1+vagi*0.05, vhp*0.1+vatk*0.1+vdef+vagi*0.05, vagi];
-      r.mape = precise(mape([r.s0?.hp,r.s0?.atk,r.s0?.def,r.s0?.agi], scont));
-      setDirty(true); renderTable();
-      logln(`✓ ${r.name}: k=${r.k}, u=(${r.u.hp},${r.u.atk},${r.u.def},${r.u.agi}), e=${r.e}, mape=${r.mape.toFixed(4)}, sg_err=${r.sg_err.toFixed(4)}`);
-    };
-    const b2 = document.createElement('button'); b2.className='btn btn-sm'; b2.textContent='삭제';
-    b2.onclick=()=>{ ROWS.splice(i,1); setDirty(true); renderTable(); };
-    tdAct.appendChild(b1); tdAct.appendChild(document.createTextNode(' ')); tdAct.appendChild(b2);
+    // u 4개
+    const tdU = document.createElement("td"); tdU.className="cell";
+    tdU.innerHTML = `
+      <div class="seg">
+        <input type="number" step="1" placeholder="u_hp"  value="${Number.isFinite(r.u.hp)? r.u.hp: ""}" data-name="${name}" data-field="u.hp">
+        <input type="number" step="1" placeholder="u_atk" value="${Number.isFinite(r.u.atk)?r.u.atk: ""}" data-name="${name}" data-field="u.atk">
+        <input type="number" step="1" placeholder="u_def" value="${Number.isFinite(r.u.def)?r.u.def: ""}" data-name="${name}" data-field="u.def">
+        <input type="number" step="1" placeholder="u_agi" value="${Number.isFinite(r.u.agi)?r.u.agi: ""}" data-name="${name}" data-field="u.agi">
+      </div>`;
+    tr.appendChild(tdU);
+
+    // e
+    const tdE = document.createElement("td"); tdE.className="cell compact";
+    tdE.innerHTML = `<input type="number" step="1" placeholder="e" value="${Number.isFinite(r.e)? r.e : ""}" data-name="${name}" data-field="e">`;
+    tr.appendChild(tdE);
+
+    // err
+    const tdErr = document.createElement("td"); tdErr.className="cell compact";
+    const errTxt = (Number.isFinite(r.sg_err)? r.sg_err.toFixed(3) : "—") + (r.s0_ok? " ✓" : "");
+    tdErr.textContent = errTxt;
+    tr.appendChild(tdErr);
+
+    // action
+    const tdAct = document.createElement("td"); tdAct.className="cell compact";
+    const btn = document.createElement("button");
+    btn.className="btn sm";
+    btn.textContent="추정";
+    btn.onclick = ()=> inferOne(name);
+    tdAct.appendChild(btn);
     tr.appendChild(tdAct);
 
-    $('tbody').appendChild(tr);
-  }
-  $('badgeCount').textContent = `${ROWS.length} 개 로드됨`;
+    tb.appendChild(tr);
+  });
+
+  // input 바인딩(지연 저장)
+  tb.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("change", onCellChange);
+    inp.addEventListener("blur", onCellChange);
+  });
 }
 
-/* ==============================
-   IO: JSON / TSV
-============================== */
-function fromPetsJson(obj){
-  const rows=[];
-  for(const name of Object.keys(obj||{})){
-    const r = obj[name]||{};
-    rows.push({
-      name,
-      s0: r.s0? {hp:+r.s0.hp, atk:+r.s0.atk, def:+r.s0.def, agi:+r.s0.agi}: {},
-      sg: r.sg? {hp:+r.sg.hp, atk:+r.sg.atk, def:+r.sg.def, agi:+r.sg.agi}: {},
-      k:  Number.isFinite(r.k)? +r.k : undefined,
-      u:  r.u? {hp:+r.u.hp, atk:+r.u.atk, def:+r.u.def, agi:+r.u.agi}: undefined,
-      e:  Number.isFinite(r.e)? +r.e : undefined,
-      mape: Number.isFinite(r.mape)? +r.mape : undefined,
-      sg_err: Number.isFinite(r.sg_err)? +r.sg_err : undefined,
-    });
+function onCellChange(e){
+  const el = e.target;
+  const name = el.dataset.name;
+  const field = el.dataset.field; // e.g. "s0.hp"
+  if(!name || !field) return;
+  const val = el.step==="1"? parseInt(el.value,10) : parseFloat(el.value);
+  const parts = field.split(".");
+  if(parts.length===1){
+    TABLE[name][field] = Number.isFinite(val)? val: undefined;
+  }else if(parts.length===2){
+    const [a,b] = parts;
+    TABLE[name][a] ||= {};
+    TABLE[name][a][b] = Number.isFinite(val)? val: undefined;
   }
-  return rows;
-}
-function toPetsJson(rows){
-  const obj={};
-  for(const r of rows){
-    if(!r?.name) continue;
-    obj[r.name] = {
-      s0: r.s0, sg: r.sg,
-      ...(Number.isFinite(r.k) && r.u ? {k:r.k, u:r.u} : {}),
-      ...(Number.isFinite(r.e)? {e:r.e}:{}),
-      ...(Number.isFinite(r.mape)? {mape:r.mape}:{}),
-      ...(Number.isFinite(r.sg_err)? {sg_err:r.sg_err}:{}),
-    };
-  }
-  return obj;
 }
 
-// TSV 파서: 헤더가 s0/sg 8개 또는 name 포함 가정(유연)
-function parseTSV(text){
-  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
-  if(lines.length===0) return [];
-  const head = lines[0].split('\t').map(s=>s.trim());
-  const idx = {};
-  head.forEach((h,i)=>idx[h]=i);
-  function col(h){ return idx[h] ?? -1; }
-  const need = ['name','s0_hp','s0_atk','s0_def','s0_agi','sg_hp','sg_atk','sg_def','sg_agi'];
-  // name 컬럼 없으면 첫 컬럼을 name으로 간주
-  if(col('name')<0) { idx['name']=0; }
+/* ========= 추정 실행 ========= */
+function inferOne(name){
+  const r = TABLE[name];
+  if(!r) return;
+  const S0 = [r?.s0?.hp, r?.s0?.atk, r?.s0?.def, r?.s0?.agi].map(Number);
+  const SG = r?.sg;
 
-  const out=[];
-  for(let li=1; li<lines.length; li++){
-    const cells = lines[li].split('\t');
-    if(cells.length < 5) continue;
-    const name = cells[idx['name']]?.trim();
-    const s0 = {hp:+cells[col('s0_hp')], atk:+cells[col('s0_atk')], def:+cells[col('s0_def')], agi:+cells[col('s0_agi')]};
-    const sg = {hp:+cells[col('sg_hp')], atk:+cells[col('sg_atk')], def:+cells[col('sg_def')], agi:+cells[col('sg_agi')]};
-    if(!name || ![s0.hp,s0.atk,s0.def,s0.agi,sg.hp,sg.atk,sg.def,sg.agi].every(Number.isFinite)) continue;
-    out.push({name, s0, sg});
+  if(S0.some(v=>!Number.isFinite(v)) || !SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+    alert(`[${name}] S0/SG가 비어 있습니다.`);
+    return;
   }
-  return out;
-}
-function toTSV(rows){
-  const head = ['name','s0_hp','s0_atk','s0_def','s0_agi','sg_hp','sg_atk','sg_def','sg_agi','k','u_hp','u_atk','u_def','u_agi','mape','r'];
-  const lines=[head.join('\t')];
-  for(const r of rows){
-    lines.push([
-      r.name ?? '',
-      r.s0?.hp ?? '', r.s0?.atk ?? '', r.s0?.def ?? '', r.s0?.agi ?? '',
-      r.sg?.hp ?? '', r.sg?.atk ?? '', r.sg?.def ?? '', r.sg?.agi ?? '',
-      Number.isFinite(r.k)? r.k:'', r.u?.hp ?? '', r.u?.atk ?? '', r.u?.def ?? '', r.u?.agi ?? '',
-      Number.isFinite(r.mape)? r.mape : '',
-      Number.isFinite(r.e)? r.e : '' // r = e
-    ].join('\t'));
+
+  // 덮어쓰기 옵션 체크
+  const overwrite = $("#chkOverwrite").checked;
+  const hasKU = Number.isFinite(r.k) && r.u && [r.u.hp,r.u.atk,r.u.def,r.u.agi].every(Number.isFinite);
+  if(!overwrite && hasKU){
+    setStatus(`[${name}] 기존 k/u 유지 (덮어쓰기 옵션 해제됨)`);
+    return;
   }
-  return lines.join('\n');
+
+  const fit = inferKU_JJYAL(S0, SG);
+  if(!fit){ alert(`[${name}] 추정 실패`); return; }
+  r.k = fit.k; r.u = fit.u; r.e = fit.e;
+  r.sg_err = fit.sg_err; r.s0_l1 = fit.s0_l1; r.s0_ok = !!fit.s0_ok;
+
+  // 행 다시 그리기 최소화: 상태만 갱신
+  setStatus(`[${name}] k=${r.k}, u=(${r.u.hp},${r.u.atk},${r.u.def},${r.u.agi}), e=${r.e} · SGerr=${fit.sg_err?.toFixed(3)} ${fit.s0_ok?"✓":""}`);
+  render(); // 간단히 전체 리렌더
 }
 
-/* ==============================
-   이벤트
-============================== */
-$('btnLoadJson').onclick = async ()=>{
-  const url = $('urlJson').value.trim();
-  if(!url){ alert('URL을 입력하세요'); return; }
-  try{
-    const res = await fetch(url + `?v=${Date.now()}`, {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const obj = await res.json();
-    ROWS = fromPetsJson(obj);
-    setDirty(false); renderTable();
-    logln(`✓ 원격 JSON 로드: ${ROWS.length}건`);
-  }catch(e){ alert('로드 실패: '+e.message); }
-};
-$('btnLoadLocalJson').onclick = ()=> $('fileJson').click();
-$('fileJson').onchange = async (e)=>{
-  const file = e.target.files?.[0]; if(!file) return;
-  const text = await file.text(); const obj = JSON.parse(text);
-  ROWS = fromPetsJson(obj);
-  setDirty(false); renderTable();
-  logln(`✓ 로컬 JSON 로드: ${ROWS.length}건`);
-  e.target.value='';
-};
-$('btnLoadLocalTsv').onclick = ()=> $('fileTsv').click();
-$('fileTsv').onchange = async (e)=>{
-  const file = e.target.files?.[0]; if(!file) return;
-  const text = await file.text();
-  const rows = parseTSV(text);
-  if(rows.length===0){ alert('TSV 파싱 실패/빈 파일'); return; }
-  // 기존 동일 이름 merge/update
-  const map = new Map(ROWS.map(r=>[r.name,r]));
-  for(const r of rows){
-    if(map.has(r.name)){ const ex=map.get(r.name); ex.s0=r.s0; ex.sg=r.sg; } else { map.set(r.name, {...r}); }
-  }
-  ROWS = Array.from(map.values());
-  setDirty(true); renderTable();
-  logln(`✓ 로컬 TSV 로드/병합: ${rows.length}건 (총 ${ROWS.length})`);
-  e.target.value='';
-};
+async function inferAll(){
+  if(NAMES.length===0){ alert("데이터가 비어 있습니다."); return; }
+  const overwrite = $("#chkOverwrite").checked;
+  let ok=0, fail=0, skip=0;
+  for(const name of NAMES){
+    const r = TABLE[name];
+    const S0 = [r?.s0?.hp, r?.s0?.atk, r?.s0?.def, r?.s0?.agi].map(Number);
+    const SG = r?.sg;
+    if(S0.some(v=>!Number.isFinite(v)) || !SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){ skip++; continue; }
 
-$('btnSaveJson').onclick = ()=>{
-  const obj = toPetsJson(ROWS);
-  download('pets.json', JSON.stringify(obj, null, 2));
-  setDirty(false);
-  logln('✓ JSON 내보내기 완료');
-};
-$('btnSaveTsv').onclick = ()=>{
-  const tsv = toTSV(ROWS);
-  download('pets_export.tsv', tsv);
-  logln('✓ TSV 내보내기 완료');
-};
+    const hasKU = Number.isFinite(r.k) && r.u && [r.u.hp,r.u.atk,r.u.def,r.u.agi].every(Number.isFinite);
+    if(!overwrite && hasKU){ skip++; continue; }
 
-$('btnInferAll').onclick = async ()=>{
-  if(ROWS.length===0){ alert('데이터가 없습니다. 먼저 불러오세요.'); return; }
-  let ok=0, fail=0;
-  for(const r of ROWS){
-    const out = inferKU_Nova2_strict([r.s0?.hp, r.s0?.atk, r.s0?.def, r.s0?.agi], r.sg);
-    if(!out){ fail++; continue; }
-    r.k = out.k; r.u = out.u; r.e = out.e; r.sg_err = precise(out.err);
-    const f = r.k/100;
-    const vhp=f*r.u.hp, vatk=f*r.u.atk, vdef=f*r.u.def, vagi=f*r.u.agi;
-    const scont=[vhp*4+vatk+vdef+vagi, vhp*0.1+vatk+vdef*0.1+vagi*0.05, vhp*0.1+vatk*0.1+vdef+vagi*0.05, vagi];
-    r.mape = precise(mape([r.s0?.hp,r.s0?.atk,r.s0?.def,r.s0?.agi], scont));
+    const fit = inferKU_JJYAL(S0, SG);
+    if(!fit){ fail++; continue; }
+    r.k = fit.k; r.u = fit.u; r.e = fit.e;
+    r.sg_err = fit.sg_err; r.s0_l1 = fit.s0_l1; r.s0_ok = !!fit.s0_ok;
     ok++;
   }
-  setDirty(true); renderTable();
-  logln(`✓ 일괄 추정 완료: 성공 ${ok}건 / 실패 ${fail}건`);
-};
+  render();
+  setStatus(`전체 추정 완료 · 성공 ${ok}, 실패 ${fail}, 건너뜀 ${skip}`);
+}
 
-$('btnClearKU').onclick = ()=>{
-  for(const r of ROWS){ delete r.k; delete r.u; delete r.e; delete r.mape; delete r.sg_err; }
-  setDirty(true); renderTable();
-  logln('• k/u/e/오차 컬럼 초기화');
-};
+/* ========= 이벤트 ========= */
+$("#btnLoadRemote").onclick = loadRemote;
+$("#fileInput").onchange = e=>{ const f=e.target.files?.[0]; if(f) handleLocalFile(f); e.target.value=""; };
+$("#btnDownload").onclick = downloadJSON;
+$("#btnCopy").onclick = copyJSON;
+$("#btnInferAll").onclick = inferAll;
 
-// 시작 상태
-renderTable();
+/* ========= 부팅 ========= */
+setStatus("준비 완료. '원격 불러오기' 또는 '로컬 불러오기'로 시작하세요.");
 </script>
 </body>
 </html>
