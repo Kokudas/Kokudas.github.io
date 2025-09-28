@@ -434,10 +434,17 @@ function selectPetName(n){
   showKpis(null);
 }
 
+function fmtPct(x){
+  if(!Number.isFinite(x)) return "—%";
+  if(x === 0) return "0.0000%";
+  if(x < 0.001) return x.toFixed(6) + "%"; // 0.000559%처럼 보이게
+  return x.toFixed(4) + "%";
+}
+
 /* ========= KPI 렌더 ========= */
 function showKpis(res){
   if(!res){
-    kpiSuccess.textContent="—%"; kpiAppear.textContent="—%"; kpiTries.textContent="—";
+    kpiSuccess.textContent=fmtPct(success); kpiAppear.textContent=fmtPct(appear); kpiTries.textContent=(isFinite(tries)? tries.toFixed(2) : "—");
     ringSuccess.style.setProperty("--p","0deg"); ringAppear.style.setProperty("--p","0deg");
     totMatches.textContent="—"; rank8Matches.textContent="—"; distBox.innerHTML=""; return;
   }
@@ -595,10 +602,15 @@ function inferKU_JJYAL(S0, SG){
   return best;
 }
 
-/* ========= 짜얄 호환 엔진(합산 후 floor) ========= */
+// ★ 기존 enumerate_jjyal 를 이 버전으로 교체
 function enumerate_jjyal(pku, obs){
-  const k=pku.k, u=pku.u;
-  let matches=0, rank8=0; const dist={};
+  const k = new Decimal(pku.k);
+  const fac = k.dividedBy(100);
+  const u = pku.u;
+
+  let matches = 0, rank8 = 0;
+  const dist = {};
+
   for(let ar=-2; ar<=2; ar++){
     for(let dr=-2; dr<=2; dr++){
       for(let gr=-2; gr<=2; gr++){
@@ -606,27 +618,30 @@ function enumerate_jjyal(pku, obs){
           for(let ab=0; ab<=10; ab++){
             for(let db=0; db<=10; db++){
               for(let gb=0; gb<=10; gb++){
-                const hb=10 - ab - db - gb;
-                if(hb<0 || hb>10) continue;
+                const hb = 10 - ab - db - gb;
+                if(hb < 0 || hb > 10) continue;
 
-                const baseA = u.atk + ar + ab;
-                const baseD = u.def + dr + db;
-                const baseG = u.agi + gr + gb;
-                const baseH = u.hp  + hr + hb;
+                const baseA = new Decimal(u.atk + ar + ab);
+                const baseD = new Decimal(u.def + dr + db);
+                const baseG = new Decimal(u.agi + gr + gb);
+                const baseH = new Decimal(u.hp  + hr + hb);
 
-                const fac = k/100;
-                const iA = baseA*fac, iD = baseD*fac, iG = baseG*fac, iH = baseH*fac;
+                const iA = baseA.times(fac);
+                const iD = baseD.times(fac);
+                const iG = baseG.times(fac);
+                const iH = baseH.times(fac);
 
-                const calcAtk = Math.floor(iH*0.1 + iA + iD*0.1 + iG*0.05);
-                const calcDef = Math.floor(iH*0.1 + iA*0.1 + iD + iG*0.05);
-                const calcAgi = Math.floor(iG);
-                const calcHp  = Math.floor(iH*4 + iA + iD + iG);
+                // 짜얄/노바2와 동일: "합산 후 floor"
+                const calcAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
+                const calcDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
+                const calcAgi = iG.floor().toNumber();
+                const calcHp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
 
                 if(calcAtk===obs[1] && calcDef===obs[2] && calcAgi===obs[3] && calcHp===obs[0]){
                   matches++;
-                  const r = ar+dr+gr+hr;
-                  dist[r]=(dist[r]||0)+1;
-                  if(r===8) rank8++;
+                  const r = ar + dr + gr + hr;
+                  dist[r] = (dist[r]||0) + 1;
+                  if(r === 8) rank8++;
                 }
               }
             }
