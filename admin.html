@@ -1,557 +1,517 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <title>노바 페트 계산기 — 관리자 v0.8 (Nova2 추정 지원)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{ --gap:12px; --primary:#2563eb; --muted:#6b7280; --ok:#059669; --warn:#ca8a04; --danger:#dc2626; }
-    *{box-sizing:border-box}
-    body{margin:0;background:#f9fafb;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
-    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:10}
-    .wrap{max-width:1200px;margin:0 auto;padding:0 16px}
-    .topbar{display:flex;align-items:center;gap:12px;padding:12px 0}
-    .title{font-weight:700}
-    .ver{margin-left:auto;color:var(--muted);font-size:12px}
-    .row{display:grid;grid-template-columns: 0.9fr 1.1fr; gap:var(--gap)}
-    @media (max-width:980px){ .row{grid-template-columns:1fr} }
-    .card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px}
-    .subtle{color:var(--muted);font-size:12px}
-    input[type="text"], input[type="number"]{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    button{cursor:pointer;border:1px solid #ddd;background:#fff;padding:8px 12px;border-radius:8px}
-    .primary{background:var(--primary);border-color:var(--primary);color:#fff}
-    .danger{background:#fff;border-color:#fca5a5;color:#b91c1c}
-    .ghost{background:#fff}
-    .list{max-height:480px;overflow:auto;border:1px solid #eee;border-radius:8px}
-    .item{padding:8px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-    .item:last-child{border-bottom:none}
-    .tag{font-size:11px;border:1px solid #eee;border-radius:999px;padding:2px 8px}
-    .ok{color:#059669;border-color:#86efac;background:#ecfdf5}
-    .warn{color:#b45309;border-color:#fde68a;background:#fffbeb}
-    .muted{color:var(--muted)}
-    .hidden{display:none !important}
-    .divider{height:1px;background:#eee;margin:8px 0}
-    footer{padding:30px 0;color:var(--muted);font-size:12px;text-align:center}
-    /* 로그인 화면 */
-    #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0f172a}
-    #gate .box{width:92%;max-width:420px;background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:18px}
-    #gate input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
-    #gate .hint{font-size:12px;color:#9ca3af}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #ddd;font-size:12px}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NOVA 서버 펫 관리자 </title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
+    --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
+    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%);
+    color:var(--text);
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
+    position:sticky; top:0; z-index:10;
+  }
+  .brand{font-weight:800; letter-spacing:.2px}
+  .muted{color:var(--muted)}
+  .grid{max-width:1200px; margin:16px auto; padding:0 16px; display:grid; gap:12px; grid-template-columns: 280px 1fr;}
+  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+  .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:12px;}
+  .card h3{margin:6px 0 12px 0; font-size:16px}
+  .btn{padding:9px 12px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600;}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
+  .btn.warn{ background:#3e2a00; color:#ffdb8a; border-color:#5a430f;}
+  .btn.ghost{ background:transparent;}
+  input[type="text"],input[type="number"],textarea,select{
+    width:100%; padding:8px 10px; border-radius:10px; border:1px solid #2a3040; background:#0e1218; color:var(--text); outline:none;
+  }
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .col{flex:1 1 0}
+  .vspace{height:8px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{border-bottom:1px solid #262d3a; padding:6px 6px; text-align:right; white-space:nowrap}
+  th:first-child,td:first-child{text-align:left; position:sticky; left:0; background:var(--panel)}
+  th.sticky{position:sticky; top:0; background:var(--panel); z-index:2}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .pill{padding:4px 8px; border-radius:999px; border:1px solid #2a3040; background:#0e1218; font-size:12px}
+  .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
+  .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
+  .tag.bad{border-color:#7a1e2c; background:#2a0c12; color:#ff5171}
+  .small{font-size:12px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .flex-between{display:flex; justify-content:space-between; align-items:center}
+  .nowrap{white-space:nowrap}
+  .scroll{overflow:auto}
+</style>
 </head>
 <body>
-<header>
-  <div class="wrap topbar">
-    <div class="title">관리자</div>
-    <div class="subtle">정석(S0/Sg) 테이블 관리 · Nova2 추정(k/u/e)</div>
-    <div class="ver">v<span id="ver">0.8</span></div>
-  </div>
+<header class="flex-between">
+  <div class="brand">NOVA 서버 펫 관리자 <span class="muted">·</span></div>
+  <div class="muted small">v0.8-admin</div>
 </header>
 
-<!-- 간이 비밀번호 게이트 (클라이언트) -->
-<div id="gate">
-  <div class="box">
-    <div style="font-weight:700;margin-bottom:6px">관리자 인증</div>
-    <div class="hint" style="margin-bottom:10px">GitHub Pages 특성상 클라이언트 측 간이 보호입니다. 민감정보 저장 금지.</div>
-    <input id="pw" type="password" placeholder="Password" />
-    <div class="flex" style="margin-top:10px">
-      <button id="btnLogin" class="primary">입장</button>
-      <button id="btnBack" class="ghost">돌아가기</button>
+<div class="grid">
+  <!-- 좌측: IO/작업 -->
+  <section class="card">
+    <h3>① 데이터 불러오기 / 내보내기</h3>
+    <div class="row">
+      <div class="col">
+        <label class="small muted">pets.json URL</label>
+        <input type="text" id="urlJson" placeholder="https://raw.githubusercontent.com/..../data/pets.json" />
+      </div>
     </div>
-    <div class="hint" style="margin-top:12px">
-      ▸ 비밀번호 변경: 아래 콘솔에 실행한 SHA-256 해시값을 <code>ADMIN_PASSWORD_HASH</code>로 교체<br/>
-      <code>crypto.subtle.digest('SHA-256', new TextEncoder().encode('새_비번')).then(b=>{console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))})</code>
+    <div class="row">
+      <button class="btn" id="btnLoadJson">원격 JSON 불러오기</button>
+      <button class="btn" id="btnLoadLocalJson">로컬 JSON 불러오기</button>
+      <button class="btn" id="btnLoadLocalTsv">로컬 TSV 불러오기</button>
     </div>
-  </div>
+
+    <div class="vspace"></div>
+    <div class="row">
+      <button class="btn primary" id="btnSaveJson">JSON로 내보내기(pets.json)</button>
+      <button class="btn" id="btnSaveTsv">TSV로 내보내기</button>
+      <span class="pill muted" id="badgeCount">— 개 로드됨</span>
+    </div>
+
+    <div class="vspace"></div>
+    <h3>② 일괄 추정/도움</h3>
+    <div class="row">
+      <button class="btn primary" id="btnInferAll">Nova2 Strict 일괄 추정</button>
+      <button class="btn warn" id="btnClearKU">k/u/e/오차 지우기</button>
+    </div>
+    <p class="muted small" style="margin-top:6px">
+      · e 후보: [575, 555, 535, 515, 495, 475, 455, 435] · SG는 둘째자리 반올림, S0는 합산 후 floor<br/>
+      · TSV 내보내기 컬럼: <span class="mono">k, u_hp, u_atk, u_def, u_agi, mape, r</span> (여기서 r = e)
+    </p>
+
+    <div class="vspace"></div>
+    <h3>로그</h3>
+    <textarea id="log" rows="10" class="mono" placeholder="진행 로그" readonly></textarea>
+  </section>
+
+  <!-- 우측: 테이블 -->
+  <section class="card scroll">
+    <h3>등록된 페트</h3>
+    <div class="toolbar">
+      <span class="muted small">셀은 직접 수정 가능 · 숫자 입력 시 자동 저장</span>
+      <span class="pill" id="badgeDirty">저장됨</span>
+    </div>
+    <div class="vspace"></div>
+    <div class="scroll">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th class="sticky">이름</th>
+            <th class="sticky">s0_hp</th><th class="sticky">s0_atk</th><th class="sticky">s0_def</th><th class="sticky">s0_agi</th>
+            <th class="sticky">sg_hp</th><th class="sticky">sg_atk</th><th class="sticky">sg_def</th><th class="sticky">sg_agi</th>
+            <th class="sticky">k</th>
+            <th class="sticky">u_hp</th><th class="sticky">u_atk</th><th class="sticky">u_def</th><th class="sticky">u_agi</th>
+            <th class="sticky">e</th>
+            <th class="sticky">mape</th>
+            <th class="sticky">sg_err</th>
+            <th class="sticky">작업</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
 </div>
 
-<main class="wrap" style="padding:16px 0 28px">
-  <!-- 상단 툴 -->
-  <section class="card">
-    <div class="flex" style="flex-wrap:wrap">
-      <input id="search" type="text" placeholder="페트명 검색" style="flex:1;min-width:220px" />
-      <button id="btnImport">가져오기(JSON 파일)</button>
-      <button id="btnExport">내보내기(JSON)</button>
-      <button id="btnPullRemote">원격 불러오기(pets.json)</button>
-      <button id="btnClear" class="danger">전체 초기화</button>
-      <span class="subtle">전문 모드: <input id="proToggle" type="checkbox" /></span>
-      <span class="pill" id="remoteStatus">remote: —</span>
-    </div>
-    <div style="height:8px"></div>
-    <div id="keypad" class="flex"></div>
-  </section>
-
-  <section class="row" style="margin-top:12px">
-    <!-- 좌: 목록 -->
-    <div class="card">
-      <div class="subtle" style="margin-bottom:6px">페트 목록</div>
-      <div id="list" class="list"></div>
-      <div class="subtle" style="margin-top:8px">※ 목록은 (로컬 테이블 키) ∪ (원격 pets.json 키) ∪ (샘플) 로 구성됩니다.</div>
-    </div>
-
-    <!-- 우: 편집 -->
-    <div class="card">
-      <div class="flex" style="justify-content:space-between">
-        <div><b id="name">미선택</b> <span id="tagReg" class="tag muted">—</span></div>
-        <div class="subtle">정석 표기치 (소수 둘째, 표기는 3째자리 반올림)</div>
-      </div>
-      <div class="divider"></div>
-
-      <div class="grid2">
-        <div>
-          <div class="subtle" style="margin-bottom:6px">S0 초기치 (체/공/방/순)</div>
-          <div class="grid4">
-            <input id="s0_hp" type="number" step="0.01" placeholder="체" />
-            <input id="s0_atk" type="number" step="0.01" placeholder="공" />
-            <input id="s0_def" type="number" step="0.01" placeholder="방" />
-            <input id="s0_agi" type="number" step="0.01" placeholder="순" />
-          </div>
-        </div>
-        <div>
-          <div class="subtle" style="margin-bottom:6px">Sg 성장치 (체/공/방/순)</div>
-          <div class="grid4">
-            <input id="sg_hp" type="number" step="0.01" placeholder="체" />
-            <input id="sg_atk" type="number" step="0.01" placeholder="공" />
-            <input id="sg_def" type="number" step="0.01" placeholder="방" />
-            <input id="sg_agi" type="number" step="0.01" placeholder="순" />
-          </div>
-        </div>
-      </div>
-
-      <div id="pro" class="hidden" style="margin-top:10px">
-        <div class="divider"></div>
-        <div class="grid3">
-          <div>
-            <div class="subtle">Nova2 e 후보</div>
-            <select id="eOverride">
-              <option value="">(자동: 575~435 스캔)</option>
-              <option>575</option><option>555</option><option>535</option><option>515</option>
-              <option>495</option><option>475</option><option>455</option><option>435</option>
-            </select>
-          </div>
-          <div>
-            <div class="subtle">k/u/e 추정</div>
-            <button id="btnInferNova2" class="ghost">Nova2 추정 실행</button>
-          </div>
-          <div>
-            <div class="subtle">SG 오차(합)</div>
-            <input id="sgErr" type="text" readonly />
-          </div>
-        </div>
-
-        <div class="grid3" style="margin-top:8px">
-          <div>
-            <div class="subtle">추정 k</div>
-            <input id="ku_k" type="text" readonly />
-          </div>
-          <div>
-            <div class="subtle">추정 u (체/공/방/순)</div>
-            <input id="ku_u" type="text" readonly />
-          </div>
-          <div>
-            <div class="subtle">선택 e</div>
-            <input id="ku_e" type="text" readonly />
-          </div>
-        </div>
-
-        <div class="subtle" style="margin-top:8px">※ Nova2 호환: SG는 e/10000 스케일, S0는 k/100 스케일로 분리하여 u 정수(±2.5 보정) 복원 후, k∈[16..40]에서 표기식 완전일치(floor) 우선 선택.</div>
-      </div>
-
-      <div class="flex" style="margin-top:12px">
-        <button id="btnSave" class="primary">저장</button>
-        <button id="btnDelete" class="danger">삭제</button>
-        <span id="saveMsg" class="subtle"></span>
-      </div>
-
-      <div class="divider" style="margin-top:12px"></div>
-      <div class="subtle">
-        JSON 스키마 — 예시:
-        <pre style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:8px;white-space:pre-wrap">
-{
-  "카르곤": {
-    "s0": { "hp": 51.35, "atk": 10.85, "def": 6.64, "agi": 8.97 },
-    "sg": { "hp":  9.78, "atk":  2.07, "def": 1.26, "agi": 1.71 },
-    "k": 23,
-    "u": { "hp": 31, "atk": 40, "def": 20, "agi": 39 },
-    "e": 515,
-    "s0_l1": 0,
-    "sg_err": 0.02,
-    "updated": 1730000000000
-  }
-}
-        </pre>
-        ↳ <b>필수</b>: <code>s0</code> (가능하면 <code>sg</code>)<br/>
-        ↳ <b>추정</b>: <code>k</code>, <code>u</code>, <code>e</code>는 Nova2 방식으로 자동 산출 가능.
-      </div>
-    </div>
-  </section>
-
-  <footer>기본 저장소: LocalStorage. 배포용은 JSON 내보내기 후 저장소에 커밋하세요. 원격 불러오기를 누르면 <code>pets.json</code>을 가져와 로컬에 캐시합니다.</footer>
-</main>
+<input type="file" id="fileJson" accept=".json,application/json" hidden />
+<input type="file" id="fileTsv"  accept=".tsv,text/tab-separated-values,text/plain" hidden />
 
 <script>
-/* ===== 설정/상수 ===== */
-const APP_VERSION="0.8";
-const LS_TABLE="novaPetTable";
-const ADMIN_TOKEN="novaAdminAuth";
-const ADMIN_PASSWORD_HASH="/* TODO: SHA-256 hex 64자리로 교체 */";
-
-/* GitHub 원격 경로(원격 불러오기용) */
-const GH_OWNER  = "kokudas";
-const GH_REPO   = "kokudas.github.io";
-const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json";
-const REMOTE_PETS  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
-
-/* 초성키패드/검색 */
-const KEYS=["ㄱ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-let choBuffer="";
-const CHO_LIST=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-const CHO_SIMPLE=(c)=>({"ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ"}[c]||c);
-function hangulCho(str){
-  let res=""; for(const ch of str){ const code=ch.charCodeAt(0);
-    if(code<0xAC00||code>0xD7A3){ res+=ch; continue; }
-    const idx=Math.floor((code-0xAC00)/(21*28)); res+=CHO_SIMPLE(CHO_LIST[idx]);
-  } return res;
+/* ==============================
+   유틸
+============================== */
+const $ = (id)=>document.getElementById(id);
+function logln(s){ const ta=$('log'); ta.value += s + "\n"; ta.scrollTop = ta.scrollHeight; }
+function r2(x){ return Math.round(x*100)/100; }
+function precise(n){ return Math.round(n*1e12)/1e12; }
+function toNum(s){ const v = parseFloat(s); return Number.isFinite(v)? v : NaN; }
+function mape(a,b){
+  let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i]||0)); s += Math.abs((a[i]||0)-(b[i]||0))/den; }
+  return s/4*100;
+}
+function download(name, text){
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 
-/* ===== DOM ===== */
-const verEl=document.getElementById('ver'); verEl.textContent=APP_VERSION;
-const gate=document.getElementById('gate');
-const pw=document.getElementById('pw');
-const btnLogin=document.getElementById('btnLogin');
-const btnBack=document.getElementById('btnBack');
-const remoteStatus=document.getElementById('remoteStatus');
+/* ==============================
+   Nova2 Strict 추정기 (짜얄 절차 복제)
+============================== */
+const ESET = [575, 555, 535, 515, 495, 475, 455, 435]; // e candidates
+const INT_EPS = 0.2; // 정수 허용오차
 
-const search=document.getElementById('search');
-const list=document.getElementById('list');
-const keypad=document.getElementById('keypad');
-
-const nameEl=document.getElementById('name');
-const tagReg=document.getElementById('tagReg');
-
-const s0hp=document.getElementById('s0_hp');
-const s0atk=document.getElementById('s0_atk');
-const s0def=document.getElementById('s0_def');
-const s0agi=document.getElementById('s0_agi');
-const sghp=document.getElementById('sg_hp');
-const sgatk=document.getElementById('sg_atk');
-const sgdef=document.getElementById('sg_def');
-const sgagi=document.getElementById('sg_agi');
-
-const proToggle=document.getElementById('proToggle');
-const pro=document.getElementById('pro');
-
-const eOverride=document.getElementById('eOverride');
-const btnInferNova2=document.getElementById('btnInferNova2');
-const sgErr=document.getElementById('sgErr');
-const ku_k=document.getElementById('ku_k');
-const ku_u=document.getElementById('ku_u');
-const ku_e=document.getElementById('ku_e');
-
-const btnSave=document.getElementById('btnSave');
-const btnDelete=document.getElementById('btnDelete');
-const saveMsg=document.getElementById('saveMsg');
-
-const btnExport=document.getElementById('btnExport');
-const btnImport=document.getElementById('btnImport');
-const btnClear=document.getElementById('btnClear');
-const btnPullRemote=document.getElementById('btnPullRemote');
-
-proToggle.onchange=()=>{ pro.classList.toggle('hidden', !proToggle.checked); };
-
-/* ===== 인증 ===== */
-async function sha256Hex(s){
-  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
-}
-btnLogin.onclick=async()=>{
-  const v=pw.value||"";
-  const h=await sha256Hex(v);
-  if(ADMIN_PASSWORD_HASH.length===64 ? (h===ADMIN_PASSWORD_HASH) : true){
-    localStorage.setItem(ADMIN_TOKEN,"1"); gate.style.display="none";
-  }else alert("비밀번호가 올바르지 않습니다.");
-};
-btnBack.onclick=()=>{ location.href="./index.html"; };
-if(localStorage.getItem(ADMIN_TOKEN)==="1"){ gate.style.display="none"; }
-
-/* ===== LocalStorage 유틸 ===== */
-function loadTable(){ try{ return JSON.parse(localStorage.getItem(LS_TABLE)||"{}"); }catch(e){ return {}; } }
-function saveTable(t){ localStorage.setItem(LS_TABLE, JSON.stringify(t)); }
-
-/* ===== 키패드 ===== */
-function renderKeypad(){
-  keypad.innerHTML="";
-  KEYS.forEach(k=>{
-    const b=document.createElement('button'); b.textContent=k;
-    b.onclick=()=>{ choBuffer+=k; renderList(); }; keypad.appendChild(b);
-  });
-  const bk=document.createElement('button'); bk.textContent='←';
-  bk.onclick=()=>{ choBuffer=choBuffer.slice(0,-1); renderList(); }; keypad.appendChild(bk);
-  const rst=document.createElement('button'); rst.textContent='초기화';
-  rst.onclick=()=>{ choBuffer=""; renderList(); }; keypad.appendChild(rst);
-}
-renderKeypad();
-
-/* ===== 목록 데이터 소스(동적) ===== */
-const SAMPLE_NAMES=["반기노","반보로","카키","오가로스"]; // 최소 안전망
-let REMOTE_KEYS=[];
-
-async function pullRemote(){
-  try{
-    remoteStatus.textContent="remote: fetching…";
-    const res = await fetch(REMOTE_PETS + `?v=${Date.now()}`, {cache:"no-store"});
-    if(!res.ok) throw 0;
-    const obj = await res.json();
-    if(!obj || typeof obj!=="object" || Array.isArray(obj)) throw 0;
-    const keys = Object.keys(obj);
-    // 로컬에도 캐시
-    const t=loadTable();
-    keys.forEach(k=>{ if(!t[k]) t[k]=obj[k]; });
-    saveTable(t);
-    REMOTE_KEYS = keys;
-    remoteStatus.textContent=`remote: ok (${keys.length})`;
-  }catch{
-    remoteStatus.textContent="remote: fail";
-  }
-}
-btnPullRemote.onclick=()=>{ pullRemote().then(renderList); };
-
-/* ===== 목록 렌더 ===== */
-let selected=null;
-function unionNames(){
-  const t=loadTable();
-  const keysLocal=Object.keys(t);
-  const set=new Set([...SAMPLE_NAMES, ...keysLocal, ...REMOTE_KEYS]);
-  return Array.from(set);
-}
-function renderList(){
-  const ALL_NAMES = unionNames();
-  const text=(search.value||"").trim();
-  const byText=(n)=> text? n.includes(text): true;
-  const byCho=(n)=> choBuffer? hangulCho(n).startsWith(choBuffer): true;
-
-  const table=loadTable();
-  const arr=ALL_NAMES.filter(n=>byText(n)&&byCho(n)).sort((a,b)=>a.localeCompare(b,'ko'));
-  list.innerHTML="";
-  if(arr.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.textContent="결과 없음"; list.appendChild(empty); return; }
-
-  arr.forEach(n=>{
-    const row=document.createElement('div'); row.className='item';
-    const l=document.createElement('div'); l.textContent=n;
-    const r=document.createElement('div');
-    const tag=document.createElement('span'); tag.className='tag '+(table[n]?'ok':'warn'); tag.textContent=table[n]?'등록됨':'미등록';
-    r.appendChild(tag);
-    row.appendChild(l); row.appendChild(r);
-    row.onclick=()=> select(n);
-    list.appendChild(row);
-  });
-}
-search.addEventListener('input', renderList);
-
-/* ===== 바인딩 ===== */
-function valNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? parseFloat(v.toFixed(2)): ""; }
-function round2(v){ const n=parseFloat(v); return Number.isFinite(n)? +n.toFixed(2): ""; }
-
-function select(n){
-  selected=n; nameEl.textContent=n;
-  const t=loadTable(); const row=t[n]||{};
-  tagReg.className='tag ' + (row.s0?'ok':'warn'); tagReg.textContent = row.s0?'등록됨':'미등록';
-
-  s0hp.value=row.s0?.hp??""; s0atk.value=row.s0?.atk??""; s0def.value=row.s0?.def??""; s0agi.value=row.s0?.agi??"";
-  sghp.value=row.sg?.hp??""; sgatk.value=row.sg?.atk??""; sgdef.value=row.sg?.def??""; sgagi.value=row.sg?.agi??"";
-
-  ku_k.value=row.k??""; ku_u.value=row.u?`${row.u.hp},${row.u.atk},${row.u.def},${row.u.agi}`:"";
-  ku_e.value=row.e??""; sgErr.value=(row.sg_err??"");
-
-  saveMsg.textContent="";
-}
-
-/* ===== Nova2 호환 추정기 ===== */
-// e 후보
-const ESET=[575,555,535,515,495,475,455,435];
-
-// SG -> u (정수) 복원
-function solveUFromSG_Nova2(SG, e){
-  if(!SG) return null;
-  const f=e/10000;
-  const has = ['hp','atk','def','agi'].every(k=>Number.isFinite(SG[k]));
-  if(!has) return null;
-
-  const dprime = SG.agi / f;                 // d' = u_agi+2.5
-  const d = Math.round(dprime - 2.5);        // u_agi (정수)
-
-  // rhs' 벡터
-  const rhs1=(SG.hp  - f*dprime)/f;
-  const rhs2=(SG.atk - 0.05*f*dprime)/f;
-  const rhs3=(SG.def - 0.05*f*dprime)/f;
-
-  // 3x3
-  const A=4,B=1,C=1, D=0.1,E=1,F=0.1, G=0.1,H=0.1,I=1;
-  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
-  if(Math.abs(det)<1e-12) return null;
-  const i11=(E*I - F*H)/det,  i12=-(B*I - C*H)/det, i13=(B*F - C*E)/det;
-  const i21=-(D*I - F*G)/det, i22=(A*I - C*G)/det,  i23=-(A*F - C*D)/det;
-  const i31=(D*H - E*G)/det,  i32=-(A*H - B*G)/det, i33=(A*E - B*D)/det;
-  const aprime = i11*rhs1 + i12*rhs2 + i13*rhs3;
-  const bprime = i21*rhs1 + i22*rhs2 + i23*rhs3;
-  const cprime = i31*rhs1 + i32*rhs2 + i33*rhs3;
-
-  const uhp = Math.round(aprime - 2.5);
-  const uatk= Math.round(bprime - 2.5);
-  const udef= Math.round(cprime - 2.5);
-  const uagi= d;
-
-  // SG 재합성 체크(둘째 반올림해 비교)
-  const r2=(x)=>Math.round(x*100)/100;
-  const hp_chk  = r2(f*(4*(uhp+2.5) + (uatk+2.5) + (udef+2.5) + (uagi+2.5)));
-  const atk_chk = r2(f*(0.1*(uhp+2.5) + (uatk+2.5) + 0.1*(udef+2.5) + 0.05*(uagi+2.5)));
-  const def_chk = r2(f*(0.1*(uhp+2.5) + 0.1*(uatk+2.5) + (udef+2.5) + 0.05*(uagi+2.5)));
-  const agi_chk = r2(f*(uagi+2.5));
-
-  const err=(Math.abs(hp_chk-(SG.hp||0))+Math.abs(atk_chk-(SG.atk||0))+Math.abs(def_chk-(SG.def||0))+Math.abs(agi_chk-(SG.agi||0)));
-  return {u:{hp:uhp, atk:uatk, def:udef, agi:uagi}, e, sg_err:err};
-}
-// Nova2 표기 S0 정수 계산 (합산 후 floor)
+// 합산 후 floor 로 S0 재생성
 function s0_from_k_u_Nova2(k,u){
-  const fac=k/100;
-  const vhp=fac*u.hp, vatk=fac*u.atk, vdef=fac*u.def, vagi=fac*u.agi;
-  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
-  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-  const s_agi= Math.floor(vagi);
+  const f = k/100;
+  const vH = f*u.hp, vA=f*u.atk, vD=f*u.def, vG=f*u.agi;
+  const s_hp = Math.floor(vH*4 + vA + vD + vG);
+  const s_atk= Math.floor(vH*0.1 + vA + vD*0.1 + vG*0.05);
+  const s_def= Math.floor(vH*0.1 + vA*0.1 + vD + vG*0.05);
+  const s_agi= Math.floor(vG);
   return [s_hp,s_atk,s_def,s_agi];
 }
-// 주어진 S0(실수 입력이라도 정수부 사용) 일치로 k 적합
-function fitKFromS0_Nova2(S0,u){
-  const S0int=[Math.floor(S0[0]),Math.floor(S0[1]),Math.floor(S0[2]),Math.floor(S0[3])];
-  let best=null;
-  for(let k=16;k<=40;k++){
-    const s=s0_from_k_u_Nova2(k,u);
-    const l1=Math.abs(s[0]-S0int[0])+Math.abs(s[1]-S0int[1])+Math.abs(s[2]-S0int[2])+Math.abs(s[3]-S0int[3]);
-    const ok=(l1===0);
-    if(!best || (ok && !best.ok) || (ok===best.ok && l1<best.l1)) best={k,l1,ok};
-  }
-  return best;
-}
-// 최종: S0,SG로 (u,e,k) 추정
-function inferKU_Nova2(S0, SG, eForce){
-  const S0arr=[parseFloat(S0[0]),parseFloat(S0[1]),parseFloat(S0[2]),parseFloat(S0[3])];
-  if(S0arr.some(x=>!Number.isFinite(x))) return null;
-  const eSet=eForce? [parseInt(eForce,10)] : ESET;
-  let best=null;
-  for(const e of eSet){
-    const sol=solveUFromSG_Nova2(SG,e); if(!sol) continue;
-    const fit=fitKFromS0_Nova2(S0arr,sol.u); if(!fit) continue;
-    const score=(sol.sg_err||0) + fit.l1*10;
-    const cand={k:fit.k,u:sol.u,e,sg_err:sol.sg_err,s0_l1:fit.l1,ok:fit.ok,score};
-    if(!best || (cand.ok && !best.ok) || (cand.ok===best.ok && cand.score<best.score)) best=cand;
-  }
-  return best;
-}
 
-/* ===== Nova2 버튼 ===== */
-btnInferNova2.onclick=()=>{
-  if(!selected){ alert("페트를 선택하세요."); return; }
-  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-  const SG={ hp:parseFloat(sghp.value), atk:parseFloat(sgatk.value), def:parseFloat(sgdef.value), agi:parseFloat(sgagi.value) };
-  if(S0.some(x=>!Number.isFinite(x))){ alert("S0 4개를 모두 입력하세요."); return; }
-  if(!['hp','atk','def','agi'].every(k=>Number.isFinite(SG[k]))){ alert("SG 4개를 모두 입력하세요."); return; }
-
-  const eForce = (eOverride.value||"");
-  const res=inferKU_Nova2(S0,SG,eForce?parseInt(eForce,10):undefined);
-  if(!res){ alert("추정 실패: S0/SG를 확인하세요."); return; }
-
-  ku_k.value=res.k;
-  ku_u.value=`${res.u.hp},${res.u.atk},${res.u.def},${res.u.agi}`;
-  ku_e.value=res.e;
-  sgErr.value=(res.sg_err??0).toFixed(3);
-  saveMsg.textContent = res.ok? "추정 완료(표기치 완전일치 k)": "추정 완료(근사)";
-};
-
-/* ===== 저장/삭제 ===== */
-btnSave.onclick=()=>{
-  if(!selected){ alert("페트를 선택하세요."); return; }
-  const S0=[parseFloat(s0hp.value),parseFloat(s0atk.value),parseFloat(s0def.value),parseFloat(s0agi.value)];
-  const SG={ hp:parseFloat(sghp.value), atk:parseFloat(sgatk.value), def:parseFloat(sgdef.value), agi:parseFloat(sgagi.value) };
-  if(S0.some(x=>!Number.isFinite(x))){ alert("S0 4개를 모두 입력하세요."); return; }
-
-  // k/u/e가 입력되어 있지 않으면 Nova2 자동 추정 시도
-  let k=parseInt(ku_k.value,10);
-  let uText=(ku_u.value||"").trim();
-  let e=parseInt(ku_e.value,10);
-  let u=null;
-  if(uText){
-    const parts=uText.split(',').map(x=>parseInt(x.trim(),10));
-    if(parts.length===4 && parts.every(Number.isFinite)) u={hp:parts[0],atk:parts[1],def:parts[2],agi:parts[3]};
-  }
-  if(!(Number.isFinite(k) && u && Number.isFinite(e))){
-    const res=inferKU_Nova2(S0,SG,(eOverride.value||undefined));
-    if(!res){ alert("k/u/e 자동 추정 실패: SG가 있어야 합니다."); return; }
-    k=res.k; u=res.u; e=res.e;
-    ku_k.value=k; ku_u.value=`${u.hp},${u.atk},${u.def},${u.agi}`; ku_e.value=e;
-    sgErr.value=(res.sg_err??0).toFixed(3);
-  }
-
-  const t=loadTable();
-  t[selected] = {
-    s0:{ hp:round2(s0hp.value), atk:round2(s0atk.value), def:round2(s0def.value), agi:round2(s0agi.value) },
-    sg:{ hp:valNum(sghp), atk:valNum(sgatk), def:valNum(sgdef), agi:valNum(sgagi) },
-    k, u, e,
-    s0_l1: fitKFromS0_Nova2(S0,u)?.l1 ?? "",
-    sg_err: parseFloat(sgErr.value)||"",
-    updated: Date.now()
+// SG 재합성(둘째자리)
+function sg_from_u_e_Nova2(u,e){
+  const f=e/10000;
+  const a=u.hp+2.5, b=u.atk+2.5, c=u.def+2.5, d=u.agi+2.5;
+  return {
+    hp:  r2(f*(4*a + b + c + d)),
+    atk: r2(f*(0.1*a + b + 0.1*c + 0.05*d)),
+    def: r2(f*(0.1*a + 0.1*b + c + 0.05*d)),
+    agi: r2(f*(d)),
   };
-  saveTable(t);
-  renderList();
-  tagReg.className='tag ok'; tagReg.textContent='등록됨';
-  saveMsg.textContent="저장됨.";
-};
-btnDelete.onclick=()=>{
-  if(!selected) return;
-  const t=loadTable(); delete t[selected]; saveTable(t);
-  select(selected); renderList(); saveMsg.textContent="삭제됨.";
-};
+}
 
-/* ===== 내보내기/가져오기/초기화/원격 ===== */
-btnExport.onclick=()=>{
-  const t=loadTable();
-  const blob=new Blob([JSON.stringify(t,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`pets.json`; a.click();
-  URL.revokeObjectURL(url);
-};
-btnImport.onclick=()=>{
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
-  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
-    const rdr=new FileReader(); rdr.onload=()=>{ try{
-      const obj=JSON.parse(rdr.result);
-      if(typeof obj!=="object" || Array.isArray(obj)) throw new Error("루트가 객체가 아님");
-      saveTable(obj); renderList(); saveMsg.textContent="가져오기 완료.";
-    }catch(e){ alert("JSON 파싱 실패: "+e.message); } }; rdr.readAsText(f);
-  }; inp.click();
-};
-btnClear.onclick=()=>{
-  if(confirm("정말 전체 초기화할까요? (되돌릴 수 없습니다)")){
-    localStorage.removeItem(LS_TABLE);
-    selected=null; nameEl.textContent="미선택";
-    s0hp.value=s0atk.value=s0def.value=s0agi.value="";
-    sghp.value=sgatk.value=sgdef.value=sgagi.value="";
-    ku_k.value=ku_u.value=ku_e.value=""; sgErr.value="";
-    renderList(); saveMsg.textContent="초기화됨.";
+// 3x3 역행렬 곱 util (M^-1 * x), M = [[4,1,1],[0.1,1,0.1],[0.1,0.1,1]]
+function invMul_4_1_1_011_1_01_01_01_1(x1,x2,x3){
+  const A=4,B=1,C=1,D=0.1,E=1,F=0.1,G=0.1,H=0.1,I=1;
+  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
+  if (Math.abs(det)<1e-12) return null;
+  const i11=(E*I-F*H)/det, i12=-(B*I-C*H)/det, i13=(B*F-C*E)/det;
+  const i21=-(D*I-F*G)/det, i22=(A*I-C*G)/det, i23=-(A*F-C*D)/det;
+  const i31=(D*H-E*G)/det, i32=-(A*H-B*G)/det, i33=(A*E-B*D)/det;
+  return [
+    i11*x1 + i12*x2 + i13*x3,
+    i21*x1 + i22*x2 + i23*x3,
+    i31*x1 + i32*x2 + i33*x3
+  ];
+}
+
+// Strict 추정
+function inferKU_Nova2_strict(S0, SG){
+  // 검증
+  if(!S0 || !SG) return null;
+  const S0i = S0.map(v=>Math.floor(v));
+  let best=null;
+
+  for(const e of ESET){
+    const f = e/10000;
+
+    // 1) d' = SG.agi / f  → u_agi = round(d' - 2.5)
+    const dprime = (SG.agi)/f;
+    const u_agi  = Math.round(dprime - 2.5);
+
+    // 2) (a',b',c') = inv(M3)*[(SG - d'항)/f]
+    const rhs1 = (SG.hp  - f*dprime)/f;
+    const rhs2 = (SG.atk - 0.05*f*dprime)/f;
+    const rhs3 = (SG.def - 0.05*f*dprime)/f;
+    const inv = invMul_4_1_1_011_1_01_01_01_1(rhs1,rhs2,rhs3);
+    if(!inv) continue;
+    const [apr, bpr, cpr] = inv;
+
+    // 3) u 정수(4.5 기준) 산출
+    const u_hp  = Math.round(apr - 2.5);
+    const u_atk = Math.round(bpr - 2.5);
+    const u_def = Math.round(cpr - 2.5);
+
+    // 4) g=i/100 스캔으로 V(연속 S0소수)를 복원(HP 정수부 일치 지점)
+    let V=null;
+    for(let i=1;i<100;i++){
+      const g=i/100;
+      const h=(u_hp +2.5)*g, a=(u_atk+2.5)*g, d=(u_def+2.5)*g, g2=(u_agi+2.5)*g;
+      const HP = h*4 + a + d + g2;
+      if(Math.floor(HP)!==S0i[0]) continue; // HP 정수부 맞춤
+      const ATK= h*0.1 + a + d*0.1 + g2*0.05;
+      const DEF= h*0.1 + a*0.1 + d + g2*0.05;
+      const AGI= g2;
+      V=[HP,ATK,DEF,AGI]; break;
+    }
+    if(!V) continue;
+
+    // 5) k=10..100 탐색(정수 허용오차, 재생성 일치, SG 2자리 오차 최소화)
+    for(let k=10;k<=100;k++){
+      const tmp_agi = (V[3]*100/k) - 4.5;
+      if(Math.abs(tmp_agi - Math.round(tmp_agi)) > INT_EPS) continue;
+      const ug = Math.round(tmp_agi);
+
+      const eq1 = V[0] - V[3];
+      const eq2 = V[1] - 0.05*V[3];
+      const eq3 = V[2] - 0.05*V[3];
+
+      const eq5_rhs = eq3 - 0.1*eq1;   // (-3)A + 9C = 10*eq5_rhs
+      const eq4_rhs = eq2 - eq1;       // (-3.9)A + (-0.9)C = eq4_rhs
+      const C = ( (eq5_rhs*10) - (eq4_rhs*(3/3.9)) ) / 9.6923;
+      const A = ( (eq5_rhs) - 0.9*C ) / -0.3;
+      const B = eq1 - 4*A - C;
+
+      const uh = (A*100/k) - 4.5;
+      const ua = (B*100/k) - 4.5;
+      const ud = (C*100/k) - 4.5;
+
+      if([uh,ua,ud].some(v=>!Number.isFinite(v))) continue;
+      if([uh,ua,ud].some(v=>Math.abs(v - Math.round(v))>INT_EPS)) continue;
+
+      const U = {hp:Math.round(uh), atk:Math.round(ua), def:Math.round(ud), agi:ug};
+
+      // (a) S0 재생성 완전일치(합산→floor)
+      const s = s0_from_k_u_Nova2(k,U);
+      if(s[0]!==S0i[0] || s[1]!==S0i[1] || s[2]!==S0i[2] || s[3]!==S0i[3]) continue;
+
+      // (b) SG 2자리 재합성 오차 최소화
+      const sgc = sg_from_u_e_Nova2(U, e);
+      const err = Math.abs(sgc.hp-(SG.hp||0))+Math.abs(sgc.atk-(SG.atk||0))+Math.abs(sgc.def-(SG.def||0))+Math.abs(sgc.agi-(SG.agi||0));
+
+      // (c) tie-break: k∈[16..40] 가산점
+      const score = err + (k>=16 && k<=40 ? 0 : 1);
+
+      const cand = {k,u:U,e,err,score, V};
+      if(!best || cand.score < best.score) best = cand;
+    }
   }
+  return best; // {k,u,e,err,score,V}
+}
+
+/* ==============================
+   상태 & 렌더
+============================== */
+let ROWS = []; // [{name,s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{...}, e, mape, sg_err}]
+let DIRTY = false;
+
+function setDirty(d=true){
+  DIRTY = d;
+  $('badgeDirty').textContent = d? '변경됨' : '저장됨';
+  $('badgeDirty').style.background = d? '#2a1820' : '#0e1218';
+  $('badgeDirty').style.borderColor = d? '#5a2a3a' : '#2a3040';
+}
+
+function renderTable(){
+  const tb = $('tbody'); tb.innerHTML = '';
+  for(let i=0;i<ROWS.length;i++){
+    const r = ROWS[i];
+    const tr = document.createElement('tr');
+
+    function tdEdit(val, cls, oncommit){
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = (val ?? '');
+      inp.className='mono';
+      inp.addEventListener('change',()=>{ oncommit(inp.value); setDirty(true); });
+      td.appendChild(inp); if(cls) td.className=cls; return td;
+    }
+    function tdNum(val){ const td=document.createElement('td'); td.textContent = (Number.isFinite(val)? val : ''); td.className='mono'; return td; }
+
+    // 이름
+    tr.appendChild(tdEdit(r.name||'', '', v=>r.name=v));
+
+    // s0
+    tr.appendChild(tdEdit(r.s0?.hp ?? '', '', v=>{r.s0=r.s0||{}; r.s0.hp=toNum(v)}));
+    tr.appendChild(tdEdit(r.s0?.atk?? '', '', v=>{r.s0=r.s0||{}; r.s0.atk=toNum(v)}));
+    tr.appendChild(tdEdit(r.s0?.def?? '', '', v=>{r.s0=r.s0||{}; r.s0.def=toNum(v)}));
+    tr.appendChild(tdEdit(r.s0?.agi?? '', '', v=>{r.s0=r.s0||{}; r.s0.agi=toNum(v)}));
+
+    // sg
+    tr.appendChild(tdEdit(r.sg?.hp ?? '', '', v=>{r.sg=r.sg||{}; r.sg.hp =toNum(v)}));
+    tr.appendChild(tdEdit(r.sg?.atk?? '', '', v=>{r.sg=r.sg||{}; r.sg.atk=toNum(v)}));
+    tr.appendChild(tdEdit(r.sg?.def?? '', '', v=>{r.sg=r.sg||{}; r.sg.def=toNum(v)}));
+    tr.appendChild(tdEdit(r.sg?.agi?? '', '', v=>{r.sg=r.sg||{}; r.sg.agi=toNum(v)}));
+
+    // k, u, e, mape, sg_err
+    tr.appendChild(tdNum(r.k));
+    tr.appendChild(tdNum(r.u?.hp));
+    tr.appendChild(tdNum(r.u?.atk));
+    tr.appendChild(tdNum(r.u?.def));
+    tr.appendChild(tdNum(r.u?.agi));
+    tr.appendChild(tdNum(r.e));
+    tr.appendChild(tdNum(r.mape));
+    tr.appendChild(tdNum(r.sg_err));
+
+    // 작업
+    const tdAct = document.createElement('td'); tdAct.className='nowrap';
+    const b1 = document.createElement('button'); b1.className='btn btn-sm'; b1.textContent='Nova2 추정';
+    b1.onclick=()=>{
+      const out = inferKU_Nova2_strict([r.s0?.hp, r.s0?.atk, r.s0?.def, r.s0?.agi], r.sg);
+      if(!out){ logln(`✖ ${r.name}: 추정 실패`); return; }
+      r.k = out.k; r.u = out.u; r.e = out.e; r.sg_err = precise(out.err);
+      // mape: 연속 S0(합산 전)과 제공 S0(소수) 사이
+      const f = r.k/100;
+      const vhp=f*r.u.hp, vatk=f*r.u.atk, vdef=f*r.u.def, vagi=f*r.u.agi;
+      const scont=[vhp*4+vatk+vdef+vagi, vhp*0.1+vatk+vdef*0.1+vagi*0.05, vhp*0.1+vatk*0.1+vdef+vagi*0.05, vagi];
+      r.mape = precise(mape([r.s0?.hp,r.s0?.atk,r.s0?.def,r.s0?.agi], scont));
+      setDirty(true); renderTable();
+      logln(`✓ ${r.name}: k=${r.k}, u=(${r.u.hp},${r.u.atk},${r.u.def},${r.u.agi}), e=${r.e}, mape=${r.mape.toFixed(4)}, sg_err=${r.sg_err.toFixed(4)}`);
+    };
+    const b2 = document.createElement('button'); b2.className='btn btn-sm'; b2.textContent='삭제';
+    b2.onclick=()=>{ ROWS.splice(i,1); setDirty(true); renderTable(); };
+    tdAct.appendChild(b1); tdAct.appendChild(document.createTextNode(' ')); tdAct.appendChild(b2);
+    tr.appendChild(tdAct);
+
+    $('tbody').appendChild(tr);
+  }
+  $('badgeCount').textContent = `${ROWS.length} 개 로드됨`;
+}
+
+/* ==============================
+   IO: JSON / TSV
+============================== */
+function fromPetsJson(obj){
+  const rows=[];
+  for(const name of Object.keys(obj||{})){
+    const r = obj[name]||{};
+    rows.push({
+      name,
+      s0: r.s0? {hp:+r.s0.hp, atk:+r.s0.atk, def:+r.s0.def, agi:+r.s0.agi}: {},
+      sg: r.sg? {hp:+r.sg.hp, atk:+r.sg.atk, def:+r.sg.def, agi:+r.sg.agi}: {},
+      k:  Number.isFinite(r.k)? +r.k : undefined,
+      u:  r.u? {hp:+r.u.hp, atk:+r.u.atk, def:+r.u.def, agi:+r.u.agi}: undefined,
+      e:  Number.isFinite(r.e)? +r.e : undefined,
+      mape: Number.isFinite(r.mape)? +r.mape : undefined,
+      sg_err: Number.isFinite(r.sg_err)? +r.sg_err : undefined,
+    });
+  }
+  return rows;
+}
+function toPetsJson(rows){
+  const obj={};
+  for(const r of rows){
+    if(!r?.name) continue;
+    obj[r.name] = {
+      s0: r.s0, sg: r.sg,
+      ...(Number.isFinite(r.k) && r.u ? {k:r.k, u:r.u} : {}),
+      ...(Number.isFinite(r.e)? {e:r.e}:{}),
+      ...(Number.isFinite(r.mape)? {mape:r.mape}:{}),
+      ...(Number.isFinite(r.sg_err)? {sg_err:r.sg_err}:{}),
+    };
+  }
+  return obj;
+}
+
+// TSV 파서: 헤더가 s0/sg 8개 또는 name 포함 가정(유연)
+function parseTSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  if(lines.length===0) return [];
+  const head = lines[0].split('\t').map(s=>s.trim());
+  const idx = {};
+  head.forEach((h,i)=>idx[h]=i);
+  function col(h){ return idx[h] ?? -1; }
+  const need = ['name','s0_hp','s0_atk','s0_def','s0_agi','sg_hp','sg_atk','sg_def','sg_agi'];
+  // name 컬럼 없으면 첫 컬럼을 name으로 간주
+  if(col('name')<0) { idx['name']=0; }
+
+  const out=[];
+  for(let li=1; li<lines.length; li++){
+    const cells = lines[li].split('\t');
+    if(cells.length < 5) continue;
+    const name = cells[idx['name']]?.trim();
+    const s0 = {hp:+cells[col('s0_hp')], atk:+cells[col('s0_atk')], def:+cells[col('s0_def')], agi:+cells[col('s0_agi')]};
+    const sg = {hp:+cells[col('sg_hp')], atk:+cells[col('sg_atk')], def:+cells[col('sg_def')], agi:+cells[col('sg_agi')]};
+    if(!name || ![s0.hp,s0.atk,s0.def,s0.agi,sg.hp,sg.atk,sg.def,sg.agi].every(Number.isFinite)) continue;
+    out.push({name, s0, sg});
+  }
+  return out;
+}
+function toTSV(rows){
+  const head = ['name','s0_hp','s0_atk','s0_def','s0_agi','sg_hp','sg_atk','sg_def','sg_agi','k','u_hp','u_atk','u_def','u_agi','mape','r'];
+  const lines=[head.join('\t')];
+  for(const r of rows){
+    lines.push([
+      r.name ?? '',
+      r.s0?.hp ?? '', r.s0?.atk ?? '', r.s0?.def ?? '', r.s0?.agi ?? '',
+      r.sg?.hp ?? '', r.sg?.atk ?? '', r.sg?.def ?? '', r.sg?.agi ?? '',
+      Number.isFinite(r.k)? r.k:'', r.u?.hp ?? '', r.u?.atk ?? '', r.u?.def ?? '', r.u?.agi ?? '',
+      Number.isFinite(r.mape)? r.mape : '',
+      Number.isFinite(r.e)? r.e : '' // r = e
+    ].join('\t'));
+  }
+  return lines.join('\n');
+}
+
+/* ==============================
+   이벤트
+============================== */
+$('btnLoadJson').onclick = async ()=>{
+  const url = $('urlJson').value.trim();
+  if(!url){ alert('URL을 입력하세요'); return; }
+  try{
+    const res = await fetch(url + `?v=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const obj = await res.json();
+    ROWS = fromPetsJson(obj);
+    setDirty(false); renderTable();
+    logln(`✓ 원격 JSON 로드: ${ROWS.length}건`);
+  }catch(e){ alert('로드 실패: '+e.message); }
+};
+$('btnLoadLocalJson').onclick = ()=> $('fileJson').click();
+$('fileJson').onchange = async (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const text = await file.text(); const obj = JSON.parse(text);
+  ROWS = fromPetsJson(obj);
+  setDirty(false); renderTable();
+  logln(`✓ 로컬 JSON 로드: ${ROWS.length}건`);
+  e.target.value='';
+};
+$('btnLoadLocalTsv').onclick = ()=> $('fileTsv').click();
+$('fileTsv').onchange = async (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const text = await file.text();
+  const rows = parseTSV(text);
+  if(rows.length===0){ alert('TSV 파싱 실패/빈 파일'); return; }
+  // 기존 동일 이름 merge/update
+  const map = new Map(ROWS.map(r=>[r.name,r]));
+  for(const r of rows){
+    if(map.has(r.name)){ const ex=map.get(r.name); ex.s0=r.s0; ex.sg=r.sg; } else { map.set(r.name, {...r}); }
+  }
+  ROWS = Array.from(map.values());
+  setDirty(true); renderTable();
+  logln(`✓ 로컬 TSV 로드/병합: ${rows.length}건 (총 ${ROWS.length})`);
+  e.target.value='';
 };
 
-/* ===== 초기화 ===== */
-(async function init(){
-  await pullRemote();  // 원격 먼저 시도(성공 시 로컬에 캐시)
-  renderList();
-})();
+$('btnSaveJson').onclick = ()=>{
+  const obj = toPetsJson(ROWS);
+  download('pets.json', JSON.stringify(obj, null, 2));
+  setDirty(false);
+  logln('✓ JSON 내보내기 완료');
+};
+$('btnSaveTsv').onclick = ()=>{
+  const tsv = toTSV(ROWS);
+  download('pets_export.tsv', tsv);
+  logln('✓ TSV 내보내기 완료');
+};
+
+$('btnInferAll').onclick = async ()=>{
+  if(ROWS.length===0){ alert('데이터가 없습니다. 먼저 불러오세요.'); return; }
+  let ok=0, fail=0;
+  for(const r of ROWS){
+    const out = inferKU_Nova2_strict([r.s0?.hp, r.s0?.atk, r.s0?.def, r.s0?.agi], r.sg);
+    if(!out){ fail++; continue; }
+    r.k = out.k; r.u = out.u; r.e = out.e; r.sg_err = precise(out.err);
+    const f = r.k/100;
+    const vhp=f*r.u.hp, vatk=f*r.u.atk, vdef=f*r.u.def, vagi=f*r.u.agi;
+    const scont=[vhp*4+vatk+vdef+vagi, vhp*0.1+vatk+vdef*0.1+vagi*0.05, vhp*0.1+vatk*0.1+vdef+vagi*0.05, vagi];
+    r.mape = precise(mape([r.s0?.hp,r.s0?.atk,r.s0?.def,r.s0?.agi], scont));
+    ok++;
+  }
+  setDirty(true); renderTable();
+  logln(`✓ 일괄 추정 완료: 성공 ${ok}건 / 실패 ${fail}건`);
+};
+
+$('btnClearKU').onclick = ()=>{
+  for(const r of ROWS){ delete r.k; delete r.u; delete r.e; delete r.mape; delete r.sg_err; }
+  setDirty(true); renderTable();
+  logln('• k/u/e/오차 컬럼 초기화');
+};
+
+// 시작 상태
+renderTable();
 </script>
 </body>
 </html>
