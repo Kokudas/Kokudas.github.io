@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>노바 서버 펫 계산기 (v0.8-fixed)</title>
+<title>노바 서버 펫 계산기 (v0.9)</title>
 <style>
   html { scrollbar-gutter: stable; }
   @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
+
   :root{
     --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
@@ -43,13 +44,9 @@
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
     background:#0e1218; color:var(--text); outline:none;
   }
-  /* 스핀버튼 제거 */
+  input[readonly]{ opacity:.7; cursor:not-allowed; }
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-  /* 읽기전용 시각 표시 */
-  input[readonly]{
-    opacity:.9; background:#0f141b; cursor:default;
-  }
   .btn{
     padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer;
     background:#142033; color:#cfe1ff; font-weight:600;
@@ -101,7 +98,7 @@
 <header>
   <div class="brand">NOVA SERVER PET Calculator</div>
   <div class="ver">
-    <span>v0.8 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
+    <span>v0.9 · <span class="muted">문의사항 : 인게임&디스코드 과장</span></span>
     <button class="btn ghost" id="btnAdmin">★</button>
   </div>
 </header>
@@ -137,11 +134,9 @@
   <section class="card">
     <h3>② 표기치 & 관측치 입력</h3>
 
-    <!-- (요청대로 옵션 패널 제거) -->
-
     <div class="row">
       <div class="col">
-        <label>표기 초기치 S0 (체/공/방/순)</label>
+        <label>표기 초기치 S0 (체/공/방/순) <span class="muted">(읽기전용)</span></label>
         <div class="row">
           <div class="col"><input type="number" id="s0_hp"  step="0.01" placeholder="—" readonly /></div>
           <div class="col"><input type="number" id="s0_atk" step="0.01" placeholder="—" readonly /></div>
@@ -149,7 +144,7 @@
           <div class="col"><input type="number" id="s0_agi" step="0.01" placeholder="—" readonly /></div>
         </div>
 
-        <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순)</label>
+        <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순) <span class="muted">(읽기전용)</span></label>
         <div class="row">
           <div class="col"><input type="number" id="sg_hp"  step="0.01" placeholder="—" readonly /></div>
           <div class="col"><input type="number" id="sg_atk" step="0.01" placeholder="—" readonly /></div>
@@ -273,21 +268,18 @@
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json";                // 관리자 커밋 테이블
-const TRAIN_PATH= "data/happy_training.min.json";  // 선택(보조)
+const PETS_PATH = "data/pets.json";                // 관리자가 커밋하는 메인 테이블
 const REMOTE_PETS  = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
-const REMOTE_TRAIN = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${TRAIN_PATH}`;
 
 /* ========= 상수 ========= */
-const APP_VERSION = "0.8-fixed";
+const APP_VERSION = "0.9";
 const LS_TABLE = "novaPetTable"; // 캐시(백업)
 const TOTAL = 178750;
 const ADMIN_PASS = "kokudas";
 
 /* ========= 전역 상태 ========= */
-let GLOBAL_TABLE = {};    // 서버 pets.json
-let ALL_NAMES = [];       // 페트명 목록
-let TRAIN_DB = [];        // happy_training (KNN보조)
+let GLOBAL_TABLE = {};    // 서버 pets.json을 여기에 고정
+let ALL_NAMES = [];       // GLOBAL_TABLE의 키 목록
 
 /* ========= 유틸 ========= */
 function precise(n){ return Math.round(n*1e12)/1e12; }
@@ -295,7 +287,7 @@ function toNum(el){ const v=parseFloat(el.value); return Number.isFinite(v)? v :
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function setJSONLS(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
 
-/* ========= 원격 로드 ========= */
+/* ========= 원격 로드(서버 우선, 실패 시 로컬 캐시) ========= */
 async function fetchJSON(url){
   const res = await fetch(url + `?v=${Date.now()}`, {cache:"no-store"});
   if(!res.ok) throw new Error("HTTP "+res.status);
@@ -312,12 +304,6 @@ async function loadGlobalTable(){
   }
   ALL_NAMES = Object.keys(GLOBAL_TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
 }
-async function loadTraining(){
-  try{
-    const arr = await fetchJSON(REMOTE_TRAIN);
-    TRAIN_DB = Array.isArray(arr)? arr.filter(r => r && r.s0 && r.k && r.u) : [];
-  }catch{ TRAIN_DB = []; }
-}
 
 /* ========= 초성 ========= */
 const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
@@ -330,235 +316,6 @@ function getChosung(str){
     const idx = Math.floor((code - 0xAC00) / 588);
     out += CHO_SIMPLE(CHO_CODE[idx]);
   } return out;
-}
-
-/* ========= 라운딩/파이프라인 — 고정 ========= */
-const MODEL = {
-  intMode: "round2_then_floor", // 고정
-  pipeMode: "perterm_round2",   // 고정
-  baseRange: [-2, 2],
-  bonusSum: 10
-};
-function toShownInt(x){
-  if (MODEL.intMode === "round2_then_floor") return Math.floor(Math.round(x*100)/100 + 1e-9);
-  return Math.round(x); // (여기선 사용 안 함)
-}
-function r2(x){ return Math.round(x*100)/100; }
-
-/* ========= 표기식 ========= */
-function s_values_from_v(vhp, vatk, vdef, vagi){
-  if(MODEL.pipeMode==="perterm_round2"){
-    const s_hp = r2( r2(vhp*4) + r2(vatk) + r2(vdef) + r2(vagi) );
-    const s_atk= r2( r2(vhp*0.1) + r2(vatk) + r2(vdef*0.1) + r2(vagi*0.05) );
-    const s_def= r2( r2(vhp*0.1) + r2(vatk*0.1) + r2(vdef) + r2(vagi*0.05) );
-    const s_agi= r2( vagi );
-    return [s_hp, s_atk, s_def, s_agi];
-  }else{
-    const s_hp = precise(vhp*4 + vatk + vdef + vagi);
-    const s_atk= precise(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-    const s_def= precise(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-    const s_agi= precise(vagi);
-    return [s_hp, s_atk, s_def, s_agi];
-  }
-}
-
-/* ========= 역산/스캔 ========= */
-function solveVfromS0(S0){
-  const [S_HP,S_ATK,S_DEF,S_AGI]=S0;
-  const G=S_AGI;
-  const SHPp=S_HP-G, SATKp=S_ATK-0.05*G, SDEFp=S_DEF-0.05*G;
-  const alpha=0.9/0.99, denom=3.9-0.09*alpha;
-  const H=((SHPp-SATKp) - alpha*SDEFp + alpha*0.1*SATKp)/denom;
-  const D=(SDEFp - 0.09*H - 0.1*SATKp)/0.99;
-  const A=SATKp - 0.1*H - 0.1*D;
-  return [H,A,D,G];
-}
-function s0FromV([H,A,D,G]){
-  const [s_hp,s_atk,s_def,s_agi] = s_values_from_v(H,A,D,G);
-  return [precise(s_hp),precise(s_atk),precise(s_def),precise(s_agi)];
-}
-function mape(a,b){
-  let s=0; for(let i=0;i<4;i++){ const den=Math.max(1,Math.abs(a[i])); s += Math.abs(a[i]-b[i])/den; }
-  return s/4*100;
-}
-function scanKUfromS0(S0){
-  const v = solveVfromS0(S0);
-  let best=null;
-  for(let k=16;k<=40;k++){
-    const u = { hp:Math.round(v[0]*100/k), atk:Math.round(v[1]*100/k), def:Math.round(v[2]*100/k), agi:Math.round(v[3]*100/k) };
-    const v2=[k*u.hp/100, k*u.atk/100, k*u.def/100, k*u.agi/100];
-    const S0b = s0FromV(v2);
-    const err = mape(S0, S0b);
-    if(!best || err < best.err) best = {k,u,S0b,err};
-  }
-  return best;
-}
-
-/* ========= KNN(보조) ========= */
-function standardizeDataset(rows){
-  const feats = rows.map(r=>{
-    const S0=r.s0, SG=r.sg||{};
-    return [S0.hp,S0.atk,S0.def,S0.agi, SG.hp||0,SG.atk||0,SG.def||0,SG.agi||0];
-  });
-  const mu = Array(8).fill(0), sd = Array(8).fill(0);
-  for(const v of feats){ for(let i=0;i<8;i++) mu[i]+=v[i]; } for(let i=0;i<8;i++) mu[i]/=feats.length;
-  for(const v of feats){ for(let i=0;i<8;i++){ const d=v[i]-mu[i]; sd[i]+=d*d; } }
-  for(let i=0;i<8;i++) sd[i]=Math.sqrt(sd[i]/Math.max(1,feats.length-1))||1;
-  return {mu,sd};
-}
-function vecFrom(S0,SG){ return [S0.hp,S0.atk,S0.def,S0.agi, SG.hp||0,SG.atk||0,SG.def||0,SG.agi||0]; }
-function knnKU(S0, SG, K=5){
-  if(!Array.isArray(TRAIN_DB) || TRAIN_DB.length===0) return null;
-  const {mu,sd}=standardizeDataset(TRAIN_DB);
-  const q=vecFrom(S0,SG);
-  function distRow(r){
-    const v=vecFrom(r.s0,r.sg); let s=0;
-    for(let i=0;i<8;i++){ const z=(v[i]-mu[i])/sd[i], zq=(q[i]-mu[i])/sd[i]; const d=z-zq; s+=d*d; }
-    return Math.sqrt(s);
-  }
-  const scored=TRAIN_DB.map(r=>({r,d:distRow(r)})).sort((a,b)=>a.d-b.d).slice(0,Math.min(K,TRAIN_DB.length));
-  const eps=1e-6; let wsum=0, ksum=0, uh=0,ua=0,ud=0,ug=0;
-  for(const {r,d} of scored){
-    const w=1/(d+eps); wsum+=w; ksum+=w*r.k; uh+=w*r.u.hp; ua+=w*r.u.atk; ud+=w*r.u.def; ug+=w*r.u.agi;
-  }
-  const k=Math.round(ksum/wsum);
-  const u={hp:Math.round(uh/wsum), atk:Math.round(ua/wsum), def:Math.round(ud/wsum), agi:Math.round(ug/wsum)};
-  return {k,u,neighbors:scored};
-}
-
-/* ========= 해피식 엔진 ========= */
-function enumerate(pku, obs){
-  const k=pku.k, u=pku.u;
-  const bonuses=[];
-  for(let h=0; h<=MODEL.bonusSum; h++){
-    for(let a=0; a<=MODEL.bonusSum-h; a++){
-      for(let d=0; d<=MODEL.bonusSum-h-a; d++){
-        const g=MODEL.bonusSum-h-a-d; bonuses.push([h,a,d,g]);
-      }
-    }
-  }
-  let matches=0, rank8=0; const dist={};
-  const [br0,br1]=MODEL.baseRange;
-
-  for(let bh=br0; bh<=br1; bh++){
-    for(let ba=br0; ba<=br1; ba++){
-      for(let bd=br0; bd<=br1; bd++){
-        for(let bg=br0; bg<=br1; bg++){
-          for(const B of bonuses){
-            const vhp=precise(k*(u.hp + bh + B[0])/100);
-            const vatk=precise(k*(u.atk+ ba + B[1])/100);
-            const vdef=precise(k*(u.def+ bd + B[2])/100);
-            const vagi=precise(k*(u.agi+ bg + B[3])/100);
-            const [s_hp,s_atk,s_def,s_agi] = s_values_from_v(vhp,vatk,vdef,vagi);
-
-            const ihp=toShownInt(s_hp), iatk=toShownInt(s_atk), idef=toShownInt(s_def), iagi=toShownInt(s_agi);
-            if(ihp===obs[0] && iatk===obs[1] && idef===obs[2] && iagi===obs[3]){
-              matches++;
-              const r=bh+ba+bd+bg;
-              dist[r]=(dist[r]||0)+1;
-              if(r===8) rank8++;
-            }
-          }
-        }
-      }
-    }
-  }
-  return {matches, rank8, dist};
-}
-
-/* ========= Nova2 호환 추정기 ========= */
-const ESET = [575, 555, 535, 515, 495, 475, 455, 435]; // factor = e/10000
-
-// SG -> u(정수) 추정
-function solveUFromSG_Nova2(SG, e){
-  if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
-  const f = e/10000;
-  const dprime = SG.agi / f;
-  const d = Math.round(dprime - 2.5);
-
-  const rhs1 = (SG.hp  - f*dprime)/f;
-  const rhs2 = (SG.atk - 0.05*f*dprime)/f;
-  const rhs3 = (SG.def - 0.05*f*dprime)/f;
-
-  const A = 4, B = 1, C = 1;
-  const D = 0.1, E = 1, F = 0.1;
-  const G = 0.1, H = 0.1, I = 1;
-
-  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
-  if(Math.abs(det) < 1e-12) return null;
-
-  function invMul(x1,x2,x3){
-    const i11 =  (E*I - F*H)/det;
-    const i12 = -(B*I - C*H)/det;
-    const i13 =  (B*F - C*E)/det;
-    const i21 = -(D*I - F*G)/det;
-    const i22 =  (A*I - C*G)/det;
-    const i23 = -(A*F - C*D)/det;
-    const i31 =  (D*H - E*G)/det;
-    const i32 = -(A*H - B*G)/det;
-    const i33 =  (A*E - B*D)/det;
-    return [
-      i11*x1 + i12*x2 + i13*x3,
-      i21*x1 + i22*x2 + i23*x3,
-      i31*x1 + i32*x2 + i33*x3
-    ];
-  }
-
-  const [aprime, bprime, cprime] = invMul(rhs1, rhs2, rhs3);
-  const uhp = Math.round(aprime - 2.5);
-  const uatk= Math.round(bprime - 2.5);
-  const udef= Math.round(cprime - 2.5);
-  const uagi= d;
-
-  function r2(x){ return Math.round(x*100)/100; }
-  const hp_chk  = r2(f*(4*(uhp+2.5) + (uatk+2.5) + (udef+2.5) + (uagi+2.5)));
-  const atk_chk = r2(f*(0.1*(uhp+2.5) + (uatk+2.5) + 0.1*(udef+2.5) + 0.05*(uagi+2.5)));
-  const def_chk = r2(f*(0.1*(uhp+2.5) + 0.1*(uatk+2.5) + (udef+2.5) + 0.05*(uagi+2.5)));
-  const agi_chk = r2(f*(uagi+2.5));
-
-  const err = Math.abs(hp_chk-(SG.hp||0)) + Math.abs(atk_chk-(SG.atk||0))
-            + Math.abs(def_chk-(SG.def||0)) + Math.abs(agi_chk-(SG.agi||0));
-  return {u:{hp:uhp, atk:uatk, def:udef, agi:uagi}, e, sg_err:err};
-}
-
-// Nova2 표기식(합산 후 floor)로 S0 생성
-function s0_from_k_u_Nova2(k,u){
-  const fac = k/100;
-  const vhp  = fac*(u.hp );
-  const vatk = fac*(u.atk);
-  const vdef = fac*(u.def);
-  const vagi = fac*(u.agi);
-  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
-  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-  const s_agi= Math.floor(vagi);
-  return [s_hp, s_atk, s_def, s_agi];
-}
-
-function fitKFromS0_Nova2(S0int,u){
-  let best=null;
-  for(let k=16;k<=40;k++){
-    const s = s0_from_k_u_Nova2(k,u);
-    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
-    const ok = (l1===0);
-    if(!best || (ok && !best.ok) || (ok===best.ok && l1<best.l1)) best={k,l1,ok};
-  }
-  return best;
-}
-
-function inferKU_Nova2(S0, SG){
-  const S0int = S0.map(x=>Math.floor(x));
-  let best=null;
-  for(const e of ESET){
-    const sol = solveUFromSG_Nova2(SG, e);
-    if(!sol) continue;
-    const fit = fitKFromS0_Nova2(S0int, sol.u);
-    if(!fit) continue;
-    const score = (sol.sg_err||0) + fit.l1*10;
-    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, ok:fit.ok, score};
-    if(!best || (cand.ok && !best.ok) || (cand.ok===best.ok && cand.score<best.score)) best=cand;
-  }
-  return best;
 }
 
 /* ========= DOM ========= */
@@ -668,6 +425,7 @@ function selectPetName(n){
     sgdef.value=selectedRow.sg.def??""; sgagi.value=selectedRow.sg.agi??"";
   }else{ sghp.value=sgatk.value=sgdef.value=sgagi.value=""; }
 
+  // 관측치 자동: S0 정수부
   if(selectedRow?.s0){
     obshp.value = Math.floor(selectedRow.s0.hp??NaN)||"";
     obsatk.value= Math.floor(selectedRow.s0.atk??NaN)||"";
@@ -731,46 +489,164 @@ document.addEventListener('click', (e)=>{
   const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
 });
 
-/* ========= k/u 선택 — 고정 순서: table → nova2 → scan ========= */
-function pickKU(name, S0, SG){
-  const row = GLOBAL_TABLE[name] || {};
-  const hasKU = (r)=> Number.isFinite(r?.k) && r?.u && [r.u.hp,r.u.atk,r.u.def,r.u.agi].every(Number.isFinite);
+/* ========= Nova2 Strict 보조 추정기 (테이블에 k/u 없을 때만 사용) ========= */
+const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
+const INT_EPS = 0.2;
 
-  // 1) 테이블 고정값
-  if(hasKU(row)) return {k:row.k, u:row.u, src:"table"};
+function s0_from_k_u_Nova2(k,u){
+  const f = k/100;
+  const vH = f*u.hp, vA=f*u.atk, vD=f*u.def, vG=f*u.agi;
+  const s_hp = Math.floor(vH*4 + vA + vD + vG);
+  const s_atk= Math.floor(vH*0.1 + vA + vD*0.1 + vG*0.05);
+  const s_def= Math.floor(vH*0.1 + vA*0.1 + vD + vG*0.05);
+  const s_agi= Math.floor(vG);
+  return [s_hp,s_atk,s_def,s_agi];
+}
+function r2(x){ return Math.round(x*100)/100; }
+function invMul_4_1_1_011_1_01_01_01_1(x1,x2,x3){
+  const A=4,B=1,C=1,D=0.1,E=1,F=0.1,G=0.1,H=0.1,I=1;
+  const det = A*(E*I - F*H) - B*(D*I - F*G) + C*(D*H - E*G);
+  if (Math.abs(det)<1e-12) return null;
+  const i11=(E*I-F*H)/det, i12=-(B*I-C*H)/det, i13=(B*F-C*E)/det;
+  const i21=-(D*I-F*G)/det, i22=(A*I-C*G)/det, i23=-(A*F-C*D)/det;
+  const i31=(D*H-E*G)/det, i32=-(A*H-B*G)/det, i33=(A*E-B*D)/det;
+  return [
+    i11*x1 + i12*x2 + i13*x3,
+    i21*x1 + i22*x2 + i23*x3,
+    i31*x1 + i32*x2 + i33*x3
+  ];
+}
+function inferKU_Nova2_strict(S0, SG){
+  if(!S0 || !SG) return null;
+  const S0i = S0.map(v=>Math.floor(v));
+  let best=null;
 
-  // 2) Nova2 추정
-  const s0Obj={hp:S0[0], atk:S0[1], def:S0[2], agi:S0[3]};
-  const sol = inferKU_Nova2([s0Obj.hp,s0Obj.atk,s0Obj.def,s0Obj.agi], SG);
-  if(sol) return {k:sol.k, u:sol.u, src:"nova2"};
+  for(const e of ESET){
+    const f = e/10000;
+    const dprime = (SG.agi)/f;
+    const u_agi  = Math.round(dprime - 2.5);
 
-  // 3) 스캔(역산+라운드2파이프)
-  const fit = scanKUfromS0(S0);
-  if(fit) return {k:fit.k, u:fit.u, src:"scan"};
+    const rhs1 = (SG.hp  - f*dprime)/f;
+    const rhs2 = (SG.atk - 0.05*f*dprime)/f;
+    const rhs3 = (SG.def - 0.05*f*dprime)/f;
+    const inv = invMul_4_1_1_011_1_01_01_01_1(rhs1,rhs2,rhs3);
+    if(!inv) continue;
+    const [apr, bpr, cpr] = inv;
 
-  return null;
+    const u_hp  = Math.round(apr - 2.5);
+    const u_atk = Math.round(bpr - 2.5);
+    const u_def = Math.round(cpr - 2.5);
+
+    let V=null;
+    for(let i=1;i<100;i++){
+      const g=i/100;
+      const h=(u_hp +2.5)*g, a=(u_atk+2.5)*g, d=(u_def+2.5)*g, g2=(u_agi+2.5)*g;
+      const HP = h*4 + a + d + g2;
+      if(Math.floor(HP)!==S0i[0]) continue;
+      const ATK= h*0.1 + a + d*0.1 + g2*0.05;
+      const DEF= h*0.1 + a*0.1 + d + g2*0.05;
+      const AGI= g2;
+      V=[HP,ATK,DEF,AGI]; break;
+    }
+    if(!V) continue;
+
+    for(let k=10;k<=100;k++){
+      const tmp_agi = (V[3]*100/k) - 4.5;
+      if(Math.abs(tmp_agi - Math.round(tmp_agi)) > INT_EPS) continue;
+      const ug = Math.round(tmp_agi);
+
+      const eq1 = V[0] - V[3];
+      const eq2 = V[1] - 0.05*V[3];
+      const eq3 = V[2] - 0.05*V[3];
+
+      const eq5_rhs = eq3 - 0.1*eq1;
+      const eq4_rhs = eq2 - eq1;
+      const C = ( (eq5_rhs*10) - (eq4_rhs*(3/3.9)) ) / 9.6923;
+      const A = ( (eq5_rhs) - 0.9*C ) / -0.3;
+      const B = eq1 - 4*A - C;
+
+      const uh = (A*100/k) - 4.5;
+      const ua = (B*100/k) - 4.5;
+      const ud = (C*100/k) - 4.5;
+      if([uh,ua,ud].some(v=>!Number.isFinite(v))) continue;
+      if([uh,ua,ud].some(v=>Math.abs(v - Math.round(v))>INT_EPS)) continue;
+
+      const U = {hp:Math.round(uh), atk:Math.round(ua), def:Math.round(ud), agi:ug};
+      const s = s0_from_k_u_Nova2(k,U);
+      if(s[0]!==S0i[0] || s[1]!==S0i[1] || s[2]!==S0i[2] || s[3]!==S0i[3]) continue;
+
+      const score = (k>=16 && k<=40 ? 0 : 1);
+      const cand = {k,u:U,score};
+      if(!best || cand.score < best.score) best = cand;
+    }
+  }
+  return best;
+}
+
+/* ========= Nova2 표기식 기반 엔진 (합산→floor 고정) ========= */
+function enumerateNova2(k, u, obs){
+  // 보너스 분배 총합 10, 베이스 랜덤 −2..2
+  const bonuses=[];
+  for(let h=0; h<=10; h++){
+    for(let a=0; a<=10-h; a++){
+      for(let d=0; d<=10-h-a; d++){
+        const g=10-h-a-d; bonuses.push([h,a,d,g]);
+      }
+    }
+  }
+  let matches=0, rank8=0; const dist={};
+  for(let bh=-2; bh<=2; bh++){
+    for(let ba=-2; ba<=2; ba++){
+      for(let bd=-2; bd<=2; bd++){
+        for(let bg=-2; bg<=2; bg++){
+          for(const B of bonuses){
+            const vhp  = (k*(u.hp + bh + B[0]))/100;
+            const vatk = (k*(u.atk+ ba + B[1]))/100;
+            const vdef = (k*(u.def+ bd + B[2]))/100;
+            const vagi = (k*(u.agi+ bg + B[3]))/100;
+
+            const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
+            const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+            const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+            const s_agi= Math.floor(vagi);
+
+            if(s_hp===obs[0] && s_atk===obs[1] && s_def===obs[2] && s_agi===obs[3]){
+              matches++;
+              const r=bh+ba+bd+bg;
+              dist[r]=(dist[r]||0)+1;
+              if(r===8) rank8++;
+            }
+          }
+        }
+      }
+    }
+  }
+  return {matches, rank8, dist};
 }
 
 /* ========= 계산 ========= */
+function pickKU(name){
+  const row = GLOBAL_TABLE[name] || {};
+  if(Number.isFinite(row?.k) && row?.u && [row.u.hp,row.u.atk,row.u.def,row.u.agi].every(Number.isFinite)){
+    return {k:row.k, u:row.u, src:'table'};
+  }
+  // 테이블에 없으면 Nova2 Strict로 보조 추정 (UI엔 표시 안 함)
+  if(row?.s0 && row?.sg){
+    const fit = inferKU_Nova2_strict([row.s0.hp,row.s0.atk,row.s0.def,row.s0.agi], row.sg);
+    if(fit) return {k:fit.k, u:fit.u, src:'infer'};
+  }
+  return null;
+}
+
 btnCalc.addEventListener('click', async ()=>{
   if(!selectedName){ alert("펫을 먼저 선택하세요."); return; }
   const obs=[obshp,obsatk,obsdef,obsagi].map(e=>parseInt(e.value,10));
   if(obs.some(v=>!Number.isFinite(v))){ alert("관측 표기치(정수)를 모두 입력하세요."); return; }
 
-  const S0=[toNum(s0hp),toNum(s0atk),toNum(s0def),toNum(s0agi)];
-  if(S0.some(v=>!Number.isFinite(v))){
-    alert("이 펫은 아직 표기 S0가 없습니다. 관리자에서 등록하거나 직접 입력하세요.");
-    return;
-  }
-  const SG = {
-    hp: parseFloat(sghp.value)||0, atk: parseFloat(sgatk.value)||0,
-    def: parseFloat(sgdef.value)||0, agi: parseFloat(sgagi.value)||0
-  };
+  const pku = pickKU(selectedName);
+  if(!pku){ alert("k/u가 테이블에 없고 자동 추정도 실패했습니다. admin.html에서 Nova2 Strict로 산출 후 저장해 주세요."); return; }
 
-  const pku = pickKU(selectedName, S0, SG);
-  if(!pku){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
-
-  const res = enumerate(pku, obs);
+  const res = enumerateNova2(pku.k, pku.u, obs);
   showKpis(res);
 });
 
@@ -792,7 +668,6 @@ petSearch.addEventListener('input', renderPetList);
 /* ========= 부팅 ========= */
 (async function init(){
   await loadGlobalTable();
-  await loadTraining(); // (옵션/보조용)
   renderPetList();
 })();
 </script>
