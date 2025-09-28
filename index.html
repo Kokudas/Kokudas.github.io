@@ -560,7 +560,7 @@ function renderPetList(){
       const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8; // 둘 다 지원
       const tag2 = document.createElement('span');
       tag2.className = 'tag rank8 tip';
-      tag2.textContent = '8확정';
+      tag2.textContent = '100%';
 
       const maxShow = 8;
       const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
