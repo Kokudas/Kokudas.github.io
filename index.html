@@ -6,8 +6,33 @@
 <title>노바 서버 펫 계산기 1.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
+
+  /* 바디 레벨 플로팅 툴팁 */
+.floating-tip{
+  position: fixed;
+  z-index: 9999;
+  max-width: 360px;
+  background:#0b1320; color:#cfe1ff; border:1px solid #2b3a55;
+  border-radius:10px; padding:8px 10px; font-size:12px; line-height:1.35;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  pointer-events:none; white-space:normal; word-break:keep-all;
+  opacity:0; transform: translateY(4px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.floating-tip.show{ opacity:1; transform: translateY(0); }
+.floating-tip::after{
+  content:""; position:absolute; width:10px; height:10px; left:50%;
+  transform: translateX(-50%) rotate(45deg);
+  background:#0b1320; border-left:1px solid #2b3a55; border-top:1px solid #2b3a55;
+}
+.floating-tip[data-pos="top"]::after{ bottom:-5px; }
+.floating-tip[data-pos="bottom"]::after{
+  top:-5px; transform: translateX(-50%) rotate(225deg);
+}
+
   /* 커스텀 툴팁 */
-.tag.tip{ position:relative; }
+/*
+  .tag.tip{ position:relative; }
 .tag.tip::before,
 .tag.tip::after{ 
   position:absolute; opacity:0; pointer-events:none; transition:opacity .12s ease, transform .12s ease; 
@@ -34,7 +59,7 @@
 .tag.tip.show::after{
   opacity:1; transform: translate(-50%, 0);
 }
-
+*/
 /* 좁은 화면에서 너무 좌우로 길면 줄바꿈 허용 */
 .tag.tip::after{ word-break: keep-all; }
 
@@ -383,6 +408,93 @@ let currentChosung="";
 let selectedName=null;
 let selectedRow=null;
 
+// ===== 바디 레벨 툴팁 =====
+const tipEl = document.createElement('div');
+tipEl.className = 'floating-tip';
+document.body.appendChild(tipEl);
+let tipTimer = null;
+
+function hideTip(){
+  tipEl.classList.remove('show');
+}
+
+function showTip(target){
+  const text = target.getAttribute('data-tip');
+  if(!text){ hideTip(); return; }
+
+  // 내용 채우기 (줄바꿈 유지)
+  tipEl.textContent = '';
+  String(text).split('\n').forEach((line,i)=>{
+    tipEl.appendChild(document.createTextNode(line));
+    if(i < text.length-1) tipEl.appendChild(document.createElement('br'));
+  });
+
+  // 일단 보이게 해서 크기를 측정
+  tipEl.classList.add('show');
+  tipEl.style.left = '-9999px';
+  tipEl.style.top  = '-9999px';
+  tipEl.removeAttribute('data-pos');
+  tipEl.getBoundingClientRect(); // 강제 레이아웃
+
+  const rect = target.getBoundingClientRect();
+  const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  const margin = 8; // 배지와 툴팁 간격
+
+  // 기본은 위쪽
+  let pos = 'top';
+  let left = rect.left + rect.width/2 - tw/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+
+  let top = rect.top - th - margin;
+  if(top < 6){ // 위에 못 뜨면 아래로
+    top = rect.bottom + margin;
+    pos = 'bottom';
+  }
+  tipEl.dataset.pos = pos;
+  tipEl.style.left = `${Math.round(left)}px`;
+  tipEl.style.top  = `${Math.round(top)}px`;
+}
+
+// 이벤트 위임: 목록 내부의 .tag.tip 대상
+petList.addEventListener('mouseover', (e)=>{
+  const t = e.target.closest('.tag.tip');
+  if(!t) return;
+  showTip(t);
+}, true);
+
+petList.addEventListener('mouseout', (e)=>{
+  const t = e.target.closest('.tag.tip');
+  if(!t) return;
+  hideTip();
+}, true);
+
+petList.addEventListener('focusin', (e)=>{
+  const t = e.target.closest('.tag.tip');
+  if(!t) return;
+  showTip(t);
+});
+
+petList.addEventListener('focusout', (e)=>{
+  const t = e.target.closest('.tag.tip');
+  if(!t) return;
+  hideTip();
+});
+
+// 모바일(터치): 1.8초간 표시 후 자동 숨김
+petList.addEventListener('touchstart', (e)=>{
+  const t = e.target.closest('.tag.tip');
+  if(!t) return;
+  e.stopPropagation();
+  showTip(t);
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(hideTip, 1800);
+}, {passive:true});
+
+// 스크롤/리사이즈 시 숨김(위치 어긋남 방지)
+window.addEventListener('scroll', hideTip, true);
+window.addEventListener('resize', hideTip);
+
+  
 /* ===== 관리자 버튼 ===== */
 document.getElementById('btnAdmin').addEventListener('click', ()=>{
   const pw = prompt('관리자 암호를 입력하세요.');
