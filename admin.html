@@ -112,7 +112,7 @@
         <input id="f_sg_def" type="number" step="0.01" placeholder="def" />
         <input id="f_sg_agi" type="number" step="0.001" placeholder="agi" />
       </div>
-      <div class="help" style="margin-top:4px">* agi는 소수 셋째 자리까지 입력 가능(짜얄 호환 검증).</div>
+      <div class="help" style="margin-top:4px">* agi는 소수 셋째 자리까지 입력 가능.</div>
     </div>
 
     <div class="row" style="margin-top:6px">
@@ -128,12 +128,23 @@
       </div>
     </div>
 
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <label>추정 일치 기준</label>
+        <select id="infer_mode">
+          <option value="strict">엄격(±0.0005, 모든 항목 실수비교)</option>
+          <option value="tolerant" selected>관용(표기 반올림 일치: HP/ATK/DEF=둘째, AGI=셋째)</option>
+        </select>
+      </div>
+      <span class="help" style="align-self:flex-end">* 관용 모드는 먼저 엄격으로 시도 후 실패 시 반올림 일치로 재시도합니다.</span>
+    </div>
+
     <div class="row" style="margin-top:10px">
       <button class="btn" id="btnInfer">추정(k/u)</button>
       <button class="btn" id="btnApply">추가/갱신</button>
       <button class="btn warn" id="btnClearForm">폼 초기화</button>
       <button class="btn danger" id="btnDelete">선택 삭제</button>
-      <span class="help" style="margin-left:auto">※ 추정 실패 시 명확히 오류를 띄웁니다. (미세 조정 없음)</span>
+      <span class="help" style="margin-left:auto">※ 자동 미세조정 없음. 불일치 시 명확히 오류 표시.</span>
     </div>
 
     <hr class="hr"/>
@@ -192,10 +203,11 @@ function encodeUTF8Base64(str){
 
 /* =============== 상태/전역 =============== */
 let PETS = {}, GH_SHA = null, SELECTED = null;
-let R8 = {}, R8_SHA = null;           // guaranteed_rank8 JSON
-let LAST_R8_RESULT = null;            // 마지막 계산 결과 (선택 페트 전용 미리보기)
+let R8 = {}, R8_SHA = null;
+let LAST_R8_RESULT = null;
 
-const $ = s=>document.querySelector(s); const statusEl = $("#status"); const r8StatusEl = $("#r8_status");
+const $ = s=>document.querySelector(s);
+const statusEl = $("#status"); const r8StatusEl = $("#r8_status");
 
 /* =============== GitHub I/O =============== */
 async function ghGet(owner, repo, path, branch, token){
@@ -231,7 +243,6 @@ function write4(prefix, obj){
   $(`#${prefix}_def`).value = (obj?.def ?? "");
   $(`#${prefix}_agi`).value = (obj?.agi ?? "");
 }
-function refreshPreview(){ $("#jsonPreview") && ($("#jsonPreview").value = JSON.stringify(PETS, null, 2)); }
 function fmtS0(r){ const s=r?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
 function fmtSg(r){ const s=r?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
 function fmtU (r){ const u=r?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
@@ -269,12 +280,11 @@ function renderTable(sortKey="name"){
     });
     tbody.appendChild(tr);
   });
-  refreshPreview();
 }
 
-/* =============== 추정 엔진 (엄격 모드) =============== */
+/* =============== 추정 엔진 (엄격/관용) =============== */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
-const SG_EPS = 0.0005;  // 소수 셋째 자리까지 일치 요구
+const SG_EPS_STRICT = 0.0005;
 
 function calcSG_from_u_e(u, e){
   const f = new Decimal(e).dividedBy(10000);
@@ -288,11 +298,22 @@ function calcSG_from_u_e(u, e){
   const agi = f.times( up.agi );
   return { hp:+hp, atk:+atk, def:+def, agi:+agi };
 }
-function sgWithin(sgCalc, SG){
-  return Math.abs(sgCalc.hp - SG.hp)  <= SG_EPS &&
-         Math.abs(sgCalc.atk - SG.atk)<= SG_EPS &&
-         Math.abs(sgCalc.def - SG.def)<= SG_EPS &&
-         Math.abs(sgCalc.agi - SG.agi)<= SG_EPS;
+
+function sgWithinStrict(sgCalc, SG){
+  return Math.abs(sgCalc.hp - SG.hp)  <= SG_EPS_STRICT &&
+         Math.abs(sgCalc.atk - SG.atk)<= SG_EPS_STRICT &&
+         Math.abs(sgCalc.def - SG.def)<= SG_EPS_STRICT &&
+         Math.abs(sgCalc.agi - SG.agi)<= SG_EPS_STRICT;
+}
+
+/* 관용: 표기 반올림 일치 (hp/atk/def는 2dp, agi는 3dp) */
+function roundTo(x, dp){ return +new Decimal(x).toDecimalPlaces(dp, Decimal.ROUND_HALF_UP); }
+function sgWithinTolerant(sgCalc, SG){
+  const hpC = roundTo(sgCalc.hp, 2),  hpT = roundTo(SG.hp, 2);
+  const akC = roundTo(sgCalc.atk, 2), akT = roundTo(SG.atk, 2);
+  const dfC = roundTo(sgCalc.def, 2), dfT = roundTo(SG.def, 2);
+  const agC = roundTo(sgCalc.agi, 3), agT = roundTo(SG.agi, 3);
+  return (hpC===hpT) && (akC===akT) && (dfC===dfT) && (agC===agT);
 }
 
 function solveUFromSG_JJYAL(SG, e){
@@ -311,7 +332,6 @@ function solveUFromSG_JJYAL(SG, e){
     const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
     const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
 
-    // 3x3
     let A = [
       [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
       [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
@@ -357,32 +377,45 @@ function fitKFromS0_JJYAL(S0int,u){
   }
   return null;
 }
-/* “정확해”만 반환. 없으면 null */
-function inferKU_JJYAL(S0, SG){
+
+/* 모드별 추정: strict만 / tolerant면 strict 실패 시 tolerant 재시도 */
+function inferKU_JJYAL(S0, SG, mode){
   const S0int = S0.map(x=>Math.floor(x));
   let best=null, bestErr=Infinity;
-  for(const e of ESET){
-    const sol = solveUFromSG_JJYAL(SG, e);
-    if(!sol) continue;
 
-    const fit = fitKFromS0_JJYAL(S0int, sol.u);
-    if(!fit || !fit.ok) continue;  // S0가 정확히 일치해야 함
+  const tryWith = (cmpFn)=>{
+    let localBest=null, localErr=Infinity;
+    for(const e of ESET){
+      const sol = solveUFromSG_JJYAL(SG, e);
+      if(!sol) continue;
 
-    const sgCalc = calcSG_from_u_e(sol.u, e);
-    if(!sgWithin(sgCalc, SG)) continue; // Sg도 소수 셋째 자리까지 일치
+      const fit = fitKFromS0_JJYAL(S0int, sol.u);
+      if(!fit || !fit.ok) continue;
 
-    const errSum = Math.abs(sgCalc.hp - SG.hp) + Math.abs(sgCalc.atk - SG.atk)
-                 + Math.abs(sgCalc.def - SG.def) + Math.abs(sgCalc.agi - SG.agi);
-    if (errSum < bestErr){ bestErr = errSum; best = {k:fit.k, u:sol.u, e}; }
+      const sgCalc = calcSG_from_u_e(sol.u, e);
+      if(!cmpFn(sgCalc, SG)) continue;
+
+      const errSum = Math.abs(sgCalc.hp - SG.hp) + Math.abs(sgCalc.atk - SG.atk)
+                   + Math.abs(sgCalc.def - SG.def) + Math.abs(sgCalc.agi - SG.agi);
+      if (errSum < localErr){ localErr = errSum; localBest = {k:fit.k, u:sol.u, e}; }
+    }
+    return localBest;
+  };
+
+  if (mode === "strict"){
+    return tryWith(sgWithinStrict);
+  }else{
+    // tolerant: 먼저 strict 시도
+    best = tryWith(sgWithinStrict);
+    if (best) return best;
+    return tryWith(sgWithinTolerant);
   }
-  return best; // 없으면 null
 }
 
 /* =============== 8등급 100% 초기치 생성기 =============== */
-/* 전수: ar,dr,gr,hr ∈ [-2..2], ab,db,gb,hb ≥0, 합=10 → 178,750 경우 */
 function computeGuaranteedR8Sets(k, u, sortKey="sum"){
   const kD = new Decimal(k), fac = kD.dividedBy(100);
-  const setsMap = new Map(); // key "hp,atk,def,agi" -> {all8:bool, count:int}
+  const setsMap = new Map(); // "hp,atk,def,agi" -> {all8,count}
 
   for(let ar=-2; ar<=2; ar++){
     for(let dr=-2; dr<=2; dr++){
@@ -423,7 +456,6 @@ function computeGuaranteedR8Sets(k, u, sortKey="sum"){
     }
   }
 
-  // 추출: all8==true인 관측 세트만
   let arr = [];
   setsMap.forEach((v, k)=>{
     if(v.all8){
@@ -432,7 +464,6 @@ function computeGuaranteedR8Sets(k, u, sortKey="sum"){
     }
   });
 
-  // 정렬
   const idx = {hp:0, atk:1, def:2, agi:3};
   if (sortKey === "sum"){
     arr.sort((a,b)=>(a[0]+a[1]+a[2]+a[3]) - (b[0]+b[1]+b[2]+b[3])
@@ -504,21 +535,26 @@ $("#btnDelete").addEventListener("click", ()=>{
   delete PETS[SELECTED]; SELECTED=null; setStatus("삭제 완료"); renderTable();
 });
 
-/* =============== 추정(k/u) — 정확해만 인정 =============== */
+/* =============== 추정(k/u) — 모드 반영 =============== */
 $("#btnInfer").addEventListener("click", ()=>{
   const name = $("#f_name").value.trim() || "(이름없음)";
   const S0 = read4("f_s0"), SG = read4("f_sg");
   if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
     alert("S0, Sg를 모두 입력하세요."); return;
   }
-  const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG);
+  const mode = $("#infer_mode").value || "tolerant";
+  const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG, mode);
   if(!fit){
-    alert("k/u 추정 실패: 입력한 S0/SG로는 정확해가 나오지 않습니다.\n(참고) 짜얄 계산기처럼 Sg의 소수 셋째 자리(특히 agi)를 미세 조정해 다시 시도해 주세요.");
+    const msg =
+      (mode==="strict")
+        ? "k/u 추정 실패: 입력한 S0/SG가 엄격 기준에 부합하지 않습니다.\n→ 관용 모드로 바꾸거나 소숫점 표기를 확인해 주세요."
+        : "k/u 추정 실패: 관용(표기 반올림) 기준에서도 부합하지 않습니다.\n→ 짜얄 계산기처럼 소숫점(특히 agi) 표기를 재확인해 주세요.";
+    alert(msg);
     return;
   }
   $("#f_k").value = fit.k;
   $("#f_u_hp").value  = fit.u.hp; $("#f_u_atk").value = fit.u.atk; $("#f_u_def").value = fit.u.def; $("#f_u_agi").value = fit.u.agi;
-  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi}), e=${fit.e}`);
+  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi}), e=${fit.e} (${mode})`);
 });
 
 /* =============== R8 JSON 로드/저장 =============== */
@@ -552,21 +588,85 @@ $("#btnR8Save").addEventListener("click", async ()=>{
 });
 
 /* =============== 선택 페트 8등급 100% 초기치 계산 =============== */
+function computeGuaranteedR8Sets(k, u, sortKey="sum"){
+  const kD = new Decimal(k), fac = kD.dividedBy(100);
+  const setsMap = new Map();
+
+  for(let ar=-2; ar<=2; ar++){
+    for(let dr=-2; dr<=2; dr++){
+      for(let gr=-2; gr<=2; gr++){
+        for(let hr=-2; hr<=2; hr++){
+          const r = ar+dr+gr+hr;
+          for(let ab=0; ab<=10; ab++){
+            for(let db=0; db<=10; db++){
+              for(let gb=0; gb<=10; gb++){
+                const hb = 10 - ab - db - gb;
+                if(hb < 0 || hb > 10) continue;
+
+                const baseA = new Decimal(u.atk + ar + ab);
+                const baseD = new Decimal(u.def + dr + db);
+                const baseG = new Decimal(u.agi + gr + gb);
+                const baseH = new Decimal(u.hp  + hr + hb);
+
+                const iA = baseA.times(fac);
+                const iD = baseD.times(fac);
+                const iG = baseG.times(fac);
+                const iH = baseH.times(fac);
+
+                const obsAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
+                const obsDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
+                const obsAgi = iG.floor().toNumber();
+                const obsHp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
+
+                const key = `${obsHp},${obsAtk},${obsDef},${obsAgi}`;
+                let cell = setsMap.get(key);
+                if(!cell){ cell = { all8:true, count:0 }; setsMap.set(key, cell); }
+                cell.count++;
+                if(r !== 8) cell.all8 = false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let arr = [];
+  setsMap.forEach((v, k)=>{
+    if(v.all8){
+      const nums = k.split(",").map(s=>+s);
+      arr.push(nums);
+    }
+  });
+
+  const idx = {hp:0, atk:1, def:2, agi:3};
+  if (sortKey === "sum"){
+    arr.sort((a,b)=>(a[0]+a[1]+a[2]+a[3]) - (b[0]+b[1]+b[2]+b[3])
+              || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+  }else{
+    const i = idx[sortKey] ?? 0;
+    arr.sort((a,b)=>a[i]-b[i] || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+  }
+
+  return arr;
+}
+
 $("#btnR8Compute").addEventListener("click", ()=>{
   const name = $("#f_name").value.trim();
   if (!name){ alert("오른쪽 폼에서 페트를 선택하거나 이름을 입력하세요."); return; }
   const row = PETS[name];
   if (!row){ alert("현재 로드된 pets.json에 이 이름이 없습니다. 먼저 추가/갱신 후 시도하세요."); return; }
 
-  // k/u 확보 (없으면 엄격 추정 시도)
+  // k/u 확보 (없으면 추정 시도; UI 모드 반영)
   let k = row.k, u = row.u;
   if (!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
     const S0=row.s0, SG=row.sg;
     if(!S0 || !SG || ![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
       alert("k/u가 없고 S0/SG도 불완전합니다. 먼저 k/u를 채우거나 추정하세요."); return;
     }
-    const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG);
-    if(!fit){ alert("k/u 추정 실패: 정확해가 없어 100% 초기치 계산을 중단합니다."); return; }
+    const mode = $("#infer_mode").value || "tolerant";
+    const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG, mode);
+    if(!fit){ alert("k/u 추정 실패: 현재 일치 기준에서 정확 해를 찾지 못했습니다."); return; }
     k = fit.k; u = fit.u;
   }
 
@@ -578,8 +678,8 @@ $("#btnR8Compute").addEventListener("click", ()=>{
   LAST_R8_RESULT = { [name]: { count: sets.length, obs_100_rank8: sets } };
   $("#r8_preview").value = JSON.stringify(LAST_R8_RESULT, null, 2) + `\n\n(소요 ${(t1-t0).toFixed(0)} ms)`;
   setR8Status(`계산 완료: ${name} · ${sets.length}세트`);
-  
-  // R8에 즉시 병합(사용자 편의): 같은 이름은 덮어쓰기
+
+  // 병합(동명 덮어쓰기)
   R8[name] = { count: sets.length, obs_100_rank8: sets };
 });
 
