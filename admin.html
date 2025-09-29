@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NOVA PET Admin — 수동 오버라이드 지원</title>
+<title>NOVA PET Admin — 오버라이드 + 8확정 집계</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
   :root{
@@ -15,7 +15,7 @@
   body{margin:0; background:#0f1115; color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #232a36;background:#0c1016;position:sticky;top:0;z-index:10}
   .brand{font-weight:700}
-  .grid{max-width:1200px;margin:16px auto;padding:0 16px;display:grid;grid-template-columns: 320px 1fr;gap:14px}
+  .grid{max-width:1200px;margin:16px auto;padding:0 16px;display:grid;grid-template-columns: 340px 1fr;gap:14px}
   .card{background:#161a22;border:1px solid #232a36;border-radius:12px; padding:12px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .col{flex:1 1 0}
@@ -30,7 +30,7 @@
   .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc);border-color:transparent;color:white}
   .btn.ghost{background:transparent}
   .btn.warn{border-color:#7a1e2e;background:#2a0f16;color:#ff8aa0}
-  .list{max-height:70vh;overflow:auto;border:1px solid #2a3040;border-radius:10px}
+  .list{max-height:52vh;overflow:auto;border:1px solid #2a3040;border-radius:10px}
   .item{padding:10px 12px;border-bottom:1px solid #222836;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
   .item:hover{background:#141924}
   .muted{color:var(--muted)}
@@ -48,6 +48,23 @@
   .callout.ok{border-color:#275a34;background:#0f1912}
   .right{display:flex;gap:8px;align-items:center}
   .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+  /* R8 집계 */
+  .r8list{max-height:36vh; overflow:auto; border:1px solid #2a3040; border-radius:10px; padding:6px}
+  .r8item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px}
+  .r8item.disabled{opacity:.55}
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table th,.table td{border-bottom:1px solid #262d3a;padding:6px 8px;text-align:right}
+  .table th:first-child,.table td:first-child{text-align:left}
+  /* 모바일 최적화 */
+  @media (max-width: 780px){
+    .grid{grid-template-columns:1fr;gap:10px}
+    header{flex-wrap:wrap;gap:8px}
+    .list{max-height:32vh}
+    input,textarea,select{font-size:16px;padding:12px 14px}
+    .btn{padding:12px 14px}
+    .grid2{grid-template-columns: repeat(2,1fr)}
+    .grid3{grid-template-columns: repeat(2,1fr)}
+  }
 </style>
 </head>
 <body>
@@ -56,7 +73,7 @@
   <div class="right">
     <button class="btn" id="btnReload">원격 새로고침</button>
     <button class="btn ghost" id="btnExport">로컬 다운로드</button>
-    <button class="btn primary" id="btnCommit">GitHub 커밋</button>
+    <button class="btn primary" id="btnCommit">GitHub 커밋 (pets.json)</button>
   </div>
 </header>
 
@@ -123,7 +140,7 @@
       </div>
       <div class="col">
         <label>u (hp / atk / def / agi)</label>
-        <div class="grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div class="grid2">
           <input id="ku_hp"  type="number" step="1" placeholder="예: 31" />
           <input id="ku_atk" type="number" step="1" placeholder="예: 41" />
           <input id="ku_def" type="number" step="1" placeholder="예: 20" />
@@ -137,10 +154,27 @@
     <div class="hr"></div>
 
     <div class="row">
-      <button class="btn primary" id="btnSave">저장(메모리)</button>
-      <button class="btn" id="btnSaveCommit">저장 후 커밋</button>
+      <button class="btn primary" id="btnSave">저장(브라우저)</button>
+      <button class="btn" id="btnSaveCommit">저장 후 pets.json 커밋</button>
       <span class="note">커밋은 GitHub 토큰 필요</span>
     </div>
+  </section>
+
+  <!-- ===== R8 집계 섹션 ===== -->
+  <section class="card">
+    <h3 style="margin:4px 0 10px">④ 환각(8등급) 100% 초기치 집계 & 커밋</h3>
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <button class="btn" id="btnR8SelectAll">모두 선택</button>
+      <button class="btn ghost" id="btnR8ClearAll">선택 해제</button>
+      <span class="note">k/u가 있는 페트만 선택 가능(오버라이드 포함)</span>
+    </div>
+    <div class="r8list" id="r8List"></div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnR8Run">선택 대상 집계</button>
+      <button class="btn primary" id="btnR8Commit" disabled>guaranteed_rank8.full.json 커밋</button>
+    </div>
+    <div id="r8Preview" class="callout" style="margin-top:10px; display:none"></div>
   </section>
 </div>
 
@@ -150,7 +184,9 @@ const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
 const PETS_PATH = "data/pets.json";
+const R8_PATH   = "data/guaranteed_rank8.full.json";
 const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
+const REMOTE_R8   = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${R8_PATH}`;
 
 const LS_KEY = "adminPetsCache_v2";
 
@@ -158,12 +194,19 @@ const LS_KEY = "adminPetsCache_v2";
 let DB = {};           // name -> row
 let ORDER = [];        // 이름 정렬
 let CURRENT = null;    // 현재 편집 이름
-let CURRENT_SHA = "";  // GitHub 커밋용
+
+// R8 미리보기 결과
+let R8_RESULT = {};    // name -> [[hp,atk,def,agi], ...]
+let R8_REMOTE_SHA = null; // 커밋용
 
 /* ====== 유틸 ====== */
 function fetchJSON(url){
   return fetch(url + `?v=${Date.now()}`, {cache:"no-store"})
-    .then(r => { if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); });
+    .then(async r => {
+      if(r.status === 404) return {__404__:true};
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.json();
+    });
 }
 function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
 function loadLS(){
@@ -175,7 +218,11 @@ const num = (v)=> (v===""||v==null||isNaN(+v)) ? null : +v;
 const floor4 = (a)=> a.map(x=>Math.floor(x??NaN));
 function toFixed2(x){ return new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(); }
 
-/* ====== 짜얄 호환 수식(STRICT) ====== */
+function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function encJSON(obj){ return b64(JSON.stringify(obj, null, 2)); }
+function arrEq(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
+
+/* ====== 짜얄 호환 수식(STRICT 추정) ====== */
 const ESET = [575,555,535,515,495,475,455,435];
 
 function s0_from_k_u_jjyal(k,u){
@@ -190,7 +237,6 @@ function s0_from_k_u_jjyal(k,u){
   const s_agi= Math.floor(vagi);
   return [s_hp,s_atk,s_def,s_agi];
 }
-
 function solveUFromSG_STRICT(SG,e){
   try{
     if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
@@ -230,7 +276,7 @@ function solveUFromSG_STRICT(SG,e){
     const u_atk = bPrime.minus(2.5).round();
     const u_def = cPrime.minus(2.5).round();
 
-    // 재합성하고 소수 2째 반올림 정확히 일치해야 STRICT 통과
+    // 재합성 후 2째 반올림 일치 확인
     const r2 = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
     const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
     const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
@@ -243,23 +289,76 @@ function solveUFromSG_STRICT(SG,e){
     return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e:+e };
   }catch{ return null; }
 }
-
 function inferKU_STRICT(S0,SG){
   const S0int = floor4(S0);
-  let best = null;
   for(const e of ESET){
     const sol = solveUFromSG_STRICT(SG, e);
     if(!sol) continue;
-    // k를 10~100 스캔해서 S0 정수부 완전일치 찾기
     for(let k=10;k<=100;k++){
       const s = s0_from_k_u_jjyal(k, sol.u);
-      const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
-      if(l1===0){ return {k,u:sol.u,e}; } // 완전일치 즉시 반환
-      if(!best || l1 < best.l1){ best={k,u:sol.u,e,l1}; }
+      if(s[0]===S0int[0] && s[1]===S0int[1] && s[2]===S0int[2] && s[3]===S0int[3]){
+        return {k,u:sol.u,e};
+      }
     }
   }
-  // STRICT: 완전일치 못 찾으면 실패로 간주
   return null;
+}
+
+/* ====== R8 집계 엔진 ====== */
+/** 전수 178,750 케이스를 모두 생성하고 (hp,atk,def,agi) -> 관측 가능한 모든 r 값을 수집.
+    그 결과 r 집합이 {8}만 포함하면 "8확정" 초기치로 채택 */
+function collectR8ObsForKU(k,u){
+  Decimal.set({ precision:30, rounding: Decimal.ROUND_HALF_UP });
+  const fac = new Decimal(k).dividedBy(100);
+
+  const seen = new Map(); // "hp,atk,def,agi" -> Set of r
+
+  for(let ar=-2; ar<=2; ar++){
+    for(let dr=-2; dr<=2; dr++){
+      for(let gr=-2; gr<=2; gr++){
+        for(let hr=-2; hr<=2; hr++){
+          for(let ab=0; ab<=10; ab++){
+            for(let db=0; db<=10; db++){
+              for(let gb=0; gb<=10; gb++){
+                const hb = 10 - ab - db - gb;
+                if(hb < 0 || hb > 10) continue;
+
+                const baseA = new Decimal(u.atk + ar + ab);
+                const baseD = new Decimal(u.def + dr + db);
+                const baseG = new Decimal(u.agi + gr + gb);
+                const baseH = new Decimal(u.hp  + hr + hb);
+
+                const iA = baseA.times(fac);
+                const iD = baseD.times(fac);
+                const iG = baseG.times(fac);
+                const iH = baseH.times(fac);
+
+                const atk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
+                const def = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
+                const agi = iG.floor().toNumber();
+                const hp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
+
+                const key = `${hp},${atk},${def},${agi}`;
+                let s = seen.get(key);
+                if(!s){ s = new Set(); seen.set(key, s); }
+                s.add(ar + dr + gr + hr); // r = 베이스합
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // {8}만 있는 키만 채택
+  const out = [];
+  for(const [key, set] of seen.entries()){
+    if(set.size===1 && set.has(8)){
+      out.push(key.split(',').map(n=>+n));
+    }
+  }
+  // 보기 좋게 정렬
+  out.sort((a,b)=> a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+  return out;
 }
 
 /* ====== UI 렌더 ====== */
@@ -290,10 +389,10 @@ function renderList(){
     t1.textContent = row?.s0 && row?.sg ? "S0/SG" : "미완";
     right.appendChild(t1);
 
-    if(row?.ku_override){
+    if(row?.ku_override || (Number.isFinite(row?.k) && row?.u)){
       const t2 = document.createElement('span');
       t2.className = "tag warn";
-      t2.textContent = "k/u수동";
+      t2.textContent = "k/u";
       right.appendChild(t2);
     }
     it.appendChild(left); it.appendChild(right);
@@ -327,6 +426,7 @@ function loadForm(name){
   $("ku_agi").value = r?.u?.agi ?? "";
 
   updateConsistency();
+  renderR8List(); // 좌측 체크박스도 최신 상태 반영
 }
 
 function gatherForm(){
@@ -344,7 +444,6 @@ function gatherForm(){
     def: num($("sg_def").value),
     agi: num($("sg_agi").value),
   };
-  // 최소값 체크
   if([s0.hp,s0.atk,s0.def,s0.agi].some(v=>v==null) || [sg.hp,sg.atk,sg.def,sg.agi].some(v=>v==null)){
     alert("S0/SG를 모두 채워 주세요.");
     return null;
@@ -367,15 +466,11 @@ function updateConsistency(){
 
   const f = gatherForm(); if(!f) return;
 
-  // 오버라이드가 켜져 있으면 S0 정수부 검증 + SG 재합성(참고)
   if(f.ovr && f.k!=null && f.u){
-    // S0 정수부 체크
     const sPred = s0_from_k_u_jjyal(f.k, f.u);
     const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
-    const l1 = Math.abs(sPred[0]-sInt[0]) + Math.abs(sPred[1]-sInt[1]) + Math.abs(sPred[2]-sInt[2]) + Math.abs(sPred[3]-sInt[3]);
-    const okS0 = (l1===0);
+    const okS0 = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
 
-    // SG 일관성(참고): AGI로 e 추정 후 HP/ATK/DEF 비교
     try{
       Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
       const e = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(f.u.agi).plus(2.5));
@@ -419,12 +514,11 @@ function updateConsistency(){
   }
 }
 
-/* ====== 이벤트 ====== */
+/* ====== 이벤트(에디터) ====== */
 $("btnReload").addEventListener("click", async ()=>{
   await loadRemote();
   alert("원격 데이터를 불러왔습니다.");
 });
-
 $("btnNew").addEventListener("click", ()=>{
   const name = prompt("새 페트 이름?");
   if(!name) return;
@@ -432,7 +526,6 @@ $("btnNew").addEventListener("click", ()=>{
   DB[name] = { s0:{hp:null,atk:null,def:null,agi:null}, sg:{hp:null,atk:null,def:null,agi:null} };
   sortNames(); renderList(); loadForm(name);
 });
-
 searchEl.addEventListener("input", renderList);
 
 $("btnSolve").addEventListener("click", ()=>{
@@ -447,7 +540,6 @@ $("btnSolve").addEventListener("click", ()=>{
   $("ku_atk").value = sol.u.atk;
   $("ku_def").value = sol.u.def;
   $("ku_agi").value = sol.u.agi;
-  // 자동으로 오버라이드를 켜지는 않음(사용자 의사)
   updateConsistency();
   alert(`추정 완료: k=${sol.k}, u=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
 });
@@ -463,8 +555,6 @@ $("btnClearKU").addEventListener("click", ()=>{
 
 $("btnSave").addEventListener("click", ()=>{
   const f = gatherForm(); if(!f) return;
-
-  // 이름 변경(키 이동) 처리
   if(CURRENT && CURRENT !== f.name){
     if(DB[f.name]){ alert("해당 이름은 이미 존재합니다."); return; }
     DB[f.name] = DB[CURRENT];
@@ -473,12 +563,8 @@ $("btnSave").addEventListener("click", ()=>{
   }
   const row = DB[f.name] || {};
   row.s0 = f.s0; row.sg = f.sg; row.note = f.note || undefined;
-
-  if(f.ovr){
-    row.k = f.k; row.u = f.u; row.ku_override = true;
-  }else{
-    delete row.k; delete row.u; delete row.ku_override;
-  }
+  if(f.ovr){ row.k=f.k; row.u=f.u; row.ku_override=true; }
+  else { delete row.k; delete row.u; delete row.ku_override; }
   DB[f.name] = row;
   sortNames(); renderList(); loadForm(f.name);
   saveLS();
@@ -487,7 +573,7 @@ $("btnSave").addEventListener("click", ()=>{
 
 $("btnSaveCommit").addEventListener("click", async ()=>{
   $("btnSave").click();
-  await commitToGitHub();
+  await commitPets();
 });
 
 $("btnExport").addEventListener("click", ()=>{
@@ -499,23 +585,18 @@ $("btnExport").addEventListener("click", ()=>{
   URL.revokeObjectURL(a.href);
 });
 
-$("btnCommit").addEventListener("click", commitToGitHub);
+$("btnCommit").addEventListener("click", commitPets);
 
-/* ====== GitHub 커밋 ====== */
-async function commitToGitHub(){
+async function commitPets(){
   const token = prompt("GitHub Personal Access Token 입력(권한: repo, contents)");
   if(!token){ alert("토큰이 필요합니다."); return; }
 
-  // 1) 현재 원격 SHA
   const metaUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(PETS_PATH)}?ref=${GH_BRANCH}`;
   const metaRes = await fetch(metaUrl, {headers:{Accept:"application/vnd.github+json"}});
   if(!metaRes.ok){ alert("원격 SHA 조회 실패: " + metaRes.status); return; }
   const meta = await metaRes.json();
   const sha = meta.sha;
 
-  // 2) put
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(DB, null, 2))));
-  const commitMsg = prompt("커밋 메시지 입력", "chore(admin): update pets.json (manual ku override)");
   const putRes = await fetch(metaUrl, {
     method:"PUT",
     headers:{
@@ -524,8 +605,8 @@ async function commitToGitHub(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
-      message: commitMsg || "update pets.json",
-      content,
+      message: prompt("커밋 메시지 입력", "chore(admin): update pets.json (manual ku override)") || "update pets.json",
+      content: encJSON(DB),
       branch: GH_BRANCH,
       sha
     })
@@ -535,33 +616,169 @@ async function commitToGitHub(){
     alert("커밋 실패: " + putRes.status + "\n" + t);
     return;
   }
-  alert("커밋 성공!");
+  alert("pets.json 커밋 성공!");
 }
+
+/* ====== R8 UI ====== */
+function renderR8List(){
+  const box = $("r8List");
+  box.innerHTML = "";
+  // 이름별 체크박스
+  ORDER.forEach(n=>{
+    const r = DB[n]||{};
+    const hasKU = Number.isFinite(r?.k) && r?.u && [r.u.hp,r.u.atk,r.u.def,r.u.agi].every(Number.isFinite);
+    const it = document.createElement('label');
+    it.className = "r8item" + (hasKU ? "" : " disabled");
+    const cb = document.createElement('input');
+    cb.type = "checkbox";
+    cb.value = n;
+    cb.disabled = !hasKU;
+    it.appendChild(cb);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = n;
+    it.appendChild(nameSpan);
+    if(r?.ku_override){
+      const tag = document.createElement('span');
+      tag.className="tag warn"; tag.textContent="override";
+      it.appendChild(tag);
+    }
+    if(!hasKU){
+      const tag = document.createElement('span');
+      tag.className="tag"; tag.textContent="k/u 없음";
+      it.appendChild(tag);
+    }
+    box.appendChild(it);
+  });
+}
+
+$("btnR8SelectAll").addEventListener("click", ()=>{
+  document.querySelectorAll("#r8List input[type=checkbox]:not(:disabled)").forEach(cb=>cb.checked=true);
+});
+$("btnR8ClearAll").addEventListener("click", ()=>{
+  document.querySelectorAll("#r8List input[type=checkbox]").forEach(cb=>cb.checked=false);
+});
+
+$("btnR8Run").addEventListener("click", async ()=>{
+  const picks = Array.from(document.querySelectorAll("#r8List input[type=checkbox]:checked")).map(cb=>cb.value);
+  if(picks.length===0){ alert("대상을 선택하세요."); return; }
+
+  R8_RESULT = {};
+  const skipped = [];
+  const started = performance.now();
+
+  for(const name of picks){
+    const row = DB[name];
+    if(!(Number.isFinite(row?.k) && row?.u)){ skipped.push({name,reason:"k/u 없음"}); continue; }
+    const sets = collectR8ObsForKU(row.k, row.u);
+    if(sets.length===0){
+      // 결과가 없어도 빈 배열로 기록(명시적)
+      R8_RESULT[name] = [];
+    }else{
+      R8_RESULT[name] = sets;
+    }
+  }
+  const ms = Math.round(performance.now()-started);
+  const totalSets = Object.values(R8_RESULT).reduce((a,arr)=>a+(arr?.length||0),0);
+
+  const pre = $("r8Preview");
+  pre.style.display="block";
+  pre.className = "callout";
+  pre.innerHTML = `
+    <div><b>집계 완료</b> — 대상 ${picks.length}종, 결과 총 <b>${totalSets}</b> 세트, 시간 ${ms}ms</div>
+    ${skipped.length? `<div style="margin-top:6px" class="muted">스킵: ${skipped.map(s=>`${s.name}(${s.reason})`).join(', ')}</div>` : ''}
+    <details style="margin-top:8px"><summary>상세 미리보기</summary>
+      ${Object.keys(R8_RESULT).length===0 ? '<div class="muted">없음</div>' : `
+        <table class="table" style="margin-top:8px">
+          <thead><tr><th>이름</th><th>세트 수</th><th>예시</th></tr></thead>
+          <tbody>
+            ${Object.entries(R8_RESULT).map(([n,arr])=>{
+              const ex = (arr[0] ? `(${arr[0].join(', ')})` : '-');
+              return `<tr><td>${n}</td><td>${arr.length}</td><td>${ex}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `}
+    </details>
+  `;
+  $("btnR8Commit").disabled = Object.keys(R8_RESULT).length===0;
+});
+
+$("btnR8Commit").addEventListener("click", async ()=>{
+  if(Object.keys(R8_RESULT).length===0){ alert("먼저 집계를 실행하세요."); return; }
+  const token = prompt("GitHub Personal Access Token 입력(권한: repo, contents)");
+  if(!token){ alert("토큰이 필요합니다."); return; }
+
+  // 1) 원격 full.json 로드(없으면 새로 생성)
+  const metaUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(R8_PATH)}?ref=${GH_BRANCH}`;
+  let remoteMap = {};
+  let sha = null;
+
+  const head = await fetch(metaUrl, {headers:{Accept:"application/vnd.github+json"}});
+  if(head.status===200){
+    const meta = await head.json();
+    sha = meta.sha;
+    // 파일 본문 재요청(혹은 meta.content base64 사용도 가능)
+    const text = await fetch(REMOTE_R8).then(r=>r.text());
+    try{ remoteMap = JSON.parse(text); }catch{ remoteMap = {}; }
+  }else if(head.status===404){
+    remoteMap = {};
+    sha = null;
+  }else{
+    alert("full.json 메타 조회 실패: HTTP "+head.status);
+    return;
+  }
+
+  // 2) 병합(덮어쓰기 아님) — 기존 + 신규(중복 제거)
+  const out = {...remoteMap};
+  for(const [name, sets] of Object.entries(R8_RESULT)){
+    const prev = (remoteMap[name]?.obs_100_rank8) || remoteMap[name] || []; // 양식 관용적 처리
+    const prevStr = new Set(prev.map(a=>a.join(',')));
+    const merged = [...prev];
+    sets.forEach(a=>{
+      const k = a.join(',');
+      if(!prevStr.has(k)) merged.push(a);
+    });
+    out[name] = { obs_100_rank8: merged, count: merged.length };
+  }
+
+  // 3) 커밋
+  const res = await fetch(metaUrl, {
+    method:"PUT",
+    headers:{
+      "Authorization":`Bearer ${token}`,
+      "Accept":"application/vnd.github+json",
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      message: prompt("커밋 메시지 입력", "feat(admin): update guaranteed_rank8.full.json (auto from admin)") || "update guaranteed_rank8.full.json",
+      content: encJSON(out),
+      branch: GH_BRANCH,
+      ...(sha? {sha}: {})
+    })
+  });
+  if(!res.ok){
+    const t = await res.text().catch(()=>"(no body)");
+    alert("커밋 실패: " + res.status + "\n" + t);
+    return;
+  }
+  alert("guaranteed_rank8.full.json 커밋 성공!");
+});
 
 /* ====== 데이터 로드 ====== */
 async function loadRemote(){
-  const [obj, sha] = await Promise.all([
-    fetchJSON(REMOTE_PETS),
-    // SHA는 commit API에서 다시 가져오므로 여기선 생략 가능. 필요 시 HEAD로도 가능.
-    (async ()=>"")()
-  ]);
-  DB = obj || {};
+  const obj = await fetchJSON(REMOTE_PETS);
+  DB = (obj && !obj.__404__) ? obj : {};
   sortNames(); renderList();
-  // 첫 항목 로드
   if(ORDER.length) loadForm(ORDER[0]);
   saveLS();
+  // R8 세션 준비
+  renderR8List();
 }
 
 (async function init(){
   const local = loadLS();
   if(local && typeof local==="object"){ DB = local; sortNames(); renderList(); if(ORDER.length) loadForm(ORDER[0]); }
-  // 원격 동기화
-  try{
-    await loadRemote();
-  }catch(e){
-    console.warn("원격 로드 실패, 로컬 캐시로 동작합니다.", e);
-    if(!local) { DB={}; renderList(); }
-  }
+  try{ await loadRemote(); }catch(e){ console.warn("원격 로드 실패, 로컬 캐시로 동작", e); if(!local){ DB={}; renderList(); renderR8List(); } }
 })();
 </script>
 </body>
