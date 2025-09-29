@@ -1,153 +1,270 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NOVA Admin 1.2</title>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NOVA PET Admin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
   :root{
-    --bg:#0f1115; --panel:#161a22; --muted:#9aa0aa; --accent:#6aa0ff;
-    --text:#e8ecf3; --border:#2a3040; --chip:#232a36; --ok:#35c759; --warn:#ffb300; --bad:#ff5171;
+    --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
+    --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
+    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-       background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text)}
-  header{
-    position:sticky; top:0; z-index:10;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); background:rgba(0,0,0,.25);
-  }
-  .brand{font-weight:800}
-  .muted{color:var(--muted)}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .btn{padding:10px 14px; border-radius:10px; border:1px solid #334055; background:#142033; color:#cfe1ff; cursor:pointer}
-  .btn:hover{filter:brightness(1.1)}
-  .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:#fff}
-  .btn.ghost{background:transparent}
-  .btn.sm{padding:6px 10px; border-radius:8px; font-size:12px}
-  .pill{padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:#0e1218; font-size:12px}
-  .container{max-width:1200px; margin:18px auto; padding:0 16px}
-  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px}
-  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
-  .toolbar .left, .toolbar .right{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-  input[type="text"], input[type="number"], input[type="password"]{
-    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
-    background:#0e1218; color:var(--text); outline:none; height:38px;
-  }
-  input::placeholder{color:#7b8494}
-  .hint{font-size:12px; color:var(--muted)}
-  /* ======= 표 스타일 (가독성 업) ======= */
-  .tableWrap{overflow:auto; border:1px solid var(--border); border-radius:12px}
-  table{width:100%; border-collapse:separate; border-spacing:0 8px;} /* 행 간격 확보 */
-  thead th{
-    position:sticky; top:0; z-index:1;
-    background:#121722; color:#cfe1ff; font-weight:700;
-    padding:12px 10px; text-align:center; border-bottom:1px solid var(--border);
-  }
-  tbody td{
-    background:#111620; padding:10px 8px; text-align:center; vertical-align:middle;
-    border-top:1px solid #1b2230; border-bottom:1px solid #1b2230;
-  }
-  tbody tr{ box-shadow:0 6px 18px rgba(0,0,0,.18); }
-  tbody tr td:first-child{ border-left:1px solid #1b2230; border-top-left-radius:10px; border-bottom-left-radius:10px}
-  tbody tr td:last-child { border-right:1px solid #1b2230; border-top-right-radius:10px; border-bottom-right-radius:10px}
-  .cell{min-width:86px}
-  .cell.name{min-width:160px; text-align:left; font-weight:700}
-  .cell.compact{min-width:70px}
-  .cell button{white-space:nowrap}
-  .cell input{height:36px; padding:8px 10px; font-size:13px}
-  .seg{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; min-width:380px}
-  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
-  .stickyFooter{position:sticky; bottom:0; padding:8px 0 0 0}
-  .danger{color:#ff9aa7}
+  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#0f1115; color:#e8ecf3;}
+  header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #232a36;background:#0c1016}
+  a{color:#9ec3ff}
+  .grid{max-width:1200px;margin:18px auto;padding:0 16px;display:grid;gap:16px;grid-template-columns: 1fr 1fr;}
+  @media (max-width: 1080px){ .grid{grid-template-columns:1fr} }
+  .card{background:#161a22;border:1px solid #232a36;border-radius:14px;padding:16px}
+  .card h3{margin:6px 0 10px 0}
+  label{display:block;font-size:12px;color:#8a9099;margin:6px 0 4px 2px}
+  input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a3040;background:#0e1218;color:#e8ecf3;outline:none}
+  textarea{min-height:72px;resize:vertical}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .col{flex:1 1 0}
+  .btn{padding:10px 14px;border-radius:10px;border:1px solid #334055;cursor:pointer;background:#142033;color:#cfe1ff;font-weight:600}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc);border-color:transparent;color:#fff}
+  .muted{color:#8a9099}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid #262d3a;padding:8px 6px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  code{background:#0d1117;border:1px solid #2a3040;padding:2px 6px;border-radius:6px}
+  .badge{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid #2a3040;background:#10141c;font-size:11px}
+  .ok{color:#35c759} .bad{color:#ff5171}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">NOVA Admin 1.2</div>
-  <div class="row">
-    <span class="pill muted">eCandidates: 575/555/535/515/495/475/455/435</span>
-    <a class="btn ghost" href="./index.html">← 사용자 계산기</a>
-  </div>
+  <strong>Admin · NOVA PET 데이터 관리</strong>
+  <div class="muted">data/pets.json · GitHub API로 커밋</div>
 </header>
 
-<div class="container">
+<div class="grid">
+  <!-- 좌측: 현재 테이블 / 커밋 -->
   <section class="card">
-    <div class="toolbar">
-      <div class="left">
-        <button id="btnLoadRemote" class="btn">원격 불러오기 (GitHub pets.json)</button>
-        <label class="btn">
-          로컬 불러오기
-          <input id="fileInput" type="file" accept=".json,.tsv,.csv" style="display:none">
-        </label>
-        <button id="btnDownload" class="btn">JSON 다운로드</button>
-        <button id="btnCopy" class="btn">클립보드 복사</button>
-        <button id="btnAddPet" class="btn">+ 새 펫</button>
-      </div>
-      <div class="right">
-        <label class="pill"><input id="chkOverwrite" type="checkbox" style="vertical-align:middle"> &nbsp;기존 k/u 덮어쓰기</label>
-        <button id="btnInferAll" class="btn primary">Nova2 추정 실행 (전체)</button>
+    <h3>① 원격 테이블 불러오기 & 커밋</h3>
+    <div class="row">
+      <div class="col">
+        <label>GitHub Owner / Repo / Branch</label>
+        <div class="row">
+          <div class="col"><input id="ghOwner" value="kokudas"/></div>
+          <div class="col"><input id="ghRepo"  value="kokudas.github.io"/></div>
+          <div class="col"><input id="ghBranch" value="main"/></div>
+        </div>
       </div>
     </div>
-    <div class="row" style="margin-top:8px; gap:8px">
-      <input id="ghToken" type="password" placeholder="GitHub Personal Access Token (repo:contents 권한)" style="min-width:320px">
-      <input id="ghMsg" type="text" placeholder="커밋 메시지 (예: data/pets.json 업데이트)" style="min-width:280px">
-      <button id="btnUpload" class="btn">GitHub 업로드(교체)</button>
-      <span class="hint">· 토큰은 저장되지 않으며, 업로드 요청에만 사용됩니다.</span>
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <label>파일 경로</label>
+        <input id="ghPath" value="data/pets.json"/>
+      </div>
+      <div class="col" style="display:flex;align-items:flex-end">
+        <button class="btn" id="btnLoad">원격 불러오기</button>
+      </div>
     </div>
-    <p class="hint" style="margin:8px 2px 0">· S0/SG 입력 후, 각 행의 [추정] 버튼 또는 상단 [전체] 버튼을 눌러 k/u/e를 채웁니다.  
-    · 로직은 짜얄 계산기와 완전히 동일합니다(Decimal.js, 확장 e, 합산 후 floor, Sg 미세조정 래퍼 지원).</p>
-  </section>
 
-  <section class="card" style="margin-top:14px">
-    <div class="tableWrap">
-      <table id="tbl">
-        <thead>
+    <div style="margin-top:10px">
+      <div class="muted">현재 로컬 편집본 → <span class="badge" id="countBadge">— 항목</span></div>
+      <div style="overflow:auto; max-height:380px; border:1px solid #232a36; border-radius:8px; margin-top:8px">
+        <table id="tbl"><thead>
           <tr>
             <th>이름</th>
             <th>S0 (hp/atk/def/agi)</th>
-            <th>SG (hp/atk/def/agi)</th>
+            <th>Sg (hp/atk/def/agi)</th>
             <th>k</th>
             <th>u (hp/atk/def/agi)</th>
-            <th>e</th>
-            <th>오차</th>
-            <th>추정</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+          </tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="stickyFooter">
-      <span class="hint" id="status">—</span>
+
+    <details style="margin-top:12px">
+      <summary>커밋 설정</summary>
+      <div class="row" style="margin-top:8px">
+        <div class="col"><label>Personal Access Token (repo 권한)</label><input id="ghToken" type="password" placeholder="ghp_..."/></div>
+      </div>
+      <div class="row">
+        <div class="col"><label>커밋 메시지</label><input id="ghMessage" value="Update pets.json via admin"/></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn primary" id="btnCommit">커밋(Replace data/pets.json)</button>
+        <span class="muted">토큰은 브라우저 메모리에만 잠시 보관(sessionStorage).</span>
+      </div>
+      <div id="commitLog" class="muted" style="margin-top:8px"></div>
+    </details>
+  </section>
+
+  <!-- 우측: 신규 추가 / k,u 추정 -->
+  <section class="card">
+    <h3>② 신규/수정 입력 + k,u 추정</h3>
+    <div class="row">
+      <div class="col"><label>이름</label><input id="f_name" placeholder="예: 골로스"/></div>
+    </div>
+
+    <div class="row">
+      <div class="col"><label>S0.hp</label><input id="s0_hp" type="number" step="0.01"></div>
+      <div class="col"><label>S0.atk</label><input id="s0_atk" type="number" step="0.01"></div>
+      <div class="col"><label>S0.def</label><input id="s0_def" type="number" step="0.01"></div>
+      <div class="col"><label>S0.agi</label><input id="s0_agi" type="number" step="0.01"></div>
+    </div>
+
+    <div class="row">
+      <div class="col"><label>Sg.hp</label><input id="sg_hp" type="number" step="0.01"></div>
+      <div class="col"><label>Sg.atk</label><input id="sg_atk" type="number" step="0.01"></div>
+      <div class="col"><label>Sg.def</label><input id="sg_def" type="number" step="0.01"></div>
+      <div class="col"><label>Sg.agi</label><input id="sg_agi" type="number" step="0.01"></div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="btnInfer">k,u 추정(짜얄식)</button>
+      <div class="col" style="display:flex;align-items:center;gap:8px">
+        <span class="muted">결과:</span>
+        <span id="inferOut" class="badge">—</span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="btnAdd">테이블에 추가/갱신</button>
+      <span class="muted">※ k,u가 유효하게 계산되지 않으면 추가를 막습니다.</span>
     </div>
   </section>
 </div>
 
 <script>
-/* ========= 원격 경로 ========= */
-const GH_OWNER  = "kokudas";
-const GH_REPO   = "kokudas.github.io";
-const GH_BRANCH = "main";
-const PETS_PATH = "data/pets.json";
-const REMOTE_PETS_RAW = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
-const API_CONTENTS_URL = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${PETS_PATH}`;
+/* ========= 공통 상수 ========= */
+let GH_OWNER  = "kokudas";
+let GH_REPO   = "kokudas.github.io";
+let GH_BRANCH = "main";
+let GH_PATH   = "data/pets.json";
 
-/* ========= 전역 ========= */
-let TABLE = {}; // { name: { s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{hp,atk,def,agi}, e, sg_err, s0_ok } }
-let NAMES = [];
-
-/* ========= 도구 ========= */
-const $ = sel => document.querySelector(sel);
-function fmt(n, d=2){ const v=Number(n); return Number.isFinite(v)? v.toFixed(d) : ""; }
-function num(v){ const x=parseFloat(v); return Number.isFinite(x)? x : NaN; }
-function setStatus(msg){ $("#status").textContent = msg; }
-
-/* ========= 짜얄 호환 추정 로직 + 미세조정 ========= */
+/* ========= 상태 ========= */
+let PETS = {}; // 편집본
+let LAST_SHA = null; // 커밋 시 필요
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
 
+/* ========= 유틸 ========= */
+const $ = sel => document.querySelector(sel);
+function qv(id){ const el=$("#"+id); const v=parseFloat(el.value); return Number.isFinite(v)? v : NaN; }
+function setCount(){ $("#countBadge").textContent = Object.keys(PETS).length + " 항목"; }
+function esc(s){ return (s??"").toString(); }
+function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
+function logCommit(msg){ $("#commitLog").innerHTML += `<div>${esc(msg)}</div>`; }
+
+/* ========= 표 렌더 ========= */
+function renderTable(){
+  const tb=$("#tb"); tb.innerHTML="";
+  const names=Object.keys(PETS).sort((a,b)=>a.localeCompare(b,'ko'));
+  names.forEach(n=>{
+    const row=PETS[n];
+    const s0=row?.s0||{}, sg=row?.sg||{}, u=row?.u||{};
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td style="text-align:left">${esc(n)}</td>
+      <td>${[s0.hp,s0.atk,s0.def,s0.agi].map(v=>v??"").join(" / ")}</td>
+      <td>${[sg.hp,sg.atk,sg.def,sg.agi].map(v=>v??"").join(" / ")}</td>
+      <td>${row.k??""}</td>
+      <td>${[u.hp,u.atk,u.def,u.agi].map(v=>v??"").join(" / ")}</td>
+    `;
+    tr.addEventListener("click", ()=>{
+      // 행 클릭 → 우측 입력 채우기
+      $("#f_name").value = n;
+      $("#s0_hp").value = s0.hp??""; $("#s0_atk").value=s0.atk??""; $("#s0_def").value=s0.def??""; $("#s0_agi").value=s0.agi??"";
+      $("#sg_hp").value = sg.hp??""; $("#sg_atk").value=sx(sg.atk); $("#sg_def").value=sx(sg.def); $("#sg_agi").value=sx(sg.agi);
+      $("#inferOut").textContent="—";
+      function sx(x){return (x??"");}
+    });
+    tb.appendChild(tr);
+  });
+  setCount();
+}
+
+/* ========= GitHub 불러오기 ========= */
+async function loadRemote(){
+  GH_OWNER = $("#ghOwner").value.trim()||GH_OWNER;
+  GH_REPO  = $("#ghRepo").value.trim()||GH_REPO;
+  GH_BRANCH= $("#ghBranch").value.trim()||GH_BRANCH;
+  GH_PATH  = $("#ghPath").value.trim()||GH_PATH;
+
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
+  const res = await fetch(url);
+  if(!res.ok){ alert("원격 로드 실패: " + res.status); return; }
+  const data = await res.json();
+  LAST_SHA = data.sha || null;
+  const text = atob(data.content.replace(/\n/g,""));
+  try{
+    PETS = JSON.parse(text);
+  }catch(e){
+    alert("JSON 파싱 실패");
+    return;
+  }
+  renderTable();
+}
+
+/* ========= GitHub 커밋 ========= */
+async function commitRemote(){
+  if(!LAST_SHA){ // 혹시 모르니 다시 조회
+    await loadRemote();
+    if(!LAST_SHA){ alert("원격 파일 정보를 가져올 수 없습니다."); return; }
+  }
+  const token = $("#ghToken").value.trim();
+  if(!token){ alert("GitHub 토큰을 입력하세요."); return; }
+
+  const msg = $("#ghMessage").value.trim() || "Update pets.json via admin";
+  const body = {
+    message: msg,
+    content: b64(JSON.stringify(PETS, null, 2)),
+    branch: GH_BRANCH,
+    sha: LAST_SHA
+  };
+  logCommit("커밋 중...");
+  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`,{
+    method:"PUT",
+    headers:{
+      "Authorization": "token " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const txt = await res.text();
+    logCommit(`<span class="bad">실패</span> ${res.status} ${esc(txt)}`);
+    alert("커밋 실패: " + res.status);
+    return;
+  }
+  const js = await res.json();
+  LAST_SHA = js.content?.sha || LAST_SHA;
+  logCommit(`<span class="ok">성공</span> ${js.commit?.sha||"(no sha)"}`);
+  alert("커밋 완료!");
+}
+
+/* ========= 짜얄 호환 k/u 추정 (미세 조정 없음) ========= */
+function s0_from_k_u_jjyal(k,u){
+  const fac = k/100;
+  const vhp  = (u.hp + 2.5) * fac;
+  const vatk = (u.atk+ 2.5) * fac;
+  const vdef = (u.def+ 2.5) * fac;
+  const vagi = (u.agi+ 2.5) * fac;
+  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
+  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+  const s_agi= Math.floor(vagi);
+  return [s_hp,s_atk,s_def,s_agi];
+}
+function fitKFromS0_JJYAL(S0int,u){
+  let best=null;
+  for(let k=10;k<=100;k++){
+    const s = s0_from_k_u_jjyal(k,u);
+    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
+    const ok = (l1===0);
+    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
+    if(ok) break;
+  }
+  return best;
+}
 function solveUFromSG_JJYAL(SG, e){
   try{
     if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
@@ -169,7 +286,7 @@ function solveUFromSG_JJYAL(SG, e){
       [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
     ];
     for(let i=0;i<3;i++){
-      let mr=i, mv=A[i][i].abs();
+      let mr=i; let mv=A[i][i].abs();
       for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
       if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
       const piv=A[i][i];
@@ -201,30 +318,6 @@ function solveUFromSG_JJYAL(SG, e){
     return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e, sg_err:+err };
   }catch(e){ return null; }
 }
-
-function s0_from_k_u_jjyal(k,u){
-  const fac = k/100;
-  const vhp  = (u.hp + 2.5) * fac;
-  const vatk = (u.atk+ 2.5) * fac;
-  const vdef = (u.def+ 2.5) * fac;
-  const vagi = (u.agi+ 2.5) * fac;
-  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
-  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-  const s_agi= Math.floor(vagi);
-  return [s_hp,s_atk,s_def,s_agi];
-}
-function fitKFromS0_JJYAL(S0int,u){
-  let best=null;
-  for(let k=10;k<=100;k++){
-    const s = s0_from_k_u_jjyal(k,u);
-    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
-    const ok = (l1===0);
-    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
-    if(ok) break;
-  }
-  return best;
-}
 function inferKU_JJYAL(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
   let best=null;
@@ -240,356 +333,62 @@ function inferKU_JJYAL(S0, SG){
   return best;
 }
 
-/* === SG 미세조정 래퍼 === */
-const SG_JITTER_ON   = true;
-const SG_JITTER_STEP = 0.001;
-const SG_JITTER_MAX  = 0.005;
-const SG_ERR_ACCEPT  = 0.10;
-
-function* jitterSeries(step, max){
-  yield 0;
-  for(let r=step; r<=max+1e-12; r+=step){
-    const v = +r.toFixed(3);
-    yield  v;
-    yield -v;
-  }
-}
-function inferKU_JJYAL_MICRO(S0, SG){
-  let best = inferKU_JJYAL(S0, SG);
-  if(best && best.s0_ok && best.sg_err <= SG_ERR_ACCEPT){ best._deltaDim=null; best._deltaVal=0; return best; }
-  if(!SG_JITTER_ON) return best;
-
-  const order = ['agi','hp','atk','def'];
-  let winner = best ? {...best, _deltaDim:null, _deltaVal:0} : null;
-
-  for(const dim of order){
-    for(const dz of jitterSeries(SG_JITTER_STEP, SG_JITTER_MAX)){
-      if(dz===0 && best) continue;
-      const SG2 = {...SG, [dim]: +(new Decimal(SG[dim]).plus(dz).toFixed(3))};
-      const cand = inferKU_JJYAL(S0, SG2);
-      if(!cand) continue;
-      cand._deltaDim = dim; cand._deltaVal = dz;
-
-      const take =
-        (!winner) ||
-        (cand.s0_ok && !winner.s0_ok) ||
-        ((!!cand.s0_ok === !!winner.s0_ok) &&
-         (cand.sg_err <= SG_ERR_ACCEPT) && !(winner.sg_err <= SG_ERR_ACCEPT)) ||
-        ((!!cand.s0_ok === !!winner.s0_ok) &&
-         (Math.abs(cand._deltaVal) < Math.abs(winner._deltaVal))) ||
-        ((!!cand.s0_ok === !!winner.s0_ok) &&
-         (Math.abs(cand._deltaVal) === Math.abs(winner._deltaVal)) &&
-         ((cand.sg_err||999) < (winner.sg_err||999) - 1e-9));
-
-      if(take) winner = cand;
-      if(cand.s0_ok && cand.sg_err < 1e-9) return cand;
-    }
-    if(winner && winner.s0_ok) break;
-  }
-  return winner || best || null;
-}
-
-/* ========= 데이터 입출력 ========= */
-async function loadRemote(){
-  setStatus("원격 불러오는 중…");
-  try{
-    const r = await fetch(REMOTE_PETS_RAW + `?v=${Date.now()}`, {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const json = await r.json();
-    if(typeof json!=="object" || Array.isArray(json)) throw new Error("형식 오류");
-    TABLE = json;
-    NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
-    render();
-    setStatus(`원격 로드 완료 · ${NAMES.length.toLocaleString()}마리`);
-  }catch(err){
-    setStatus("원격 로드 실패: " + (err?.message||""));
-  }
-}
-
-function handleLocalFile(file){
-  const fr = new FileReader();
-  fr.onload = () => {
-    try{
-      let txt = String(fr.result||"");
-      if(txt.trim().startsWith("{")){
-        TABLE = JSON.parse(txt);
-      }else{
-        TABLE = tsvToTable(txt);
-      }
-      NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
-      render();
-      setStatus(`로컬 로드 완료 · ${NAMES.length.toLocaleString()}마리`);
-    }catch(e){ alert("파일 파싱 실패: "+e.message); }
-  };
-  fr.readAsText(file, "utf-8");
-}
-function tsvToTable(tsv){
-  const lines = tsv.trim().split(/\r?\n/);
-  const head = lines.shift().split(/\t|,/).map(s=>s.trim());
-  const idx = (h)=> head.indexOf(h);
-  const m = {};
-  for(const line of lines){
-    if(!line.trim()) continue;
-    const c = line.split(/\t|,/).map(s=>s.trim());
-    const name = c[0];
-    const get = h => num(c[idx(h)]);
-    if(!name) continue;
-    m[name] = {
-      s0:{hp:get("s0_hp"), atk:get("s0_atk"), def:get("s0_def"), agi:get("s0_agi")},
-      sg:{hp:get("sg_hp"), atk:get("sg_atk"), def:get("sg_def"), agi:get("sg_agi")},
-    };
-  }
-  return m;
-}
-function downloadJSON(){
-  const blob = new Blob([JSON.stringify(TABLE, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "pets.json";
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-async function copyJSON(){
-  try{
-    await navigator.clipboard.writeText(JSON.stringify(TABLE, null, 2));
-    setStatus("JSON을 클립보드에 복사했습니다.");
-  }catch{ alert("클립보드 복사 실패: 권한을 허용해 주세요."); }
-}
-
-/* ========= GitHub 업로드 ========= */
-function base64utf8(str){
-  const bytes = new TextEncoder().encode(str);
-  let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
-  return btoa(bin);
-}
-async function fetchCurrentSha(token){
-  const r = await fetch(API_CONTENTS_URL+`?ref=${GH_BRANCH}`, {
-    headers:{
-      "Accept":"application/vnd.github+json",
-      "Authorization": `Bearer ${token}`
-    }
-  });
-  if(!r.ok) throw new Error(`SHA 조회 실패: ${r.status}`);
-  const j = await r.json();
-  return j.sha;
-}
-async function uploadGitHub(){
-  try{
-    const token = $("#ghToken").value.trim();
-    const msg   = $("#ghMsg").value.trim() || `Update ${PETS_PATH} (admin)`;
-    if(!token){ alert("GitHub 토큰을 입력하세요."); return; }
-
-    setStatus("GitHub 업로드 준비 중(SHA 조회)…");
-    let sha=null; try{ sha = await fetchCurrentSha(token); }catch(e){ console.warn(e); }
-
-    const content = JSON.stringify(TABLE, null, 2);
-    const body = {
-      message: msg,
-      content: base64utf8(content),
-      branch: GH_BRANCH,
-      ...(sha? {sha}: {})
-    };
-
-    setStatus("GitHub 업로드 중…");
-    const r = await fetch(API_CONTENTS_URL, {
-      method:"PUT",
-      headers:{
-        "Accept":"application/vnd.github+json",
-        "Authorization": `Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify(body)
-    });
-    if(!r.ok){
-      const t = await r.text();
-      throw new Error(`업로드 실패 ${r.status}: ${t}`);
-    }
-    setStatus("업로드 성공! GitHub data/pets.json이 교체되었습니다.");
-  }catch(err){
-    console.error(err);
-    setStatus("업로드 실패: " + (err?.message||""));
-    alert("업로드 실패: " + (err?.message||""));
-  }
-}
-
-/* ========= 렌더 ========= */
-function render(){
-  const tb = $("#tbody");
-  tb.innerHTML = "";
-  NAMES.forEach(name=>{
-    const r = TABLE[name] ||= {};
-    r.s0 ||= {}; r.sg ||= {}; r.u ||= {};
-
-    const tr = document.createElement("tr");
-
-    // 이름
-    const tdName = document.createElement("td"); tdName.className="cell name";
-    tdName.textContent = name;
-    tr.appendChild(tdName);
-
-    // S0
-    const tdS0 = document.createElement("td"); tdS0.className="cell";
-    tdS0.innerHTML = `
-      <div class="seg">
-        <input type="number" step="0.01" placeholder="hp" value="${fmt(r.s0.hp)}" data-name="${name}" data-field="s0.hp">
-        <input type="number" step="0.01" placeholder="atk" value="${fmt(r.s0.atk)}" data-name="${name}" data-field="s0.atk">
-        <input type="number" step="0.01" placeholder="def" value="${fmt(r.s0.def)}" data-name="${name}" data-field="s0.def">
-        <input type="number" step="0.01" placeholder="agi" value="${fmt(r.s0.agi)}" data-name="${name}" data-field="s0.agi">
-      </div>`;
-    tr.appendChild(tdS0);
-
-    // SG
-    const tdSG = document.createElement("td"); tdSG.className="cell";
-    tdSG.innerHTML = `
-      <div class="seg">
-        <input type="number" step="0.01" placeholder="hp" value="${fmt(r.sg.hp)}" data-name="${name}" data-field="sg.hp">
-        <input type="number" step="0.01" placeholder="atk" value="${fmt(r.sg.atk)}" data-name="${name}" data-field="sg.atk">
-        <input type="number" step="0.01" placeholder="def" value="${fmt(r.sg.def)}" data-name="${name}" data-field="sg.def">
-        <input type="number" step="0.01" placeholder="agi" value="${fmt(r.sg.agi)}" data-name="${name}" data-field="sg.agi">
-      </div>`;
-    tr.appendChild(tdSG);
-
-    // k
-    const tdK = document.createElement("td"); tdK.className="cell compact";
-    tdK.innerHTML = `<input type="number" step="1" placeholder="k" value="${Number.isFinite(r.k)? r.k : ""}" data-name="${name}" data-field="k">`;
-    tr.appendChild(tdK);
-
-    // u
-    const tdU = document.createElement("td"); tdU.className="cell";
-    tdU.innerHTML = `
-      <div class="seg">
-        <input type="number" step="1" placeholder="u_hp"  value="${Number.isFinite(r.u.hp)? r.u.hp: ""}" data-name="${name}" data-field="u.hp">
-        <input type="number" step="1" placeholder="u_atk" value="${Number.isFinite(r.u.atk)?r.u.atk: ""}" data-name="${name}" data-field="u.atk">
-        <input type="number" step="1" placeholder="u_def" value="${Number.isFinite(r.u.def)?r.u.def: ""}" data-name="${name}" data-field="u.def">
-        <input type="number" step="1" placeholder="u_agi" value="${Number.isFinite(r.u.agi)?r.u.agi: ""}" data-name="${name}" data-field="u.agi">
-      </div>`;
-    tr.appendChild(tdU);
-
-    // e
-    const tdE = document.createElement("td"); tdE.className="cell compact";
-    tdE.innerHTML = `<input type="number" step="1" placeholder="e" value="${Number.isFinite(r.e)? r.e : ""}" data-name="${name}" data-field="e">`;
-    tr.appendChild(tdE);
-
-    // err
-    const tdErr = document.createElement("td"); tdErr.className="cell compact";
-    const errTxt = (Number.isFinite(r.sg_err)? r.sg_err.toFixed(3) : "—") + (r.s0_ok? " ✓" : "");
-    tdErr.textContent = errTxt;
-    tr.appendChild(tdErr);
-
-    // action
-    const tdAct = document.createElement("td"); tdAct.className="cell compact";
-    const btn = document.createElement("button");
-    btn.className="btn sm"; btn.textContent="추정"; btn.onclick = ()=> inferOne(name);
-    tdAct.appendChild(btn);
-
-    const btnDel = document.createElement("button");
-    btnDel.className="btn sm"; btnDel.style.marginLeft="6px"; btnDel.textContent="삭제";
-    btnDel.onclick = ()=>{ if(confirm(`[${name}] 삭제할까요?`)){ delete TABLE[name]; NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko')); render(); } };
-    tdAct.appendChild(btnDel);
-
-    tr.appendChild(tdAct);
-    tb.appendChild(tr);
-  });
-
-  // input 바인딩
-  tb.querySelectorAll("input").forEach(inp=>{
-    inp.addEventListener("change", onCellChange);
-    inp.addEventListener("blur", onCellChange);
-  });
-}
-
-function onCellChange(e){
-  const el = e.target;
-  const name = el.dataset.name;
-  const field = el.dataset.field;
-  if(!name || !field) return;
-  const val = el.step==="1"? parseInt(el.value,10) : parseFloat(el.value);
-  const parts = field.split(".");
-  if(parts.length===1){
-    TABLE[name][field] = Number.isFinite(val)? val: undefined;
-  }else if(parts.length===2){
-    const [a,b] = parts;
-    TABLE[name][a] ||= {};
-    TABLE[name][a][b] = Number.isFinite(val)? val: undefined;
-  }
-}
-
-/* ========= 새 펫 추가 ========= */
-function addPet(){
-  const name = prompt("새 펫 이름을 입력하세요 (공백/중복 불가).")?.trim();
-  if(!name) return;
-  if(TABLE[name]){ alert("이미 존재하는 이름입니다."); return; }
-  TABLE[name] = { s0:{}, sg:{}, u:{} };
-  NAMES = Object.keys(TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
-  render();
-  setStatus(`[${name}] 추가됨. S0/SG 입력 후 [추정]을 누르세요.`);
-}
-
-/* ========= 추정 실행 ========= */
-function inferOne(name){
-  const r = TABLE[name];
-  if(!r) return;
-  const S0 = [r?.s0?.hp, r?.s0?.atk, r?.s0?.def, r?.s0?.agi].map(Number);
-  const SG = r?.sg;
-
-  if(S0.some(v=>!Number.isFinite(v)) || !SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-    alert(`[${name}] S0/SG가 비어 있습니다.`);
-    return;
-  }
-
-  // 덮어쓰기 옵션 체크
-  const overwrite = $("#chkOverwrite").checked;
-  const hasKU = Number.isFinite(r.k) && r.u && [r.u.hp,r.u.atk,r.u.def,r.u.agi].every(Number.isFinite);
-  if(!overwrite && hasKU){
-    setStatus(`[${name}] 기존 k/u 유지 (덮어쓰기 옵션 해제됨)`);
-    return;
-  }
-
-  const fit = inferKU_JJYAL_MICRO(S0, SG);
-  if(!fit){ alert(`[${name}] 추정 실패`); return; }
-  r.k = fit.k; r.u = fit.u; r.e = fit.e;
-  r.sg_err = fit.sg_err; r.s0_l1 = fit.s0_l1; r.s0_ok = !!fit.s0_ok;
-  r._deltaDim = fit._deltaDim||null; r._deltaVal = fit._deltaVal||0;
-
-  setStatus(`[${name}] k=${r.k}, u=(${r.u.hp},${r.u.atk},${r.u.def},${r.u.agi}), e=${r.e} · SGerr=${fit.sg_err?.toFixed(3)} ${fit.s0_ok?"✓":""} ${Math.abs(r._deltaVal)>0? "· Sg-"+r._deltaDim+" "+(r._deltaVal>0?"+":"")+r._deltaVal.toFixed(3):""}`);
-  render();
-}
-
-async function inferAll(){
-  if(NAMES.length===0){ alert("데이터가 비어 있습니다."); return; }
-  const overwrite = $("#chkOverwrite").checked;
-  let ok=0, fail=0, skip=0;
-  for(const name of NAMES){
-    const r = TABLE[name];
-    const S0 = [r?.s0?.hp, r?.s0?.atk, r?.s0?.def, r?.s0?.agi].map(Number);
-    const SG = r?.sg;
-    if(S0.some(v=>!Number.isFinite(v)) || !SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){ skip++; continue; }
-
-    const hasKU = Number.isFinite(r.k) && r.u && [r.u.hp,r.u.atk,r.u.agi,r.u.def].every(Number.isFinite);
-    if(!overwrite && hasKU){ skip++; continue; }
-
-    const fit = inferKU_JJYAL_MICRO(S0, SG);
-    if(!fit){ fail++; continue; }
-    r.k = fit.k; r.u = fit.u; r.e = fit.e;
-    r.sg_err = fit.sg_err; r.s0_l1 = fit.s0_l1; r.s0_ok = !!fit.s0_ok;
-    r._deltaDim = fit._deltaDim||null; r._deltaVal = fit._deltaVal||0;
-    ok++;
-  }
-  render();
-  setStatus(`전체 추정 완료 · 성공 ${ok}, 실패 ${fail}, 건너뜀 ${skip}`);
-}
-
 /* ========= 이벤트 ========= */
-$("#btnLoadRemote").onclick = loadRemote;
-$("#fileInput").onchange = e=>{ const f=e.target.files?.[0]; if(f) handleLocalFile(f); e.target.value=""; };
-$("#btnDownload").onclick = downloadJSON;
-$("#btnCopy").onclick = copyJSON;
-$("#btnInferAll").onclick = inferAll;
-$("#btnAddPet").onclick = addPet;
-$("#btnUpload").onclick = uploadGitHub;
+$("#btnLoad").addEventListener("click", loadRemote);
+$("#btnCommit").addEventListener("click", commitRemote);
 
-/* ========= 부팅 ========= */
-setStatus("준비 완료. '원격 불러오기' 또는 '로컬 불러오기'로 시작하세요.");
+$("#btnInfer").addEventListener("click", ()=>{
+  const name = $("#f_name").value.trim();
+  if(!name){ alert("이름을 입력하세요."); return; }
+  const S0 = [qv("s0_hp"), qv("s0_atk"), qv("s0_def"), qv("s0_agi")];
+  const SG = { hp:qv("sg_hp"), atk:qv("sg_atk"), def:qv("sg_def"), agi:qv("sg_agi") };
+  if(S0.some(x=>!Number.isFinite(x)) || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+    alert("S0/SG를 모두 숫자로 입력하세요."); return;
+  }
+  const fit = inferKU_JJYAL(S0, SG);
+  if(!fit){
+    $("#inferOut").textContent = "해 불가";
+    $("#inferOut").classList.remove("ok");
+    $("#inferOut").classList.add("bad");
+    alert("현재 입력된 S0/SG로는 계수(k,u)를 산출할 수 없습니다.\nS0/SG 소수점을 소폭 조정해 다시 시도해 주세요.");
+    return;
+  }
+  $("#inferOut").textContent = `k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi})`;
+  $("#inferOut").classList.remove("bad");
+  $("#inferOut").classList.add("ok");
+});
+
+$("#btnAdd").addEventListener("click", ()=>{
+  const name = $("#f_name").value.trim();
+  if(!name){ alert("이름을 입력하세요."); return; }
+
+  const s0 = { hp:qv("s0_hp"), atk:qv("s0_atk"), def:qv("s0_def"), agi:qv("s0_agi") };
+  const sg = { hp:qv("sg_hp"), atk:qv("sg_atk"), def:qv("sg_def"), agi:qv("sg_agi") };
+  if(![s0.hp,s0.atk,s0.def,s0.agi, sg.hp,sg.atk,sg.def,sg.agi].every(Number.isFinite)){
+    alert("S0/SG를 모두 숫자로 입력하세요."); return;
+  }
+
+  // 저장 전 반드시 k,u 추정 가능해야 함 (미세 조정 없음)
+  const fit = inferKU_JJYAL([s0.hp,s0.atk,s0.def,s0.agi], sg);
+  if(!fit){
+    alert("현재 S0/SG로는 k,u를 산출할 수 없어 저장할 수 없습니다.\nS0/SG 소수점을 소폭 조정한 뒤 'k,u 추정'을 먼저 통과시켜 주세요.");
+    return;
+  }
+
+  PETS[name] = { s0, sg, k:fit.k, u:fit.u };
+  renderTable();
+  alert("추가/갱신 완료 (k,u 포함).");
+});
+
+/* ========= 초기 ========= */
+(async function init(){
+  // 기본값 바인딩
+  $("#ghOwner").value = GH_OWNER;
+  $("#ghRepo").value  = GH_REPO;
+  $("#ghBranch").value= GH_BRANCH;
+  $("#ghPath").value  = GH_PATH;
+  setCount();
+})();
 </script>
 </body>
 </html>
