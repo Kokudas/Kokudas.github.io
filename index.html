@@ -770,7 +770,7 @@ function inferKU_WITH_MICRO(S0, SG){
   const needImprove = !best || !best.s0_ok || best.sg_err>0.05;
   if (!needImprove) { LAST_SOLVE_NOTE = {usedAdjust:false, tweaked:{}, e:best.e, sg_err:best.sg_err, s0_ok:best.s0_ok}; return best; }
 
-  const tryDims = ['agi','hp','atk','def']; // 우선 순위: agi → hp → atk → def
+  const tryDims = ['hp','agi','atk','def']; // 우선 순위: agi → hp → atk → def
   for (const key of tryDims){
     for (const dx of MICRO_STEPS){
       if (dx===0 && usedAdjust) continue; // 이미 조정 중이면 0은 스킵
