@@ -627,8 +627,6 @@ $("btnR8ClearAll").addEventListener("click", ()=>{
   document.querySelectorAll("#r8List input[type=checkbox]").forEach(cb=>cb.checked=false);
 });
 
-function collectR8ObsForKU(k,u){ /* (위에 이미 정의됨 — 편집기 줄임 방지용 마커) */ }
-
 $("btnR8Run").addEventListener("click", async ()=>{
   const picks = Array.from(document.querySelectorAll("#r8List input[type=checkbox]:checked")).map(cb=>cb.value);
   if(picks.length===0){ alert("대상을 선택하세요."); return; }
