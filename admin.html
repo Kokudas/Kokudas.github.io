@@ -7,36 +7,26 @@
 <link rel="shortcut icon" href="data:image/x-icon;," />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
+  :root{ --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
-    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text);
-  }
-  header{
-    display:flex; align-items:center; justify-content:space-between;
+    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff; }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text);}
+  header{ display:flex; align-items:center; justify-content:space-between;
     padding:16px 20px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
-    position:sticky; top:0; z-index:10;
-  }
-  .brand{font-weight:800; letter-spacing:.3px}
-  .muted{color:var(--muted)}
+    position:sticky; top:0; z-index:10; }
+  .brand{font-weight:800; letter-spacing:.3px} .muted{color:var(--muted)}
   .container{max-width:1200px; margin:18px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1.2fr .8fr;}
   @media (max-width: 980px){ .container{grid-template-columns:1fr} }
   .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
   .card h3{margin:4px 0 12px 0; font-size:16px}
-  .row{display:flex; gap:8px; flex-wrap:wrap}
-  .col{flex:1 1 0}
+  .row{display:flex; gap:8px; flex-wrap:wrap} .col{flex:1 1 0}
   label{display:block; font-size:12px; color:var(--muted); margin:6px 0 4px 2px}
-  input[type="number"], input[type="text"], input[type="password"], textarea, select{
+  input[type="number"], input[type="text"], input[type="password"], textarea{
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
-    background:#0e1218; color:var(--text); outline:none;
-  }
-  textarea{min-height:120px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    background:#0e1218; color:var(--text); outline:none; }
+  textarea{min-height:120px; font-family:ui-monospace,Menlo,Consolas,monospace}
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .btn{ padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600; }
@@ -44,20 +34,12 @@
   .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
   .btn.warn{ background:#3b2a00; color:#ffcf66; border-color:#6a5200;}
   .btn.danger{ background:#3a0d16; color:#ff8aa1; border-color:#5c1a2b;}
-  .btn.ghost{ background:transparent;}
-  .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
+  .btn.ghost{ background:transparent;} .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
   .grid-two{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
   .grid-four{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px}
   .table{width:100%; border-collapse:collapse; font-size:13px}
   .table th,.table td{border-bottom:1px solid #262d3a; padding:8px 6px; text-align:left; vertical-align:top}
-  .pill{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #2b3242; background:#0e131a; color:#bcd}
-  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
-  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  .right{margin-left:auto}
-  .kbd{display:inline-block; border:1px solid #404a5e; border-bottom-width:3px; padding:2px 6px; border-radius:6px; background:#0e131a; font-weight:700}
-  .hr{border:none; border-top:1px solid #2a3040; margin:12px 0}
-  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-  .help{font-size:12px; color:#9aa3af}
+  .help{font-size:12px; color:#9aa3af} .hr{border:none; border-top:1px solid #2a3040; margin:12px 0}
 </style>
 </head>
 <body>
@@ -68,82 +50,51 @@
 
 <div class="container">
 
-  <!-- 좌: 리스트/검색/로드/저장 -->
+  <!-- 좌 -->
   <section class="card">
     <h3>① GitHub 데이터</h3>
-
     <div class="grid-two">
-      <div>
-        <label>Owner</label>
-        <input id="gh_owner" type="text" value="kokudas" />
-      </div>
-      <div>
-        <label>Repo</label>
-        <input id="gh_repo" type="text" value="kokudas.github.io" />
-      </div>
-      <div>
-        <label>Branch</label>
-        <input id="gh_branch" type="text" value="main" />
-      </div>
-      <div>
-        <label>Path (예: <span class="mono">data/pets.json</span> 또는 <span class="mono">data.json</span>)</label>
-        <input id="gh_path" type="text" value="data/pets.json" />
-      </div>
-      <div class="col">
-        <label>GitHub Token (repo 권한)</label>
-        <input id="gh_token" type="password" placeholder="ghp_xxx…" />
-      </div>
-      <div class="col">
-        <label>커밋 메시지</label>
-        <input id="gh_message" type="text" value="chore(admin): update pets.json" />
-      </div>
+      <div><label>Owner</label><input id="gh_owner" type="text" value="kokudas" /></div>
+      <div><label>Repo</label><input id="gh_repo" type="text" value="kokudas.github.io" /></div>
+      <div><label>Branch</label><input id="gh_branch" type="text" value="main" /></div>
+      <div><label>Path (예: <span style="font-family:monospace">data/pets.json</span>)</label><input id="gh_path" type="text" value="data/pets.json" /></div>
+      <div class="col"><label>GitHub Token (repo 권한)</label><input id="gh_token" type="password" placeholder="ghp_xxx…" /></div>
+      <div class="col"><label>커밋 메시지</label><input id="gh_message" type="text" value="chore(admin): update pets.json" /></div>
     </div>
 
-    <div class="toolbar" style="margin-top:10px">
+    <div class="row" style="margin-top:10px">
       <button class="btn" id="btnLoad">로드</button>
       <button class="btn primary" id="btnSave">저장·커밋</button>
       <button class="btn ghost" id="btnBackup">로컬로 백업(.json)</button>
-      <span class="right help" id="status">대기중…</span>
+      <span class="help" id="status" style="margin-left:auto">대기중…</span>
     </div>
 
     <hr class="hr"/>
 
-    <div class="toolbar">
+    <div class="row">
       <input id="search" type="text" placeholder="이름 검색…" style="flex:1 1 240px" />
       <button class="btn" id="btnSortName">이름 정렬</button>
       <button class="btn" id="btnSortHasKU">k/u 채움 우선</button>
-      <span class="help">행 클릭 → 우측 폼으로 불러오기</span>
+      <span class="help">행 클릭 → 우측 폼에 로딩</span>
     </div>
 
     <div style="margin-top:8px; max-height: 55vh; overflow:auto; border:1px solid #2a3040; border-radius:10px;">
       <table class="table" id="tbl">
         <thead>
-          <tr>
-            <th style="width:180px">이름</th>
-            <th>S0 (hp/atk/def/agi)</th>
-            <th>Sg (hp/atk/def/agi)</th>
-            <th>k</th>
-            <th>u (hp/atk/def/agi)</th>
-          </tr>
+          <tr><th style="width:180px">이름</th><th>S0 (hp/atk/def/agi)</th><th>Sg (hp/atk/def/agi)</th><th>k</th><th>u (hp/atk/def/agi)</th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
   </section>
 
-  <!-- 우: 편집/추정 -->
+  <!-- 우 -->
   <section class="card">
     <h3>② 행 편집</h3>
 
-    <div class="row">
-      <div class="col">
-        <label>이름</label>
-        <input id="f_name" type="text" placeholder="예: 골로스" />
-      </div>
-    </div>
+    <div class="row"><div class="col"><label>이름</label><input id="f_name" type="text" placeholder="예: 골로스" /></div></div>
 
-    <div style="margin-top:6px">
-      <label>표기 초기치 S0</label>
+    <div style="margin-top:6px"><label>표기 초기치 S0</label>
       <div class="grid-four">
         <input id="f_s0_hp"  type="number" step="0.01" placeholder="hp" />
         <input id="f_s0_atk" type="number" step="0.01" placeholder="atk" />
@@ -152,21 +103,18 @@
       </div>
     </div>
 
-    <div style="margin-top:6px">
-      <label>표기 성장치 Sg</label>
+    <div style="margin-top:6px"><label>표기 성장치 Sg</label>
       <div class="grid-four">
         <input id="f_sg_hp"  type="number" step="0.01" placeholder="hp" />
         <input id="f_sg_atk" type="number" step="0.01" placeholder="atk" />
         <input id="f_sg_def" type="number" step="0.01" placeholder="def" />
-        <input id="f_sg_agi" type="number" step="0.01" placeholder="agi" />
+        <input id="f_sg_agi" type="number" step="0.001" placeholder="agi" />
       </div>
+      <div class="help" style="margin-top:4px">* agi는 소수 셋째 자리까지 입력 가능(짜얄 호환 검증).</div>
     </div>
 
     <div class="row" style="margin-top:6px">
-      <div class="col">
-        <label>k</label>
-        <input id="f_k" type="number" step="1" placeholder="auto" />
-      </div>
+      <div class="col"><label>k</label><input id="f_k" type="number" step="1" placeholder="auto" /></div>
       <div class="col">
         <label>u.hp / u.atk / u.def / u.agi</label>
         <div class="grid-four">
@@ -178,28 +126,24 @@
       </div>
     </div>
 
-    <div class="toolbar" style="margin-top:10px">
+    <div class="row" style="margin-top:10px">
       <button class="btn" id="btnInfer">추정(k/u)</button>
       <button class="btn" id="btnApply">추가/갱신</button>
       <button class="btn warn" id="btnClearForm">폼 초기화</button>
       <button class="btn danger" id="btnDelete">선택 삭제</button>
-      <span class="right help">※ 추정 실패 시 “오류 문구”를 표시하고 멈춥니다. (미세 조정 없음)</span>
+      <span class="help" style="margin-left:auto">※ 추정 실패 시 명확히 오류를 띄웁니다. (미세 조정 없음)</span>
     </div>
 
     <hr class="hr"/>
-
-    <details>
-      <summary>JSON 미리보기</summary>
-      <textarea id="jsonPreview" readonly></textarea>
-    </details>
+    <details><summary>JSON 미리보기</summary><textarea id="jsonPreview" readonly></textarea></details>
   </section>
 
 </div>
 
 <script>
-/* ===================== UTF-8 안전 Base64 변환 ===================== */
+/* =============== UTF-8 안전 Base64 =============== */
 function decodeBase64UTF8(b64){
-  const cleaned = (b64||"").replace(/\\s/g, "");
+  const cleaned = (b64||"").replace(/\s/g, "");
   const bin = atob(cleaned);
   if (typeof TextDecoder !== "undefined") {
     const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
@@ -216,15 +160,11 @@ function encodeUTF8Base64(str){
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-/* ===================== 상태/전역 ===================== */
-let PETS = {};          // { name: { s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{hp,atk,def,agi} } }
-let GH_SHA = null;      // 현재 파일 sha (커밋 때 필요)
-let SELECTED = null;    // 선택된 이름
-const $ = sel => document.querySelector(sel);
-const $$ = sel => Array.from(document.querySelectorAll(sel));
-const statusEl = $("#status");
+/* =============== 상태/전역 =============== */
+let PETS = {}, GH_SHA = null, SELECTED = null;
+const $ = s=>document.querySelector(s); const statusEl = $("#status");
 
-/* ===================== GitHub I/O ===================== */
+/* =============== GitHub I/O =============== */
 async function ghGet(owner, repo, path, branch, token){
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
   const res = await fetch(url, { headers: token? {Authorization:`Bearer ${token}`} : {} });
@@ -234,38 +174,22 @@ async function ghGet(owner, repo, path, branch, token){
   const text = decodeBase64UTF8(data.content);
   return { text, sha:data.sha };
 }
-
 async function ghPut(owner, repo, path, branch, token, message, text, sha){
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-  const body = {
-    message: message || "update",
-    content: encodeUTF8Base64(text),
-    branch
-  };
+  const body = { message: message||"update", content: encodeUTF8Base64(text), branch };
   if (sha) body.sha = sha;
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
+  const res = await fetch(url, { method:"PUT", headers: { "Authorization":`Bearer ${token}`, "Content-Type":"application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error("GitHub PUT 실패: " + res.status);
   const data = await res.json();
   return data.content && data.content.sha;
 }
 
-/* ===================== UI 보조 ===================== */
-function setStatus(msg){ statusEl.textContent = msg; }
+/* =============== UI 유틸 =============== */
+function setStatus(m){ statusEl.textContent = m; }
 function toNum(v){ const n = parseFloat(v); return Number.isFinite(n)? n : null; }
 function read4(prefix){
-  return {
-    hp: toNum($(`#${prefix}_hp`).value),
-    atk:toNum($(`#${prefix}_atk`).value),
-    def:toNum($(`#${prefix}_def`).value),
-    agi:toNum($(`#${prefix}_agi`).value)
-  };
+  return { hp: toNum($(`#${prefix}_hp`).value), atk: toNum($(`#${prefix}_atk`).value),
+           def:toNum($(`#${prefix}_def`).value), agi: toNum($(`#${prefix}_agi`).value) };
 }
 function write4(prefix, obj){
   $(`#${prefix}_hp`).value  = (obj?.hp  ?? "");
@@ -273,54 +197,67 @@ function write4(prefix, obj){
   $(`#${prefix}_def`).value = (obj?.def ?? "");
   $(`#${prefix}_agi`).value = (obj?.agi ?? "");
 }
-function refreshPreview(){
-  $("#jsonPreview").value = JSON.stringify(PETS, null, 2);
-}
-function fmtS0(row){ const s=row?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
-function fmtSg(row){ const s=row?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
-function fmtU (row){ const u=row?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
+function refreshPreview(){ $("#jsonPreview").value = JSON.stringify(PETS, null, 2); }
+function fmtS0(r){ const s=r?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
+function fmtSg(r){ const s=r?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
+function fmtU (r){ const u=r?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
 
-/* ===================== 목록 렌더 ===================== */
+/* =============== 목록 렌더 =============== */
 function renderTable(sortKey="name"){
   const tbody = $("#tbody"); tbody.innerHTML = "";
   const kw = ($("#search").value||"").trim();
-
   let names = Object.keys(PETS);
   if (sortKey === "name") names.sort((a,b)=>a.localeCompare(b,'ko'));
   if (sortKey === "hasKU") names.sort((a,b)=>{
     const ak = Number.isFinite(PETS[a]?.k)?1:0, bk = Number.isFinite(PETS[b]?.k)?1:0;
-    if (bk !== ak) return bk-ak; // k/u 있는 것 우선
-    return a.localeCompare(b,'ko');
+    if (bk !== ak) return bk-ak; return a.localeCompare(b,'ko');
   });
 
   names.forEach(n=>{
     if (kw && !n.includes(kw)) return;
-    const row = PETS[n];
+    const r = PETS[n];
     const tr = document.createElement("tr");
     const tdN = document.createElement("td"); tdN.textContent = n; tdN.style.cursor="pointer";
-    const tdS0= document.createElement("td"); tdS0.textContent = fmtS0(row);
-    const tdSg= document.createElement("td"); tdSg.textContent = fmtSg(row);
-    const tdK = document.createElement("td"); tdK.textContent  = (row?.k ?? "");
-    const tdU = document.createElement("td"); tdU.textContent  = fmtU(row);
-
+    const tdS0= document.createElement("td"); tdS0.textContent = fmtS0(r);
+    const tdSg= document.createElement("td"); tdSg.textContent = fmtSg(r);
+    const tdK = document.createElement("td"); tdK.textContent  = (r?.k ?? "");
+    const tdU = document.createElement("td"); tdU.textContent  = fmtU(r);
     tr.appendChild(tdN); tr.appendChild(tdS0); tr.appendChild(tdSg); tr.appendChild(tdK); tr.appendChild(tdU);
     tr.addEventListener("click", ()=>{
       SELECTED = n;
       $("#f_name").value = n;
-      write4("f_s0", row?.s0);
-      write4("f_sg", row?.sg);
-      $("#f_k").value = row?.k ?? "";
-      write4("f_u", row?.u);
+      write4("f_s0", r?.s0); write4("f_sg", r?.sg);
+      $("#f_k").value = r?.k ?? ""; write4("f_u", r?.u);
       setStatus(`선택됨: ${n}`);
     });
     tbody.appendChild(tr);
   });
-
   refreshPreview();
 }
 
-/* ===================== 추정 엔진 (미세조정 제거) ===================== */
+/* =============== 추정 엔진 (엄격 모드) =============== */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
+const SG_EPS = 0.0005;  // 소수 셋째 자리까지 일치 요구 (짜얄 호환)
+
+function calcSG_from_u_e(u, e){
+  // f = e / 10000
+  const f = new Decimal(e).dividedBy(10000);
+  const up = { hp:new Decimal(u.hp).plus(2.5),
+               atk:new Decimal(u.atk).plus(2.5),
+               def:new Decimal(u.def).plus(2.5),
+               agi:new Decimal(u.agi).plus(2.5) };
+  const hp  = f.times( up.hp.times(4).plus(up.atk).plus(up.def).plus(up.agi) );
+  const atk = f.times( up.hp.times(0.1).plus(up.atk).plus(up.def.times(0.1)).plus(up.agi.times(0.05)) );
+  const def = f.times( up.hp.times(0.1).plus(up.atk.times(0.1)).plus(up.def).plus(up.agi.times(0.05)) );
+  const agi = f.times( up.agi );
+  return { hp:+hp, atk:+atk, def:+def, agi:+agi };
+}
+function sgWithin(sgCalc, SG){
+  return Math.abs(sgCalc.hp - SG.hp)  <= SG_EPS &&
+         Math.abs(sgCalc.atk - SG.atk)<= SG_EPS &&
+         Math.abs(sgCalc.def - SG.def)<= SG_EPS &&
+         Math.abs(sgCalc.agi - SG.agi)<= SG_EPS;
+}
 
 function solveUFromSG_JJYAL(SG, e){
   try{
@@ -329,21 +266,23 @@ function solveUFromSG_JJYAL(SG, e){
 
     const eD = new Decimal(e);
     const f  = eD.dividedBy(10000);
+    // u.agi 추정
     const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
-    const dRound = d.round();
-    const dPlus25 = dRound.plus(2.5);
+    const u_agi = d.round();
 
+    const dPlus25 = u_agi.plus(2.5);
     const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
     const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
     const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
 
+    // 3x3
     let A = [
       [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
       [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
       [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
     ];
     for(let i=0;i<3;i++){
-      let mr=i; let mv=A[i][i].abs();
+      let mr=i, mv=A[i][i].abs();
       for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
       if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
       const piv=A[i][i];
@@ -354,26 +293,12 @@ function solveUFromSG_JJYAL(SG, e){
         for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
       }
     }
-    const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
+    const u_hp  = A[0][3].minus(2.5).round();
+    const u_atk = A[1][3].minus(2.5).round();
+    const u_def = A[2][3].minus(2.5).round();
 
-    const u_hp  = aPrime.minus(2.5).round();
-    const u_atk = bPrime.minus(2.5).round();
-    const u_def = cPrime.minus(2.5).round();
-    const u_agi = dRound;
-
-    const r2 = x => new Decimal(x).toDecimalPlaces(2);
-    const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
-    const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
-    const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
-    const agi_chk = r2( f.times( u_agi.plus(2.5) ) );
-
-    const err = hp_chk.minus(r2(SG.hp)).abs()
-               .plus(atk_chk.minus(r2(SG.atk)).abs())
-               .plus(def_chk.minus(r2(SG.def)).abs())
-               .plus(agi_chk.minus(r2(SG.agi)).abs());
-
-    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e, sg_err:+err };
-  }catch(e){ return null; }
+    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e };
+  }catch{ return null; }
 }
 
 function s0_from_k_u_jjyal(k,u){
@@ -389,32 +314,40 @@ function s0_from_k_u_jjyal(k,u){
   return [s_hp,s_atk,s_def,s_agi];
 }
 function fitKFromS0_JJYAL(S0int,u){
-  let best=null;
   for(let k=10;k<=100;k++){
     const s = s0_from_k_u_jjyal(k,u);
-    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
-    const ok = (l1===0);
-    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
-    if(ok) break;
+    const ok = (s[0]===S0int[0] && s[1]===S0int[1] && s[2]===S0int[2] && s[3]===S0int[3]);
+    if (ok) return {k, ok:true};
   }
-  return best;
+  return null;
 }
+
+/* “정확해”만 반환. 없으면 null */
 function inferKU_JJYAL(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
-  let best=null;
+  let best=null, bestErr=Infinity;
   for(const e of ESET){
     const sol = solveUFromSG_JJYAL(SG, e);
     if(!sol) continue;
+
     const fit = fitKFromS0_JJYAL(S0int, sol.u);
-    if(!fit) continue;
-    const score = (fit.ok?0:1000) + fit.l1*10 + (sol.sg_err||0);
-    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, s0_ok:fit.ok, score};
-    if(!best || cand.score<best.score) best=cand;
+    if(!fit || !fit.ok) continue;  // S0가 정확히 일치해야 함
+
+    const sgCalc = calcSG_from_u_e(sol.u, e);
+    if(!sgWithin(sgCalc, SG)) continue; // Sg도 소수 셋째 자리까지 일치해야 함
+
+    // 여러 e가 통과하면 SG 차이 합이 가장 작은 것을 택함
+    const errSum = Math.abs(sgCalc.hp - SG.hp) + Math.abs(sgCalc.atk - SG.atk)
+                 + Math.abs(sgCalc.def - SG.def) + Math.abs(sgCalc.agi - SG.agi);
+    if (errSum < bestErr){
+      bestErr = errSum;
+      best = {k:fit.k, u:sol.u, e};
+    }
   }
-  return best;
+  return best; // 없으면 null
 }
 
-/* ===================== 이벤트: 로드/저장 ===================== */
+/* =============== 이벤트: 로드/저장/검색/정렬 =============== */
 $("#btnLoad").addEventListener("click", async ()=>{
   try{
     setStatus("로드 중…");
@@ -423,25 +356,12 @@ $("#btnLoad").addEventListener("click", async ()=>{
     const path   = $("#gh_path").value.trim();
     const branch = $("#gh_branch").value.trim();
     const token  = $("#gh_token").value.trim();
-
     const r = await ghGet(owner, repo, path, branch, token);
-    if (r.notFound){
-      PETS = {}; GH_SHA = null;
-      setStatus("원격 파일 없음(새로 생성 예정).");
-    }else{
-      PETS = JSON.parse(r.text);
-      GH_SHA = r.sha || null;
-      setStatus(`로드 완료 · ${Object.keys(PETS).length} 종`);
-    }
-    SELECTED = null;
-    renderTable("name");
-  }catch(err){
-    console.error(err);
-    setStatus("로드 실패: " + (err?.message||err));
-    alert("로드 실패:\n" + (err?.message||err));
-  }
+    if (r.notFound){ PETS = {}; GH_SHA = null; setStatus("원격 파일 없음(새로 생성 예정)."); }
+    else { PETS = JSON.parse(r.text); GH_SHA = r.sha||null; setStatus(`로드 완료 · ${Object.keys(PETS).length} 종`); }
+    SELECTED = null; renderTable("name");
+  }catch(err){ console.error(err); setStatus("로드 실패: " + (err?.message||err)); alert("로드 실패:\n" + (err?.message||err)); }
 });
-
 $("#btnSave").addEventListener("click", async ()=>{
   try{
     setStatus("커밋 중…");
@@ -451,101 +371,59 @@ $("#btnSave").addEventListener("click", async ()=>{
     const branch = $("#gh_branch").value.trim();
     const token  = $("#gh_token").value.trim();
     const msg    = $("#gh_message").value.trim() || "update";
-
     const text = JSON.stringify(PETS, null, 2);
     const newSha = await ghPut(owner, repo, path, branch, token, msg, text, GH_SHA);
-    GH_SHA = newSha || GH_SHA;
-    setStatus("저장·커밋 완료!");
-    alert("저장·커밋 완료!");
-  }catch(err){
-    console.error(err);
-    setStatus("저장 실패: " + (err?.message||err));
-    alert("저장 실패:\n" + (err?.message||err));
-  }
+    GH_SHA = newSha || GH_SHA; setStatus("저장·커밋 완료!"); alert("저장·커밋 완료!");
+  }catch(err){ console.error(err); setStatus("저장 실패: " + (err?.message||err)); alert("저장 실패:\n" + (err?.message||err)); }
 });
-
 $("#btnBackup").addEventListener("click", ()=>{
   const blob = new Blob([JSON.stringify(PETS, null, 2)], {type:"application/json;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "pets.backup.json";
-  a.click();
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pets.backup.json"; a.click();
   URL.revokeObjectURL(a.href);
 });
 
-/* ===================== 이벤트: 검색/정렬 ===================== */
 $("#search").addEventListener("input", ()=>renderTable());
 $("#btnSortName").addEventListener("click", ()=>renderTable("name"));
 $("#btnSortHasKU").addEventListener("click", ()=>renderTable("hasKU"));
 
-/* ===================== 폼 조작 ===================== */
+/* =============== 폼/CRUD =============== */
+function renderTableHelper(){ renderTable(); }
 $("#btnClearForm").addEventListener("click", ()=>{
-  SELECTED = null;
-  $("#f_name").value = "";
-  write4("f_s0", null);
-  write4("f_sg", null);
-  $("#f_k").value = "";
-  write4("f_u", null);
+  SELECTED = null; $("#f_name").value = ""; write4("f_s0", null); write4("f_sg", null); $("#f_k").value = ""; write4("f_u", null);
   setStatus("폼 초기화");
 });
-
-/* 추가/갱신 */
 $("#btnApply").addEventListener("click", ()=>{
-  const name = $("#f_name").value.trim();
-  if(!name){ alert("이름을 입력하세요."); return; }
-
+  const name = $("#f_name").value.trim(); if(!name){ alert("이름을 입력하세요."); return; }
   const S0 = read4("f_s0"), SG = read4("f_sg");
-  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-    alert("S0, Sg를 모두 입력하세요."); return;
-  }
-
-  const k = toNum($("#f_k").value);
-  const U = read4("f_u");
-  const hasU = [U.hp,U.atk,U.def,U.agi].every(Number.isFinite);
-
-  PETS[name] = {
-    s0: S0,
-    sg: SG,
-    ...(Number.isFinite(k) ? {k} : {}),
-    ...(hasU ? {u:{hp:U.hp, atk:U.atk, def:U.def, agi:U.agi}} : {})
-  };
-  setStatus(`적용 완료: ${name}`);
-  renderTable();
+  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){ alert("S0, Sg를 모두 입력하세요."); return; }
+  const k = toNum($("#f_k").value); const U = read4("f_u"); const hasU = [U.hp,U.atk,U.def,U.agi].every(Number.isFinite);
+  PETS[name] = { s0:S0, sg:SG, ...(Number.isFinite(k)?{k}:{}), ...(hasU?{u:{hp:U.hp, atk:U.atk, def:U.def, agi:U.agi}}:{}) };
+  setStatus(`적용 완료: ${name}`); renderTable();
 });
-
-/* 선택 삭제 */
 $("#btnDelete").addEventListener("click", ()=>{
   if(!SELECTED){ alert("삭제할 행을 먼저 선택하세요."); return; }
   if(!confirm(`정말 삭제할까요?\n${SELECTED}`)) return;
-  delete PETS[SELECTED];
-  SELECTED = null;
-  setStatus("삭제 완료");
-  renderTable();
+  delete PETS[SELECTED]; SELECTED=null; setStatus("삭제 완료"); renderTable();
 });
 
-/* 추정(k/u) — 미세조정 제거·실패시 오류 */
+/* =============== 추정(k/u) — 정확해만 인정 =============== */
 $("#btnInfer").addEventListener("click", ()=>{
   const name = $("#f_name").value.trim() || "(이름없음)";
   const S0 = read4("f_s0"), SG = read4("f_sg");
   if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
     alert("S0, Sg를 모두 입력하세요."); return;
   }
-
   const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG);
   if(!fit){
-    alert("k/u 추정 실패: 입력한 S0/SG로는 해가 나오지 않습니다.\n소숫점 셋째 자리 정도를 직접 조정해 다시 시도해 주세요.");
+    alert("k/u 추정 실패: 입력한 S0/SG로는 정확해가 나오지 않습니다.\n(참고) 짜얄 계산기처럼 Sg의 소수 셋째 자리(특히 agi)를 미세 조정해 다시 시도해 주세요.");
     return;
   }
   $("#f_k").value = fit.k;
-  $("#f_u_hp").value  = fit.u.hp;
-  $("#f_u_atk").value = fit.u.atk;
-  $("#f_u_def").value = fit.u.def;
-  $("#f_u_agi").value = fit.u.agi;
-
-  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi})`);
+  $("#f_u_hp").value  = fit.u.hp; $("#f_u_atk").value = fit.u.atk; $("#f_u_def").value = fit.u.def; $("#f_u_agi").value = fit.u.agi;
+  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi}), e=${fit.e}`);
 });
 
-/* ===================== 초기 ===================== */
+/* =============== 초기 =============== */
 setStatus("대기중… (좌측 상단에서 로드)");
 </script>
 </body>
