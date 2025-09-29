@@ -8,9 +8,7 @@
 <style>
   /* 바디 레벨 플로팅 툴팁 */
   .floating-tip{
-    position: fixed;
-    z-index: 9999;
-    max-width: 360px;
+    position: fixed; z-index: 9999; max-width: 360px;
     background:#0b1320; color:#cfe1ff; border:1px solid #2b3a55;
     border-radius:10px; padding:8px 10px; font-size:12px; line-height:1.35;
     box-shadow:0 8px 24px rgba(0,0,0,.35);
@@ -25,15 +23,8 @@
     background:#0b1320; border-left:1px solid #2b3a55; border-top:1px solid #2b3a55;
   }
   .floating-tip[data-pos="top"]::after{ bottom:-5px; }
-  .floating-tip[data-pos="bottom"]::after{
-    top:-5px; transform: translateX(-50%) rotate(225deg);
-  }
+  .floating-tip[data-pos="bottom"]::after{ top:-5px; transform: translateX(-50%) rotate(225deg); }
 
-  /* 좁은 화면에서 너무 좌우로 길면 줄바꿈 허용 */
-  .tag.tip::after{ word-break: keep-all; }
-
-  html { scrollbar-gutter: stable; }
-  @supports not (scrollbar-gutter: stable) { body { overflow-y: scroll; } }
   :root{
     --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
@@ -74,12 +65,13 @@
   .muted{color:var(--muted)}
   .chips{display:flex; gap:8px; flex-wrap:wrap}
   .chip{ background:var(--chip); color:#cfd6e3; border:1px solid #2b3242; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; }
-  .chip.on{outline:2px solid #6aa0ff}
+  .chip.on{outline:2px solid var(--accent)}
   .kbd{display:inline-block; border:1px solid #404a5e; border-bottom-width:3px; padding:2px 6px; border-radius:6px; background:#0e131a; font-weight:700}
   .chooser{display:grid; grid-template-columns: 1fr; gap:8px}
   .list{ max-height:260px; overflow:auto; border:1px solid #2a3040; border-radius:10px; padding:6px; background:#0d1117; }
-  .item{padding:8px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center}
+  .item{padding:8px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition: background .12s ease, outline-color .12s ease; }
   .item:hover{background:#19202b}
+  .item.selected{ background:#1b2535; outline:2px solid #30518d; }
   .tags{display:flex; gap:6px; align-items:center}
   .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
   .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
@@ -88,7 +80,7 @@
   .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
   @media (max-width: 720px){ .kpis{grid-template-columns: 1fr} }
   .kpi{ display:flex; gap:14px; align-items:center; border:1px solid #2a3040; border-radius:14px; padding:14px; background:radial-gradient(120px 120px at 20% -10%, #11224444, transparent); }
-  .ring{width:60px; height:60px; border-radius:50%; background:conic-gradient(#6aa0ff 0deg, #6aa0ff var(--p,0deg), var(--ring) var(--p,0deg)); display:grid; place-items:center}
+  .ring{width:60px; height:60px; border-radius:50%; background:conic-gradient(var(--accent) 0deg, var(--accent) var(--p,0deg), var(--ring) var(--p,0deg)); display:grid; place-items:center}
   .ring::after{content:""; width:48px; height:48px; background:#0c1016; border-radius:50%; display:block}
   .kpi strong{font-size:20px; color:var(--highlight)}
   .kpi small{display:block; color:var(--muted)}
@@ -166,7 +158,7 @@
 
     <div class="row">
       <div class="col">
-        <label>내 펫 레벨1 관측 표기치 (정수) — 체/공/방/순)</label>
+        <label>내 펫 레벨1 관측 표기치 (정수) — 체/공/방/순</label>
         <div class="row">
           <div class="col">
             <input type="number" id="obs_hp"  step="1" />
@@ -207,7 +199,7 @@
     </div>
   </section>
 
-  <!-- 좌하단: KPI -->
+  <!-- 좌하단: KPI 강조 -->
   <section class="card" id="resultCard">
     <h3>③ 결과</h3>
     <div class="kpis">
@@ -248,13 +240,13 @@
     </details>
   </section>
 
-  <!-- 우하단: 이미지 -->
+  <!-- 우하단: 이미지 공간 -->
   <section class="card">
     <h3>본 계산기는 오픈 소스로 만들어졌습니다.</h3>
     <div class="imgbox">
       <img id="dinoImg" src="https://raw.githubusercontent.com/Kokudas/Kokudas.github.io/main/67269_179791_1130-Photoroom.png" alt="StoneAge Dino" loading="lazy" decoding="async"/>
     </div>
-    <p class="muted" style="margin-top:8px">Made by. 과장 (kokodas#0339)</p>
+    <p class="muted" style="margin-top:8px">Made by. 과장 (kokodas#0339) </p>
   </section>
 </div>
 
@@ -276,7 +268,7 @@ const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${
 const R8_JSON_CANDIDATES = [
   "data/guaranteed_rank8.full.json",
   "data/guaranteed_rank8.min.json",
-  "guaranteed_rank8.sample8.json" // 샘플/로컬 테스트용 폴백
+  "guaranteed_rank8.sample8.json"
 ];
 
 /* ========= 상수 ========= */
@@ -376,85 +368,54 @@ const btnClear= document.getElementById('btnClear');
 let currentChosung="";
 let selectedName=null;
 let selectedRow=null;
+let selectedItemEl=null; // ★ 선택 하이라이트 유지
 
-/* ===== 바디 레벨 툴팁 ===== */
+// ===== 바디 레벨 툴팁 =====
 const tipEl = document.createElement('div');
 tipEl.className = 'floating-tip';
 document.body.appendChild(tipEl);
 let tipTimer = null;
 
-function hideTip(){
-  tipEl.classList.remove('show');
-}
-
+function hideTip(){ tipEl.classList.remove('show'); }
 function showTip(target){
   const text = target.getAttribute('data-tip');
   if(!text){ hideTip(); return; }
-
-  // 내용 채우기 (줄바꿈)
   tipEl.textContent = '';
   String(text).split('\n').forEach((line,i)=>{
     tipEl.appendChild(document.createTextNode(line));
     if(i < text.length-1) tipEl.appendChild(document.createElement('br'));
   });
-
-  // 보이게 해서 크기 측정
   tipEl.classList.add('show');
-  tipEl.style.left = '-9999px';
-  tipEl.style.top  = '-9999px';
-  tipEl.removeAttribute('data-pos');
+  tipEl.style.left = '-9999px'; tipEl.style.top  = '-9999px'; tipEl.removeAttribute('data-pos');
   tipEl.getBoundingClientRect();
-
   const rect = target.getBoundingClientRect();
   const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
   const margin = 8;
-
-  // 기본은 위쪽
   let pos = 'top';
   let left = rect.left + rect.width/2 - tw/2;
   left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-
   let top = rect.top - th - margin;
-  if(top < 6){
-    top = rect.bottom + margin;
-    pos = 'bottom';
-  }
+  if(top < 6){ top = rect.bottom + margin; pos = 'bottom'; }
   tipEl.dataset.pos = pos;
   tipEl.style.left = `${Math.round(left)}px`;
   tipEl.style.top  = `${Math.round(top)}px`;
 }
-
-// 이벤트: 목록 내부의 .tag.tip 대상
 petList.addEventListener('mouseover', (e)=>{
-  const t = e.target.closest('.tag.tip');
-  if(!t) return;
-  showTip(t);
+  const t = e.target.closest('.tag.tip'); if(!t) return; showTip(t);
 }, true);
 petList.addEventListener('mouseout', (e)=>{
-  const t = e.target.closest('.tag.tip');
-  if(!t) return;
-  hideTip();
+  const t = e.target.closest('.tag.tip'); if(!t) return; hideTip();
 }, true);
 petList.addEventListener('focusin', (e)=>{
-  const t = e.target.closest('.tag.tip');
-  if(!t) return;
-  showTip(t);
+  const t = e.target.closest('.tag.tip'); if(!t) return; showTip(t);
 });
 petList.addEventListener('focusout', (e)=>{
-  const t = e.target.closest('.tag.tip');
-  if(!t) return;
-  hideTip();
+  const t = e.target.closest('.tag.tip'); if(!t) return; hideTip();
 });
-// 모바일(터치): 1.8초간 표시
 petList.addEventListener('touchstart', (e)=>{
-  const t = e.target.closest('.tag.tip');
-  if(!t) return;
-  e.stopPropagation();
-  showTip(t);
-  clearTimeout(tipTimer);
-  tipTimer = setTimeout(hideTip, 1800);
+  const t = e.target.closest('.tag.tip'); if(!t) return; e.stopPropagation(); showTip(t);
+  clearTimeout(tipTimer); tipTimer = setTimeout(hideTip, 1800);
 }, {passive:true});
-// 스크롤/리사이즈 시 숨김
 window.addEventListener('scroll', hideTip, true);
 window.addEventListener('resize', hideTip);
 
@@ -475,6 +436,7 @@ function renderChosungTokens(){
     chosungTokens.appendChild(t);
   }
 }
+const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 CHO.forEach(c=>{
   const chip=document.createElement('div');
   chip.className='chip'; chip.textContent=c;
@@ -517,7 +479,7 @@ function renderPetList(){
     tag1.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
     right.appendChild(tag1);
 
-    // 8등급 보장 배지 + 말풍선
+    // 8등급 보장 배지
     const r8 = R8MAP[n];
     if (r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))) {
       const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8;
@@ -531,7 +493,6 @@ function renderPetList(){
       const tipText = `8등급 보장 초기치\n${preview}${more}`;
       tag2.setAttribute('data-tip', tipText);
 
-      // 클릭 전파 막기 + 모바일 잠깐 표시
       tag2.tabIndex = 0;
       const stop = (e)=>{ e.stopPropagation(); };
       tag2.addEventListener('click', stop);
@@ -546,7 +507,13 @@ function renderPetList(){
 
     div.appendChild(left);
     div.appendChild(right);
-    div.addEventListener('click', ()=>selectPetName(n));
+    div.addEventListener('click', ()=>{
+      // 선택 하이라이트 고정
+      if(selectedItemEl) selectedItemEl.classList.remove('selected');
+      div.classList.add('selected');
+      selectedItemEl = div;
+      selectPetName(n);
+    });
     petList.appendChild(div);
   });
 
@@ -795,21 +762,14 @@ btnCalc.addEventListener('click', async ()=>{
   const row=GLOBAL_TABLE[selectedName]||{};
   if(!row?.s0 || !row?.sg){ alert("이 펫은 S0/SG가 등록되어 있지 않습니다."); return; }
 
-  // 1) 테이블에 k/u 있으면 그대로 사용
   let k=row.k, u=row.u;
-
-  // 2) 없으면 짜얄 방식으로 추정 (미세 조정 없음)
   if(!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
     const S0=[row.s0.hp, row.s0.atk, row.s0.def, row.s0.agi];
     const SG=row.sg;
     const fit = inferKU_JJYAL(S0, SG);
-    if(!fit){
-      alert("현재 입력된 S0/SG로는 계수(k,u)를 산출할 수 없습니다.\nS0/SG 소수점을 소폭 조정해 다시 시도해 주세요.");
-      return;
-    }
+    if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
     k=fit.k; u=fit.u;
   }
-  console.log("KU USED =>", k, u, "OBS =>", obs);
   const res = enumerate_jjyal({k,u}, obs);
   showKpis(res);
 });
@@ -818,6 +778,8 @@ btnReset.addEventListener('click', ()=>{
   selectedName=null; selectedRow=null;
   petSearch.value=""; currentChosung="";
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
+  petList.querySelectorAll('.item.selected').forEach(el=>el.classList.remove('selected'));
+  selectedItemEl = null;
   renderPetList();
   [s0hp,s0atk,s0def,s0agi,sghp,sgatk,sgdef,sgagi,obshp,obsatk,obsdef,obsagi].forEach(i=>i.value="");
   showKpis(null);
@@ -825,6 +787,8 @@ btnReset.addEventListener('click', ()=>{
 btnClear.addEventListener('click', ()=>{
   petSearch.value=""; currentChosung="";
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
+  petList.querySelectorAll('.item.selected').forEach(el=>el.classList.remove('selected'));
+  selectedItemEl = null;
   renderPetList();
 });
 
