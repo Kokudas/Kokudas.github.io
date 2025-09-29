@@ -8,7 +8,9 @@
 <style>
   /* 바디 레벨 플로팅 툴팁 */
   .floating-tip{
-    position: fixed; z-index: 9999; max-width: 360px;
+    position: fixed;
+    z-index: 9999;
+    max-width: 360px;
     background:#0b1320; color:#cfe1ff; border:1px solid #2b3a55;
     border-radius:10px; padding:8px 10px; font-size:12px; line-height:1.35;
     box-shadow:0 8px 24px rgba(0,0,0,.35);
@@ -83,7 +85,6 @@
   .tag.ok{border-color:#275a34; background:#102214; color:#35c759}
   .tag.warn{border-color:#7a5b0e; background:#241a05; color:#ffb300}
   .tag.rank8{border-color:#2b4a82; background:#0d1a33; color:#88b5ff}
-  .tag.micro{border-color:#7a5b0e; background:#241a05; color:#ffcf66}
   .kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
   @media (max-width: 720px){ .kpis{grid-template-columns: 1fr} }
   .kpi{ display:flex; gap:14px; align-items:center; border:1px solid #2a3040; border-radius:14px; padding:14px; background:radial-gradient(120px 120px at 20% -10%, #11224444, transparent); }
@@ -100,6 +101,11 @@
   .imgbox{width:100%; aspect-ratio: 16/9; border:1px dashed #334055; border-radius:12px; display:grid; place-items:center; background:#0d1117; overflow:hidden;}
   .imgbox img{width:100%; height:100%; object-fit:cover; display:block}
   .stepper{display:flex; gap:6px; margin-top:6px}
+
+  /* solve-badge 위치 */
+  .solve-line{ display:flex; align-items:center; gap:8px; }
+  .solve-note{ display:none; }
+  .solve-note.on{ display:inline-block; }
 </style>
 </head>
 <body>
@@ -151,7 +157,10 @@
           <div class="col"><input type="number" id="s0_agi" step="0.01" placeholder="—" readonly /></div>
         </div>
 
-        <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순)</label>
+        <div class="solve-line">
+          <label style="margin-top:10px">표기 성장치 Sg (체/공/방/순)</label>
+          <span id="solveBadge" class="tag tip solve-note" data-tip=""></span>
+        </div>
         <div class="row">
           <div class="col"><input type="number" id="sg_hp"  step="0.01" placeholder="—" readonly /></div>
           <div class="col"><input type="number" id="sg_atk" step="0.01" placeholder="—" readonly /></div>
@@ -233,8 +242,6 @@
       </div>
     </div>
 
-    <div id="solveNote" class="muted" style="margin-top:8px"></div>
-
     <div style="margin-top:14px">
       <div class="row">
         <div class="col"><span class="muted">총 경우의 수:</span> <span class="badge" id="totMatches">—</span></div>
@@ -247,6 +254,12 @@
       <summary>등급 분포 자세히 보기</summary>
       <div id="dist"></div>
     </details>
+
+    <!-- 8불가 안내/근접 예시 -->
+    <div id="noRank8Box" style="display:none; margin-top:12px; border:1px solid #2a3040; border-radius:10px; padding:12px;">
+      <div class="warn" style="font-weight:700; margin-bottom:6px;">이 관측치 조합에서는 베이스합 +8(환각) 케이스가 존재하지 않습니다.</div>
+      <div id="nearbyTips" class="muted" style="font-size:12px; line-height:1.5;"></div>
+    </div>
   </section>
 
   <!-- 우하단: 이미지 공간 -->
@@ -277,7 +290,7 @@ const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${
 const R8_JSON_CANDIDATES = [
   "data/guaranteed_rank8.full.json",
   "data/guaranteed_rank8.min.json",
-  "guaranteed_rank8.sample8.json"
+  "guaranteed_rank8.sample8.json" // 샘플/로컬 테스트용 폴백
 ];
 
 /* ========= 상수 ========= */
@@ -289,7 +302,9 @@ const ADMIN_PASS = "kokudas";
 let GLOBAL_TABLE = {};
 let ALL_NAMES = [];
 let R8MAP = {}; // name -> {count, obs_100_rank8: [[hp,atk,def,agi],...]}
-let LAST_SOLVE_NOTE = "";
+
+// solve note/badge
+let LAST_SOLVE_NOTE = null;
 
 /* ========= 유틸 ========= */
 function getJSONLS(key, fallback={}){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
@@ -301,6 +316,7 @@ function fmtPct(x){
   if(x < 0.001) return x.toFixed(6) + "%";
   return x.toFixed(4) + "%";
 }
+const clamp = (x, lo, hi)=> Math.max(lo, Math.min(hi, x));
 
 /* ========= 원격 로드 ========= */
 async function loadGlobalTable(){
@@ -370,17 +386,20 @@ const ringAppear = document.getElementById('ringAppear');
 const totMatches = document.getElementById('totMatches');
 const rank8Matches = document.getElementById('rank8Matches');
 const distBox = document.getElementById('dist');
-const solveNote = document.getElementById('solveNote');
 
 const btnCalc = document.getElementById('btnCalc');
 const btnReset= document.getElementById('btnReset');
 const btnClear= document.getElementById('btnClear');
 
+const solveBadge = document.getElementById('solveBadge');
+const noRank8Box = document.getElementById('noRank8Box');
+const nearbyTips = document.getElementById('nearbyTips');
+
 let currentChosung="";
 let selectedName=null;
 let selectedRow=null;
 
-/* ===== 바디 레벨 툴팁 ===== */
+// ===== 바디 레벨 툴팁 =====
 const tipEl = document.createElement('div');
 tipEl.className = 'floating-tip';
 document.body.appendChild(tipEl);
@@ -391,14 +410,16 @@ function showTip(target){
   const text = target.getAttribute('data-tip');
   if(!text){ hideTip(); return; }
   tipEl.textContent = '';
-  const lines = String(text).split('\n');
-  lines.forEach((line,i)=>{
+  const parts = String(text).split('\n');
+  parts.forEach((line,i)=>{
     tipEl.appendChild(document.createTextNode(line));
-    if(i < lines.length-1) tipEl.appendChild(document.createElement('br'));
+    if(i < parts.length-1) tipEl.appendChild(document.createElement('br'));
   });
   tipEl.classList.add('show');
-  tipEl.style.left = '-9999px'; tipEl.style.top  = '-9999px';
-  tipEl.removeAttribute('data-pos'); tipEl.getBoundingClientRect();
+  tipEl.style.left = '-9999px';
+  tipEl.style.top  = '-9999px';
+  tipEl.removeAttribute('data-pos');
+  tipEl.getBoundingClientRect();
   const rect = target.getBoundingClientRect();
   const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
   const margin = 8;
@@ -406,7 +427,10 @@ function showTip(target){
   let left = rect.left + rect.width/2 - tw/2;
   left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
   let top = rect.top - th - margin;
-  if(top < 6){ top = rect.bottom + margin; pos = 'bottom'; }
+  if(top < 6){
+    top = rect.bottom + margin;
+    pos = 'bottom';
+  }
   tipEl.dataset.pos = pos;
   tipEl.style.left = `${Math.round(left)}px`;
   tipEl.style.top  = `${Math.round(top)}px`;
@@ -425,7 +449,8 @@ petList.addEventListener('focusout', (e)=>{
 });
 petList.addEventListener('touchstart', (e)=>{
   const t = e.target.closest('.tag.tip'); if(!t) return;
-  e.stopPropagation(); showTip(t); clearTimeout(tipTimer); tipTimer = setTimeout(hideTip, 1800);
+  e.stopPropagation(); showTip(t);
+  clearTimeout(tipTimer); tipTimer = setTimeout(hideTip, 1800);
 }, {passive:true});
 window.addEventListener('scroll', hideTip, true);
 window.addEventListener('resize', hideTip);
@@ -438,9 +463,7 @@ document.getElementById('btnAdmin').addEventListener('click', ()=>{
   else alert('암호가 올바르지 않습니다.');
 });
 
-/* ========= 목록 ========= */
-const PRESET_MICRO_NAMES = new Set(["골로스","기가로스","노스키","디로로크스","라나프","베노투리","쿠링","흑귀"]);
-
+/* ========= 초성 UI ========= */
 function renderChosungTokens(){
   chosungTokens.innerHTML = "";
   for(const ch of currentChosung){
@@ -454,13 +477,15 @@ CHO.forEach(c=>{
   chip.className='chip'; chip.textContent=c;
   chip.addEventListener('click', ()=>{
     currentChosung += c;
-    renderPetList(); renderChosungTokens();
+    renderPetList();
+    renderChosungTokens();
     Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
     chip.classList.add('on');
   });
   chosungBar.appendChild(chip);
 });
 
+/* ========= 목록 ========= */
 function renderPetList(){
   const kw = (petSearch.value||"").trim();
   const names = ALL_NAMES.length? ALL_NAMES : Object.keys(GLOBAL_TABLE);
@@ -473,7 +498,8 @@ function renderPetList(){
   petList.innerHTML="";
   if(list.length===0){
     const d=document.createElement('div'); d.className='item'; d.textContent='결과 없음';
-    petList.appendChild(d); return;
+    petList.appendChild(d);
+    return;
   }
 
   list.forEach(n=>{
@@ -482,7 +508,7 @@ function renderPetList(){
     const left=document.createElement('div'); left.textContent = n;
     const right=document.createElement('div'); right.className="tags";
 
-    // 등록/미등록
+    // 등록/미등록 배지
     const tag1=document.createElement('span');
     tag1.className='tag ' + (GLOBAL_TABLE[n]?'ok':'warn');
     tag1.textContent = GLOBAL_TABLE[n] ? '등록됨' : '미등록';
@@ -491,39 +517,28 @@ function renderPetList(){
     // 8등급 보장 배지
     const r8 = R8MAP[n];
     if (r8 && (Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8.length : (r8.length||0))) {
-      const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8;
+      const sets = Array.isArray(r8.obs_100_rank8) ? r8.obs_100_rank8 : r8; // 둘 다 지원
       const tag2 = document.createElement('span');
       tag2.className = 'tag rank8 tip';
       tag2.textContent = '100%';
+
       const maxShow = 12;
       const preview = sets.slice(0, maxShow).map(a=>`(${a[0]},${a[1]},${a[2]},${a[3]})`).join(' · ');
       const more = sets.length>maxShow ? ` 외 ${sets.length-maxShow}세트` : '';
       const tipText = `8등급 보장 초기치\n${preview}${more}`;
       tag2.setAttribute('data-tip', tipText);
+
+      // 배지 클릭 시 선택 이벤트 전파 막기 + 모바일에서 잠깐 툴팁 표시
       tag2.tabIndex = 0;
       const stop = (e)=>{ e.stopPropagation(); };
       tag2.addEventListener('click', stop);
       tag2.addEventListener('touchstart', stop, {passive:true});
       tag2.addEventListener('click', ()=>{
-        tag2.classList.add('show'); setTimeout(()=>tag2.classList.remove('show'), 1800);
+        tag2.classList.add('show');
+        setTimeout(()=>tag2.classList.remove('show'), 1800);
       });
-      right.appendChild(tag2);
-    }
 
-    // ±보정 힌트 배지
-    if (PRESET_MICRO_NAMES.has(n)) {
-      const tag3 = document.createElement('span');
-      tag3.className = 'tag micro tip';
-      tag3.textContent = '±보정';
-      tag3.setAttribute('data-tip', '이 펫은 계산 시 Sg 소수 셋째 자리 미세 보정(최대 ±0.005)을 적용할 수 있습니다.\n결과 창에서 실제 적용 여부를 확인하세요.');
-      tag3.tabIndex = 0;
-      const stop = (e)=>{ e.stopPropagation(); };
-      tag3.addEventListener('click', stop);
-      tag3.addEventListener('touchstart', stop, {passive:true});
-      tag3.addEventListener('click', ()=>{
-        tag3.classList.add('show'); setTimeout(()=>tag3.classList.remove('show'), 1800);
-      });
-      right.appendChild(tag3);
+      right.appendChild(tag2);
     }
 
     div.appendChild(left);
@@ -558,7 +573,10 @@ function selectPetName(n){
   }else{
     obshp.value=obsatk.value=obsdef.value=obsagi.value="";
   }
-  LAST_SOLVE_NOTE = "";
+  LAST_SOLVE_NOTE = null;
+  solveBadge.className = "tag tip solve-note";
+  solveBadge.textContent = "";
+  solveBadge.removeAttribute('data-tip');
   showKpis(null);
 }
 
@@ -573,7 +591,8 @@ function showKpis(res){
     totMatches.textContent = "—";
     rank8Matches.textContent = "—";
     distBox.innerHTML = "";
-    solveNote.textContent = LAST_SOLVE_NOTE || "";
+    noRank8Box.style.display = "none";
+    nearbyTips.innerHTML = "";
     return;
   }
   const matches = res.matches|0;
@@ -592,7 +611,7 @@ function showKpis(res){
   totMatches.textContent   = matches.toLocaleString();
   rank8Matches.textContent = rank8.toLocaleString();
 
-  const entries = Object.entries(res.dist)
+  const entries = Object.entries(res.dist||{})
     .map(([r,c]) => ({r:parseInt(r,10), c}))
     .sort((a,b) => b.r - a.r || b.c - a.c);
 
@@ -606,7 +625,27 @@ function showKpis(res){
   html += `</tbody></table>`;
   distBox.innerHTML = html;
 
-  solveNote.textContent = LAST_SOLVE_NOTE || "";
+  // 8불가 안내/근접 예시
+  if (matches>0 && rank8===0 && typeof res.nearby === "object" && res.nearby.list?.length){
+    noRank8Box.style.display = "";
+    const lines = res.nearby.list.map(x=>`· 예시 ${x.key.join(', ')} → +8 비율 ${(x.pct*100).toFixed(2)}% (거리 ${x.dist})`).join('<br/>');
+    nearbyTips.innerHTML = `가장 가까운(+8 가능한) 관측치 예시<br/>${lines}`;
+  }else{
+    noRank8Box.style.display = "none";
+    nearbyTips.innerHTML = "";
+  }
+
+  // solve badge
+  if (LAST_SOLVE_NOTE){
+    const {usedAdjust, tweaked, e, sg_err, s0_ok} = LAST_SOLVE_NOTE;
+    const tip = [
+      `e=${e}, sg_err=${sg_err.toFixed(3)}, S0매칭=${s0_ok?'정확':'근사'}`,
+      usedAdjust ? `미세 조정: ${Object.entries(tweaked).map(([k,v])=>`${k}${v>=0?'+':''}${v.toFixed(3)}`).join(', ')}` : '미세 조정 없음'
+    ].join('\n');
+    solveBadge.className = "tag tip solve-note " + (usedAdjust ? "warn" : "ok");
+    solveBadge.textContent = usedAdjust ? "±보정" : "해석OK";
+    solveBadge.setAttribute('data-tip', tip);
+  }
 }
 
 /* ========= 관측치 편의 ========= */
@@ -627,7 +666,7 @@ document.addEventListener('click', (e)=>{
   const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
 });
 
-/* ========= 짜얄 호환 k/u 추정(기본) ========= */
+/* ========= 짜얄 호환 k/u 추정 ========= */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
 
 function solveUFromSG_JJYAL(SG, e){
@@ -702,12 +741,13 @@ function fitKFromS0_JJYAL(S0int,u){
     const s = s0_from_k_u_jjyal(k,u);
     const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
     const ok = (l1===0);
-    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
+    const cand={k,l1,ok,score:(ok?0:1000)+l1*10};
+    if(!best || cand.score<best.score) best=cand;
     if(ok) break;
   }
   return best;
 }
-function inferKU_JJYAL(S0, SG){
+function inferKU_JJYAL_once(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
   let best=null;
   for(const e of ESET){
@@ -716,71 +756,38 @@ function inferKU_JJYAL(S0, SG){
     const fit = fitKFromS0_JJYAL(S0int, sol.u);
     if(!fit) continue;
     const score = (fit.ok?0:1000) + fit.l1*10 + (sol.sg_err||0);
-    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err, s0_l1:fit.l1, s0_ok:fit.ok, score};
+    const cand = {k:fit.k, u:sol.u, e, sg_err:sol.sg_err||0, s0_l1:fit.l1, s0_ok:fit.ok, score};
     if(!best || cand.score<best.score) best=cand;
   }
   return best;
 }
 
-/* ========= 미세 조정 래퍼 ========= */
-function rangeOffsets(max=0.005, step=0.001){
-  const arr=[]; for(let i=1;i<=Math.round(max/step);i++){ const d=+(i*step).toFixed(3); arr.push(+d, -d); }
-  return arr; // [0.001,-0.001,0.002,-0.002,...]
-}
-const MICRO_OFFS = rangeOffsets(0.005,0.001);
-
+/* === 미세 조정 래퍼: Sg를 ±0.001..0.005 범위에서 살짝 흔들며 최적 해 탐색 === */
+const MICRO_STEPS = [0, 0.001, -0.001, 0.002, -0.002, 0.003, -0.003, 0.004, -0.004, 0.005, -0.005];
 function inferKU_WITH_MICRO(S0, SG){
-  // 1) 원본으로 시도
-  let base = inferKU_JJYAL(S0, SG);
-  if(base && base.s0_ok){
-    LAST_SOLVE_NOTE = "해 구한 방식: 원본 데이터로 일치";
-    return {...base, adjusted:false};
-  }
+  const base = inferKU_JJYAL_once(S0, SG);
+  let best = base, usedAdjust=false, tweaked={};
+  const needImprove = !best || !best.s0_ok || best.sg_err>0.05;
+  if (!needImprove) { LAST_SOLVE_NOTE = {usedAdjust:false, tweaked:{}, e:best.e, sg_err:best.sg_err, s0_ok:best.s0_ok}; return best; }
 
-  // 2) agi를 우선 미세 보정
-  let best=null, bestInfo=null;
-  for(const d of MICRO_OFFS){
-    const SG2 = {...SG, agi: +(SG.agi + d).toFixed(3)};
-    const fit = inferKU_JJYAL(S0, SG2);
-    if(!fit) continue;
-    if(fit.s0_ok){
-      const note = `해 구한 방식: 미세 보정 적용 · Sg.agi ${SG.agi.toFixed(2)} → ${SG2.agi.toFixed(3)} (${d>0?'+':''}${d.toFixed(3)})`;
-      LAST_SOLVE_NOTE = note;
-      return {...fit, adjusted:true, tweak:{field:'agi', delta:d, from:SG.agi, to:SG2.agi}};
-    }
-    // 후보 저장(완전일치가 없을 때 대비)
-    if(!best || fit.score < best.score){
-      best = fit; bestInfo = {field:'agi', delta:d, from:SG.agi, to:SG2.agi};
-    }
-  }
-
-  // 3) 그래도 안 되면 hp/atk/def 순으로 얕게 스캔
-  const fields = ['hp','atk','def'];
-  for(const f of fields){
-    for(const d of MICRO_OFFS){
-      const SG2 = {...SG, [f]: +(SG[f] + d).toFixed(3)};
-      const fit = inferKU_JJYAL(S0, SG2);
-      if(!fit) continue;
-      if(fit.s0_ok){
-        const note = `해 구한 방식: 미세 보정 적용 · Sg.${f} ${SG[f].toFixed(2)} → ${SG2[f].toFixed(3)} (${d>0?'+':''}${d.toFixed(3)})`;
-        LAST_SOLVE_NOTE = note;
-        return {...fit, adjusted:true, tweak:{field:f, delta:d, from:SG[f], to:SG2[f]}};
-      }
-      if(!best || fit.score < best.score){
-        best = fit; bestInfo = {field:f, delta:d, from:SG[f], to:SG2[f]};
+  const tryDims = ['agi','hp','atk','def']; // 우선 순위: agi → hp → atk → def
+  for (const key of tryDims){
+    for (const dx of MICRO_STEPS){
+      if (dx===0 && usedAdjust) continue; // 이미 조정 중이면 0은 스킵
+      const candSG = {...SG, [key]: +(SG[key] + dx).toFixed(3) };
+      if (candSG[key]<=0) continue;
+      const cand = inferKU_JJYAL_once(S0, candSG);
+      if(!cand) continue;
+      // 점수 조금이라도 개선되면 채택
+      if (!best || cand.score < best.score - 0.1){
+        best = cand;
+        usedAdjust = usedAdjust || (dx!==0);
+        tweaked[key] = (tweaked[key]||0) + dx;
       }
     }
   }
-
-  // 4) 완전일치가 없으면 가장 점수 좋은 후보라도 반환(표시만 명확히)
-  if(best){
-    const f = bestInfo.field, d = bestInfo.delta, from = bestInfo.from, to = bestInfo.to;
-    LAST_SOLVE_NOTE = `해 구한 방식: 미세 보정(근사) · Sg.${f} ${from.toFixed(2)} → ${to.toFixed(3)} (${d>0?'+':''}${d.toFixed(3)}) · S0 완전일치 아님(l1=${best.s0_l1})`;
-    return {...best, adjusted:true, approx:true, tweak:bestInfo};
-  }
-
-  LAST_SOLVE_NOTE = "해 구한 방식: 실패 · S0/SG 값을 확인하세요.";
-  return null;
+  LAST_SOLVE_NOTE = {usedAdjust, tweaked, e:best?.e, sg_err:best?.sg_err||0, s0_ok:best?.s0_ok||false};
+  return best;
 }
 
 /* ========= 짜얄 호환 엔진(합산 후 floor) ========= */
@@ -833,6 +840,59 @@ function enumerate_jjyal(pku, obs){
   return {matches, rank8, dist};
 }
 
+/* === rank8이 0일 때, +8 가능한 근접 관측치 예시 뽑기 (최대 5개) === */
+function findNearbyRank8Examples(pku, obs, max=5){
+  const k = pku.k;
+  const u = pku.u;
+  const fac = k/100;
+  // 전체 전수 맵을 한 번 만든 뒤, obs와 맨해튼 거리로 가까운 것부터 추립니다.
+  const counter = new Map();      // key "hp,atk,def,agi" -> count
+  const rank8ct = new Map();      // same key -> rank8 count
+  for(let ar=-2; ar<=2; ar++){
+    for(let dr=-2; dr<=2; dr++){
+      for(let gr=-2; gr<=2; gr++){
+        for(let hr=-2; hr<=2; hr++){
+          const r = ar+dr+gr+hr;
+          for(let ab=0; ab<=10; ab++){
+            for(let db=0; db<=10; db++){
+              for(let gb=0; gb<=10; gb++){
+                const hb = 10 - ab - db - gb;
+                if(hb < 0 || hb > 10) continue;
+
+                const baseA = (u.atk + ar + ab) * fac;
+                const baseD = (u.def + dr + db) * fac;
+                const baseG = (u.agi + gr + gb) * fac;
+                const baseH = (u.hp  + hr + hb) * fac;
+
+                const atk = Math.floor(baseH*0.1 + baseA + baseD*0.1 + baseG*0.05);
+                const def = Math.floor(baseH*0.1 + baseA*0.1 + baseD + baseG*0.05);
+                const agi = Math.floor(baseG);
+                const hp  = Math.floor(baseH*4 + baseA + baseD + baseG);
+
+                const key = `${hp},${atk},${def},${agi}`;
+                counter.set(key, (counter.get(key)||0) + 1);
+                if(r===8) rank8ct.set(key, (rank8ct.get(key)||0) + 1);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // rank8 가능한 키만 모아 obs와 거리 계산
+  const list=[];
+  counter.forEach((cnt, key)=>{
+    const r8 = rank8ct.get(key)||0;
+    if(r8>0){
+      const [hp,atk,def,agi] = key.split(',').map(x=>+x);
+      const dist = Math.abs(hp-obs[0])+Math.abs(atk-obs[1])+Math.abs(def-obs[2])+Math.abs(agi-obs[3]);
+      list.push({key:[hp,atk,def,agi], cnt, r8, pct: r8/cnt, dist});
+    }
+  });
+  list.sort((a,b)=> a.dist - b.dist || b.pct - a.pct); // 가까운 순, 비율 높은 순
+  return { list: list.slice(0, max) };
+}
+
 /* ========= 계산 ========= */
 btnCalc.addEventListener('click', async ()=>{
   if(!selectedName){ alert("펫을 먼저 선택하세요."); return; }
@@ -842,27 +902,33 @@ btnCalc.addEventListener('click', async ()=>{
   const row=GLOBAL_TABLE[selectedName]||{};
   if(!row?.s0 || !row?.sg){ alert("이 펫은 S0/SG가 등록되어 있지 않습니다."); return; }
 
-  // 1) 테이블에 k/u 있으면 그대로 사용, 없으면 미세 보정 래퍼로 추정
+  // 1) 테이블에 k/u 있으면 그대로 사용
   let k=row.k, u=row.u;
-  LAST_SOLVE_NOTE = "";
+  LAST_SOLVE_NOTE = null;
 
+  // 2) 없으면 짜얄 방식 + 미세 조정 래퍼로 추정
   if(!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
     const S0=[row.s0.hp, row.s0.atk, row.s0.def, row.s0.agi];
-    const SG={...row.sg}; // 원본 보호
+    const SG={hp:row.sg.hp, atk:row.sg.atk, def:row.sg.def, agi:row.sg.agi};
     const fit = inferKU_WITH_MICRO(S0, SG);
-    if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); showKpis(null); return; }
+    if(!fit){ alert("k/u 추정 실패: S0/SG를 확인하세요."); return; }
     k=fit.k; u=fit.u;
   }else{
-    LAST_SOLVE_NOTE = "해 구한 방식: 테이블(k/u) 사용";
+    LAST_SOLVE_NOTE = {usedAdjust:false, tweaked:{}, e:undefined, sg_err:0, s0_ok:true};
   }
 
-  console.log("KU USED =>", k, u, "OBS =>", obs, "NOTE =>", LAST_SOLVE_NOTE);
   const res = enumerate_jjyal({k,u}, obs);
+
+  // rank8이 0인데 매칭은 존재하면, 가까운 예시 찾아서 함께 전달
+  if (res.matches>0 && res.rank8===0){
+    const near = findNearbyRank8Examples({k,u}, obs, 5);
+    res.nearby = near;
+  }
   showKpis(res);
 });
 
 btnReset.addEventListener('click', ()=>{
-  selectedName=null; selectedRow=null; LAST_SOLVE_NOTE="";
+  selectedName=null; selectedRow=null;
   petSearch.value=""; currentChosung="";
   Array.from(chosungBar.children).forEach(el=>el.classList.remove('on'));
   renderPetList();
