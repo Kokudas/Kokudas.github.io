@@ -17,13 +17,13 @@
     padding:16px 20px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
     position:sticky; top:0; z-index:10; }
   .brand{font-weight:800; letter-spacing:.3px} .muted{color:var(--muted)}
-  .container{max-width:1200px; margin:18px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1.2fr .8fr;}
+  .container{max-width:1250px; margin:18px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1.15fr .85fr;}
   @media (max-width: 980px){ .container{grid-template-columns:1fr} }
   .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
   .card h3{margin:4px 0 12px 0; font-size:16px}
   .row{display:flex; gap:8px; flex-wrap:wrap} .col{flex:1 1 0}
   label{display:block; font-size:12px; color:var(--muted); margin:6px 0 4px 2px}
-  input[type="number"], input[type="text"], input[type="password"], textarea{
+  input[type="number"], input[type="text"], input[type="password"], textarea, select{
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
     background:#0e1218; color:var(--text); outline:none; }
   textarea{min-height:120px; font-family:ui-monospace,Menlo,Consolas,monospace}
@@ -36,28 +36,30 @@
   .btn.danger{ background:#3a0d16; color:#ff8aa1; border-color:#5c1a2b;}
   .btn.ghost{ background:transparent;} .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
   .grid-two{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
+  .grid-three{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px}
   .grid-four{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px}
   .table{width:100%; border-collapse:collapse; font-size:13px}
   .table th,.table td{border-bottom:1px solid #262d3a; padding:8px 6px; text-align:left; vertical-align:top}
   .help{font-size:12px; color:#9aa3af} .hr{border:none; border-top:1px solid #2a3040; margin:12px 0}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">NOVA SERVER PET · Admin</div>
-  <div class="muted">데이터 편집 / 추정 / GitHub 커밋</div>
+  <div class="muted">데이터 편집 / 추정 / GitHub 커밋 / 8등급 100% 초기치 생성</div>
 </header>
 
 <div class="container">
 
   <!-- 좌 -->
   <section class="card">
-    <h3>① GitHub 데이터</h3>
+    <h3>① GitHub · pets.json</h3>
     <div class="grid-two">
       <div><label>Owner</label><input id="gh_owner" type="text" value="kokudas" /></div>
       <div><label>Repo</label><input id="gh_repo" type="text" value="kokudas.github.io" /></div>
       <div><label>Branch</label><input id="gh_branch" type="text" value="main" /></div>
-      <div><label>Path (예: <span style="font-family:monospace">data/pets.json</span>)</label><input id="gh_path" type="text" value="data/pets.json" /></div>
+      <div><label>Path</label><input id="gh_path" type="text" value="data/pets.json" /></div>
       <div class="col"><label>GitHub Token (repo 권한)</label><input id="gh_token" type="password" placeholder="ghp_xxx…" /></div>
       <div class="col"><label>커밋 메시지</label><input id="gh_message" type="text" value="chore(admin): update pets.json" /></div>
     </div>
@@ -135,7 +137,35 @@
     </div>
 
     <hr class="hr"/>
-    <details><summary>JSON 미리보기</summary><textarea id="jsonPreview" readonly></textarea></details>
+
+    <h3>③ 8등급 100% 초기치 생성 & 저장</h3>
+    <div class="grid-three">
+      <div><label>R8 JSON Path</label><input id="r8_path" type="text" value="data/guaranteed_rank8.full.json" /></div>
+      <div><label>R8 커밋 메시지</label><input id="r8_message" type="text" value="feat(admin): update guaranteed_rank8.full.json" /></div>
+      <div><label>출력 정렬</label>
+        <select id="r8_sort">
+          <option value="sum">합(HP+ATK+DEF+AGI) ↑</option>
+          <option value="hp">HP ↑</option>
+          <option value="atk">ATK ↑</option>
+          <option value="def">DEF ↑</option>
+          <option value="agi">AGI ↑</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="btnR8Load">R8 JSON 로드</button>
+      <button class="btn" id="btnR8Compute">선택 페트 100% 초기치 계산</button>
+      <button class="btn primary" id="btnR8Save">R8 JSON 저장·커밋</button>
+      <span class="help" id="r8_status" style="margin-left:auto">미계산</span>
+    </div>
+
+    <div style="margin-top:8px">
+      <label>계산 결과 미리보기 (선택 페트)</label>
+      <textarea id="r8_preview" class="mono" readonly></textarea>
+      <div class="help">※ 구조: {"페트명":{"count":N,"obs_100_rank8":[[hp,atk,def,agi],…]}}</div>
+    </div>
+
   </section>
 
 </div>
@@ -162,7 +192,10 @@ function encodeUTF8Base64(str){
 
 /* =============== 상태/전역 =============== */
 let PETS = {}, GH_SHA = null, SELECTED = null;
-const $ = s=>document.querySelector(s); const statusEl = $("#status");
+let R8 = {}, R8_SHA = null;           // guaranteed_rank8 JSON
+let LAST_R8_RESULT = null;            // 마지막 계산 결과 (선택 페트 전용 미리보기)
+
+const $ = s=>document.querySelector(s); const statusEl = $("#status"); const r8StatusEl = $("#r8_status");
 
 /* =============== GitHub I/O =============== */
 async function ghGet(owner, repo, path, branch, token){
@@ -186,6 +219,7 @@ async function ghPut(owner, repo, path, branch, token, message, text, sha){
 
 /* =============== UI 유틸 =============== */
 function setStatus(m){ statusEl.textContent = m; }
+function setR8Status(m){ r8StatusEl.textContent = m; }
 function toNum(v){ const n = parseFloat(v); return Number.isFinite(n)? n : null; }
 function read4(prefix){
   return { hp: toNum($(`#${prefix}_hp`).value), atk: toNum($(`#${prefix}_atk`).value),
@@ -197,7 +231,7 @@ function write4(prefix, obj){
   $(`#${prefix}_def`).value = (obj?.def ?? "");
   $(`#${prefix}_agi`).value = (obj?.agi ?? "");
 }
-function refreshPreview(){ $("#jsonPreview").value = JSON.stringify(PETS, null, 2); }
+function refreshPreview(){ $("#jsonPreview") && ($("#jsonPreview").value = JSON.stringify(PETS, null, 2)); }
 function fmtS0(r){ const s=r?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
 function fmtSg(r){ const s=r?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
 function fmtU (r){ const u=r?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
@@ -229,6 +263,9 @@ function renderTable(sortKey="name"){
       write4("f_s0", r?.s0); write4("f_sg", r?.sg);
       $("#f_k").value = r?.k ?? ""; write4("f_u", r?.u);
       setStatus(`선택됨: ${n}`);
+      setR8Status("미계산");
+      $("#r8_preview").value = "";
+      LAST_R8_RESULT = null;
     });
     tbody.appendChild(tr);
   });
@@ -237,10 +274,9 @@ function renderTable(sortKey="name"){
 
 /* =============== 추정 엔진 (엄격 모드) =============== */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
-const SG_EPS = 0.0005;  // 소수 셋째 자리까지 일치 요구 (짜얄 호환)
+const SG_EPS = 0.0005;  // 소수 셋째 자리까지 일치 요구
 
 function calcSG_from_u_e(u, e){
-  // f = e / 10000
   const f = new Decimal(e).dividedBy(10000);
   const up = { hp:new Decimal(u.hp).plus(2.5),
                atk:new Decimal(u.atk).plus(2.5),
@@ -321,7 +357,6 @@ function fitKFromS0_JJYAL(S0int,u){
   }
   return null;
 }
-
 /* “정확해”만 반환. 없으면 null */
 function inferKU_JJYAL(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
@@ -334,17 +369,80 @@ function inferKU_JJYAL(S0, SG){
     if(!fit || !fit.ok) continue;  // S0가 정확히 일치해야 함
 
     const sgCalc = calcSG_from_u_e(sol.u, e);
-    if(!sgWithin(sgCalc, SG)) continue; // Sg도 소수 셋째 자리까지 일치해야 함
+    if(!sgWithin(sgCalc, SG)) continue; // Sg도 소수 셋째 자리까지 일치
 
-    // 여러 e가 통과하면 SG 차이 합이 가장 작은 것을 택함
     const errSum = Math.abs(sgCalc.hp - SG.hp) + Math.abs(sgCalc.atk - SG.atk)
                  + Math.abs(sgCalc.def - SG.def) + Math.abs(sgCalc.agi - SG.agi);
-    if (errSum < bestErr){
-      bestErr = errSum;
-      best = {k:fit.k, u:sol.u, e};
-    }
+    if (errSum < bestErr){ bestErr = errSum; best = {k:fit.k, u:sol.u, e}; }
   }
   return best; // 없으면 null
+}
+
+/* =============== 8등급 100% 초기치 생성기 =============== */
+/* 전수: ar,dr,gr,hr ∈ [-2..2], ab,db,gb,hb ≥0, 합=10 → 178,750 경우 */
+function computeGuaranteedR8Sets(k, u, sortKey="sum"){
+  const kD = new Decimal(k), fac = kD.dividedBy(100);
+  const setsMap = new Map(); // key "hp,atk,def,agi" -> {all8:bool, count:int}
+
+  for(let ar=-2; ar<=2; ar++){
+    for(let dr=-2; dr<=2; dr++){
+      for(let gr=-2; gr<=2; gr++){
+        for(let hr=-2; hr<=2; hr++){
+          const r = ar+dr+gr+hr;
+          for(let ab=0; ab<=10; ab++){
+            for(let db=0; db<=10; db++){
+              for(let gb=0; gb<=10; gb++){
+                const hb = 10 - ab - db - gb;
+                if(hb < 0 || hb > 10) continue;
+
+                const baseA = new Decimal(u.atk + ar + ab);
+                const baseD = new Decimal(u.def + dr + db);
+                const baseG = new Decimal(u.agi + gr + gb);
+                const baseH = new Decimal(u.hp  + hr + hb);
+
+                const iA = baseA.times(fac);
+                const iD = baseD.times(fac);
+                const iG = baseG.times(fac);
+                const iH = baseH.times(fac);
+
+                const obsAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
+                const obsDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
+                const obsAgi = iG.floor().toNumber();
+                const obsHp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
+
+                const key = `${obsHp},${obsAtk},${obsDef},${obsAgi}`;
+                let cell = setsMap.get(key);
+                if(!cell){ cell = { all8:true, count:0 }; setsMap.set(key, cell); }
+                cell.count++;
+                if(r !== 8) cell.all8 = false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 추출: all8==true인 관측 세트만
+  let arr = [];
+  setsMap.forEach((v, k)=>{
+    if(v.all8){
+      const nums = k.split(",").map(s=>+s);
+      arr.push(nums);
+    }
+  });
+
+  // 정렬
+  const idx = {hp:0, atk:1, def:2, agi:3};
+  if (sortKey === "sum"){
+    arr.sort((a,b)=>(a[0]+a[1]+a[2]+a[3]) - (b[0]+b[1]+b[2]+b[3])
+              || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+  }else{
+    const i = idx[sortKey] ?? 0;
+    arr.sort((a,b)=>a[i]-b[i] || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+  }
+
+  return arr;
 }
 
 /* =============== 이벤트: 로드/저장/검색/정렬 =============== */
@@ -387,10 +485,10 @@ $("#btnSortName").addEventListener("click", ()=>renderTable("name"));
 $("#btnSortHasKU").addEventListener("click", ()=>renderTable("hasKU"));
 
 /* =============== 폼/CRUD =============== */
-function renderTableHelper(){ renderTable(); }
 $("#btnClearForm").addEventListener("click", ()=>{
   SELECTED = null; $("#f_name").value = ""; write4("f_s0", null); write4("f_sg", null); $("#f_k").value = ""; write4("f_u", null);
   setStatus("폼 초기화");
+  setR8Status("미계산"); $("#r8_preview").value = ""; LAST_R8_RESULT = null;
 });
 $("#btnApply").addEventListener("click", ()=>{
   const name = $("#f_name").value.trim(); if(!name){ alert("이름을 입력하세요."); return; }
@@ -423,8 +521,71 @@ $("#btnInfer").addEventListener("click", ()=>{
   setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi}), e=${fit.e}`);
 });
 
+/* =============== R8 JSON 로드/저장 =============== */
+$("#btnR8Load").addEventListener("click", async ()=>{
+  try{
+    setR8Status("R8 로드 중…");
+    const owner  = $("#gh_owner").value.trim();
+    const repo   = $("#gh_repo").value.trim();
+    const branch = $("#gh_branch").value.trim();
+    const token  = $("#gh_token").value.trim();
+    const path   = $("#r8_path").value.trim();
+    const r = await ghGet(owner, repo, path, branch, token);
+    if (r.notFound){ R8 = {}; R8_SHA = null; setR8Status("원격 R8 JSON 없음(새로 생성 예정)."); }
+    else { R8 = JSON.parse(r.text); R8_SHA = r.sha||null; setR8Status(`R8 로드 완료 · ${Object.keys(R8).length} 종`); }
+  }catch(err){ console.error(err); setR8Status("R8 로드 실패"); alert("R8 로드 실패:\n" + (err?.message||err)); }
+});
+
+$("#btnR8Save").addEventListener("click", async ()=>{
+  try{
+    const owner  = $("#gh_owner").value.trim();
+    const repo   = $("#gh_repo").value.trim();
+    const branch = $("#gh_branch").value.trim();
+    const token  = $("#gh_token").value.trim();
+    const path   = $("#r8_path").value.trim();
+    const msg    = $("#r8_message").value.trim() || "update";
+    const text = JSON.stringify(R8, null, 2);
+    setR8Status("R8 저장·커밋 중…");
+    const newSha = await ghPut(owner, repo, path, branch, token, msg, text, R8_SHA);
+    R8_SHA = newSha || R8_SHA; setR8Status("R8 저장·커밋 완료!"); alert("R8 저장·커밋 완료!");
+  }catch(err){ console.error(err); setR8Status("R8 저장 실패"); alert("R8 저장 실패:\n" + (err?.message||err)); }
+});
+
+/* =============== 선택 페트 8등급 100% 초기치 계산 =============== */
+$("#btnR8Compute").addEventListener("click", ()=>{
+  const name = $("#f_name").value.trim();
+  if (!name){ alert("오른쪽 폼에서 페트를 선택하거나 이름을 입력하세요."); return; }
+  const row = PETS[name];
+  if (!row){ alert("현재 로드된 pets.json에 이 이름이 없습니다. 먼저 추가/갱신 후 시도하세요."); return; }
+
+  // k/u 확보 (없으면 엄격 추정 시도)
+  let k = row.k, u = row.u;
+  if (!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
+    const S0=row.s0, SG=row.sg;
+    if(!S0 || !SG || ![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+      alert("k/u가 없고 S0/SG도 불완전합니다. 먼저 k/u를 채우거나 추정하세요."); return;
+    }
+    const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG);
+    if(!fit){ alert("k/u 추정 실패: 정확해가 없어 100% 초기치 계산을 중단합니다."); return; }
+    k = fit.k; u = fit.u;
+  }
+
+  const sortKey = $("#r8_sort").value || "sum";
+  setR8Status("전수탐색 계산 중… (178,750 경우)");
+  const t0 = performance.now();
+  const sets = computeGuaranteedR8Sets(k, u, sortKey);
+  const t1 = performance.now();
+  LAST_R8_RESULT = { [name]: { count: sets.length, obs_100_rank8: sets } };
+  $("#r8_preview").value = JSON.stringify(LAST_R8_RESULT, null, 2) + `\n\n(소요 ${(t1-t0).toFixed(0)} ms)`;
+  setR8Status(`계산 완료: ${name} · ${sets.length}세트`);
+  
+  // R8에 즉시 병합(사용자 편의): 같은 이름은 덮어쓰기
+  R8[name] = { count: sets.length, obs_100_rank8: sets };
+});
+
 /* =============== 초기 =============== */
 setStatus("대기중… (좌측 상단에서 로드)");
+setR8Status("미계산");
 </script>
 </body>
 </html>
