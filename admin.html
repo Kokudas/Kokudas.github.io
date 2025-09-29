@@ -3,359 +3,180 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NOVA 서버 펫 관리자 · admin.html</title>
-<link rel="shortcut icon" href="data:image/x-icon;," />
+<title>NOVA PET Admin — 수동 오버라이드 지원</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
-  :root{ --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
+  :root{
+    --bg:#0f1115; --panel:#161a22; --muted:#8a9099; --accent:#6aa0ff;
     --ok:#35c759; --warn:#ffb300; --bad:#ff5171; --chip:#232a36;
-    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff; }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text);}
-  header{ display:flex; align-items:center; justify-content:space-between;
-    padding:16px 20px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
-    position:sticky; top:0; z-index:10; }
-  .brand{font-weight:800; letter-spacing:.3px} .muted{color:var(--muted)}
-  .container{max-width:1250px; margin:18px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1.15fr .85fr;}
-  @media (max-width: 980px){ .container{grid-template-columns:1fr} }
-  .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
-  .card h3{margin:4px 0 12px 0; font-size:16px}
-  .row{display:flex; gap:8px; flex-wrap:wrap} .col{flex:1 1 0}
-  label{display:block; font-size:12px; color:var(--muted); margin:6px 0 4px 2px}
-  input[type="number"], input[type="text"], input[type="password"], textarea, select{
+    --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:#0f1115; color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #232a36;background:#0c1016;position:sticky;top:0;z-index:10}
+  .brand{font-weight:700}
+  .grid{max-width:1200px;margin:16px auto;padding:0 16px;display:grid;grid-template-columns: 320px 1fr;gap:14px}
+  .card{background:#161a22;border:1px solid #232a36;border-radius:12px; padding:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .col{flex:1 1 0}
+  label{display:block;font-size:12px;color:var(--muted);margin:6px 0 4px 2px}
+  input,textarea,select{
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
-    background:#0e1218; color:var(--text); outline:none; }
-  textarea{min-height:120px; font-family:ui-monospace,Menlo,Consolas,monospace}
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-  .btn{ padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600; }
-  .btn:hover{filter:brightness(1.1)}
-  .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
-  .btn.warn{ background:#3b2a00; color:#ffcf66; border-color:#6a5200;}
-  .btn.danger{ background:#3a0d16; color:#ff8aa1; border-color:#5c1a2b;}
-  .btn.ghost{ background:transparent;} .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
-  .grid-two{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
-  .grid-three{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px}
-  .grid-four{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px}
-  .table{width:100%; border-collapse:collapse; font-size:13px}
-  .table th,.table td{border-bottom:1px solid #262d3a; padding:8px 6px; text-align:left; vertical-align:top}
-  .help{font-size:12px; color:#9aa3af} .hr{border:none; border-top:1px solid #2a3040; margin:12px 0}
-  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    background:#0e1218; color:var(--text); outline:none; font-size:14px;
+  }
+  textarea{min-height:84px; resize:vertical}
+  .btn{padding:10px 12px;border-radius:10px;border:1px solid #334055;background:#142033;color:#cfe1ff;cursor:pointer;font-weight:600}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc);border-color:transparent;color:white}
+  .btn.ghost{background:transparent}
+  .btn.warn{border-color:#7a1e2e;background:#2a0f16;color:#ff8aa0}
+  .list{max-height:70vh;overflow:auto;border:1px solid #2a3040;border-radius:10px}
+  .item{padding:10px 12px;border-bottom:1px solid #222836;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
+  .item:hover{background:#141924}
+  .muted{color:var(--muted)}
+  .tags{display:flex;gap:6px;align-items:center}
+  .tag{font-size:11px;border:1px solid #2b3242;border-radius:999px;padding:2px 8px}
+  .tag.ok{border-color:#275a34;background:#102214;color:#35c759}
+  .tag.warn{border-color:#7a5b0e;background:#241a05;color:#ffb300}
+  .tag.bad{border-color:#5a1e2a;background:#201016;color:#ff7e92}
+  .grid2{display:grid;grid-template-columns: repeat(4,1fr);gap:8px}
+  .grid3{display:grid;grid-template-columns: repeat(3,1fr);gap:8px}
+  .hr{height:1px;background:#242a36;margin:10px -12px}
+  .note{font-size:12px;color:#b8bfd0}
+  .callout{border:1px solid #334055;background:#0f1420;border-radius:10px;padding:10px 12px}
+  .callout.bad{border-color:#5a1e2a;background:#1a0f14}
+  .callout.ok{border-color:#275a34;background:#0f1912}
+  .right{display:flex;gap:8px;align-items:center}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">NOVA SERVER PET · Admin</div>
-  <div class="muted">데이터 편집 / 추정 / GitHub 커밋 / 8등급 100% 초기치 생성</div>
+  <div class="brand">NOVA PET Admin</div>
+  <div class="right">
+    <button class="btn" id="btnReload">원격 새로고침</button>
+    <button class="btn ghost" id="btnExport">로컬 다운로드</button>
+    <button class="btn primary" id="btnCommit">GitHub 커밋</button>
+  </div>
 </header>
 
-<div class="container">
-
-  <!-- 좌 -->
+<div class="grid">
+  <!-- 좌: 목록 -->
   <section class="card">
-    <h3>① GitHub · pets.json</h3>
-    <div class="grid-two">
-      <div><label>Owner</label><input id="gh_owner" type="text" value="kokudas" /></div>
-      <div><label>Repo</label><input id="gh_repo" type="text" value="kokudas.github.io" /></div>
-      <div><label>Branch</label><input id="gh_branch" type="text" value="main" /></div>
-      <div><label>Path</label><input id="gh_path" type="text" value="data/pets.json" /></div>
-      <div class="col"><label>GitHub Token (repo 권한)</label><input id="gh_token" type="password" placeholder="ghp_xxx…" /></div>
-      <div class="col"><label>커밋 메시지</label><input id="gh_message" type="text" value="chore(admin): update pets.json" /></div>
+    <div class="row" style="margin-bottom:8px">
+      <input id="search" placeholder="이름 검색" />
+      <button class="btn" id="btnNew">+ 새 페트</button>
     </div>
-
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btnLoad">로드</button>
-      <button class="btn primary" id="btnSave">저장·커밋</button>
-      <button class="btn ghost" id="btnBackup">로컬로 백업(.json)</button>
-      <span class="help" id="status" style="margin-left:auto">대기중…</span>
-    </div>
-
-    <hr class="hr"/>
-
-    <div class="row">
-      <input id="search" type="text" placeholder="이름 검색…" style="flex:1 1 240px" />
-      <button class="btn" id="btnSortName">이름 정렬</button>
-      <button class="btn" id="btnSortHasKU">k/u 채움 우선</button>
-      <span class="help">행 클릭 → 우측 폼에 로딩</span>
-    </div>
-
-    <div style="margin-top:8px; max-height: 55vh; overflow:auto; border:1px solid #2a3040; border-radius:10px;">
-      <table class="table" id="tbl">
-        <thead>
-          <tr><th style="width:180px">이름</th><th>S0 (hp/atk/def/agi)</th><th>Sg (hp/atk/def/agi)</th><th>k</th><th>u (hp/atk/def/agi)</th></tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
+    <div class="list" id="list"></div>
   </section>
 
-  <!-- 우 -->
+  <!-- 우: 에디터 -->
   <section class="card">
-    <h3>② 행 편집</h3>
-
-    <div class="row"><div class="col"><label>이름</label><input id="f_name" type="text" placeholder="예: 골로스" /></div></div>
-
-    <div style="margin-top:6px"><label>표기 초기치 S0</label>
-      <div class="grid-four">
-        <input id="f_s0_hp"  type="number" step="0.01" placeholder="hp" />
-        <input id="f_s0_atk" type="number" step="0.01" placeholder="atk" />
-        <input id="f_s0_def" type="number" step="0.01" placeholder="def" />
-        <input id="f_s0_agi" type="number" step="0.01" placeholder="agi" />
-      </div>
-    </div>
-
-    <div style="margin-top:6px"><label>표기 성장치 Sg</label>
-      <div class="grid-four">
-        <input id="f_sg_hp"  type="number" step="0.01" placeholder="hp" />
-        <input id="f_sg_atk" type="number" step="0.01" placeholder="atk" />
-        <input id="f_sg_def" type="number" step="0.01" placeholder="def" />
-        <input id="f_sg_agi" type="number" step="0.001" placeholder="agi" />
-      </div>
-      <div class="help" style="margin-top:4px">* agi는 소수 셋째 자리까지 입력 가능.</div>
-    </div>
-
-    <div class="row" style="margin-top:6px">
-      <div class="col"><label>k</label><input id="f_k" type="number" step="1" placeholder="auto" /></div>
+    <div class="row">
       <div class="col">
-        <label>u.hp / u.atk / u.def / u.agi</label>
-        <div class="grid-four">
-          <input id="f_u_hp"  type="number" step="1" placeholder="u.hp" />
-          <input id="f_u_atk" type="number" step="1" placeholder="u.atk" />
-          <input id="f_u_def" type="number" step="1" placeholder="u.def" />
-          <input id="f_u_agi" type="number" step="1" placeholder="u.agi" />
+        <label>이름</label>
+        <input id="name" placeholder="예: 골로스" />
+      </div>
+      <div class="col">
+        <label>메모(선택)</label>
+        <input id="note" placeholder="관리자 메모(내부용)" />
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div>
+      <label>표기 초기치 S0 (체/공/방/순)</label>
+      <div class="grid2">
+        <input id="s0_hp"  type="number" step="0.01" placeholder="hp 67.62" />
+        <input id="s0_atk" type="number" step="0.01" placeholder="atk 14.83" />
+        <input id="s0_def" type="number" step="0.01" placeholder="def 9.54" />
+        <input id="s0_agi" type="number" step="0.01" placeholder="agi 8.26" />
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>표기 성장치 Sg (체/공/방/순)</label>
+      <div class="grid2">
+        <input id="sg_hp"  type="number" step="0.01" placeholder="hp 10.51" />
+        <input id="sg_atk" type="number" step="0.01" placeholder="atk 2.30" />
+        <input id="sg_def" type="number" step="0.01" placeholder="def 1.48" />
+        <input id="sg_agi" type="number" step="0.001" placeholder="agi 1.283" />
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row" style="align-items:center">
+      <label style="margin:0 8px 0 2px">
+        <input type="checkbox" id="ovr_check" /> 수동 오버라이드(k/u 강제)
+      </label>
+      <button class="btn" id="btnSolve">S0/SG로 k/u 추정</button>
+      <button class="btn warn" id="btnClearKU">오버라이드 해제</button>
+      <span class="note">추정은 STRICT 모드(해 없으면 오류)</span>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <div style="min-width:120px">
+        <label>k</label>
+        <input id="ku_k" type="number" step="1" placeholder="예: 28" />
+      </div>
+      <div class="col">
+        <label>u (hp / atk / def / agi)</label>
+        <div class="grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <input id="ku_hp"  type="number" step="1" placeholder="예: 31" />
+          <input id="ku_atk" type="number" step="1" placeholder="예: 41" />
+          <input id="ku_def" type="number" step="1" placeholder="예: 20" />
+          <input id="ku_agi" type="number" step="1" placeholder="예: 25" />
         </div>
       </div>
     </div>
 
-    <div class="row" style="margin-top:8px">
-      <div class="col">
-        <label>추정 일치 기준</label>
-        <select id="infer_mode">
-          <option value="strict">엄격(±0.0005, 모든 항목 실수비교)</option>
-          <option value="tolerant" selected>관용(표기 반올림 일치: HP/ATK/DEF=둘째, AGI=셋째)</option>
-        </select>
-      </div>
-      <span class="help" style="align-self:flex-end">* 관용 모드는 먼저 엄격으로 시도 후 실패 시 반올림 일치로 재시도합니다.</span>
+    <div id="consistency" class="callout" style="margin-top:10px;display:none"></div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <button class="btn primary" id="btnSave">저장(메모리)</button>
+      <button class="btn" id="btnSaveCommit">저장 후 커밋</button>
+      <span class="note">커밋은 GitHub 토큰 필요</span>
     </div>
-
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btnInfer">추정(k/u)</button>
-      <button class="btn" id="btnApply">추가/갱신</button>
-      <button class="btn warn" id="btnClearForm">폼 초기화</button>
-      <button class="btn danger" id="btnDelete">선택 삭제</button>
-      <span class="help" style="margin-left:auto">※ 자동 미세조정 없음. 불일치 시 명확히 오류 표시.</span>
-    </div>
-
-    <hr class="hr"/>
-
-    <h3>③ 8등급 100% 초기치 생성 & 저장</h3>
-    <div class="grid-three">
-      <div><label>R8 JSON Path</label><input id="r8_path" type="text" value="data/guaranteed_rank8.full.json" /></div>
-      <div><label>R8 커밋 메시지</label><input id="r8_message" type="text" value="feat(admin): update guaranteed_rank8.full.json" /></div>
-      <div><label>출력 정렬</label>
-        <select id="r8_sort">
-          <option value="sum">합(HP+ATK+DEF+AGI) ↑</option>
-          <option value="hp">HP ↑</option>
-          <option value="atk">ATK ↑</option>
-          <option value="def">DEF ↑</option>
-          <option value="agi">AGI ↑</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:8px">
-      <button class="btn" id="btnR8Load">R8 JSON 로드</button>
-      <button class="btn" id="btnR8Compute">선택 페트 100% 초기치 계산</button>
-      <button class="btn primary" id="btnR8Save">R8 JSON 저장·커밋</button>
-      <span class="help" id="r8_status" style="margin-left:auto">미계산</span>
-    </div>
-
-    <div style="margin-top:8px">
-      <label>계산 결과 미리보기 (선택 페트)</label>
-      <textarea id="r8_preview" class="mono" readonly></textarea>
-      <div class="help">※ 구조: {"페트명":{"count":N,"obs_100_rank8":[[hp,atk,def,agi],…]}}</div>
-    </div>
-
   </section>
-
 </div>
 
 <script>
-/* =============== UTF-8 안전 Base64 =============== */
-function decodeBase64UTF8(b64){
-  const cleaned = (b64||"").replace(/\s/g, "");
-  const bin = atob(cleaned);
-  if (typeof TextDecoder !== "undefined") {
-    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    return new TextDecoder("utf-8").decode(bytes);
-  }
-  return decodeURIComponent(escape(bin));
+/* ====== 설정 ====== */
+const GH_OWNER  = "kokudas";
+const GH_REPO   = "kokudas.github.io";
+const GH_BRANCH = "main";
+const PETS_PATH = "data/pets.json";
+const REMOTE_PETS = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${PETS_PATH}`;
+
+const LS_KEY = "adminPetsCache_v2";
+
+/* ====== 상태 ====== */
+let DB = {};           // name -> row
+let ORDER = [];        // 이름 정렬
+let CURRENT = null;    // 현재 편집 이름
+let CURRENT_SHA = "";  // GitHub 커밋용
+
+/* ====== 유틸 ====== */
+function fetchJSON(url){
+  return fetch(url + `?v=${Date.now()}`, {cache:"no-store"})
+    .then(r => { if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); });
 }
-function encodeUTF8Base64(str){
-  if (typeof TextEncoder !== "undefined") {
-    const bytes = new TextEncoder().encode(str);
-    let bin = ""; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-  return btoa(unescape(encodeURIComponent(str)));
+function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+function loadLS(){
+  try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch{ return null; }
 }
+function sortNames(){ ORDER = Object.keys(DB).sort((a,b)=>a.localeCompare(b,'ko')); }
+function $(id){ return document.getElementById(id); }
+const num = (v)=> (v===""||v==null||isNaN(+v)) ? null : +v;
+const floor4 = (a)=> a.map(x=>Math.floor(x??NaN));
+function toFixed2(x){ return new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(); }
 
-/* =============== 상태/전역 =============== */
-let PETS = {}, GH_SHA = null, SELECTED = null;
-let R8 = {}, R8_SHA = null;
-let LAST_R8_RESULT = null;
-
-const $ = s=>document.querySelector(s);
-const statusEl = $("#status"); const r8StatusEl = $("#r8_status");
-
-/* =============== GitHub I/O =============== */
-async function ghGet(owner, repo, path, branch, token){
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
-  const res = await fetch(url, { headers: token? {Authorization:`Bearer ${token}`} : {} });
-  if (res.status === 404) return { notFound:true };
-  if (!res.ok) throw new Error("GitHub GET 실패: " + res.status);
-  const data = await res.json();
-  const text = decodeBase64UTF8(data.content);
-  return { text, sha:data.sha };
-}
-async function ghPut(owner, repo, path, branch, token, message, text, sha){
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-  const body = { message: message||"update", content: encodeUTF8Base64(text), branch };
-  if (sha) body.sha = sha;
-  const res = await fetch(url, { method:"PUT", headers: { "Authorization":`Bearer ${token}`, "Content-Type":"application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error("GitHub PUT 실패: " + res.status);
-  const data = await res.json();
-  return data.content && data.content.sha;
-}
-
-/* =============== UI 유틸 =============== */
-function setStatus(m){ statusEl.textContent = m; }
-function setR8Status(m){ r8StatusEl.textContent = m; }
-function toNum(v){ const n = parseFloat(v); return Number.isFinite(n)? n : null; }
-function read4(prefix){
-  return { hp: toNum($(`#${prefix}_hp`).value), atk: toNum($(`#${prefix}_atk`).value),
-           def:toNum($(`#${prefix}_def`).value), agi: toNum($(`#${prefix}_agi`).value) };
-}
-function write4(prefix, obj){
-  $(`#${prefix}_hp`).value  = (obj?.hp  ?? "");
-  $(`#${prefix}_atk`).value = (obj?.atk ?? "");
-  $(`#${prefix}_def`).value = (obj?.def ?? "");
-  $(`#${prefix}_agi`).value = (obj?.agi ?? "");
-}
-function fmtS0(r){ const s=r?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
-function fmtSg(r){ const s=r?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
-function fmtU (r){ const u=r?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
-
-/* =============== 목록 렌더 =============== */
-function renderTable(sortKey="name"){
-  const tbody = $("#tbody"); tbody.innerHTML = "";
-  const kw = ($("#search").value||"").trim();
-  let names = Object.keys(PETS);
-  if (sortKey === "name") names.sort((a,b)=>a.localeCompare(b,'ko'));
-  if (sortKey === "hasKU") names.sort((a,b)=>{
-    const ak = Number.isFinite(PETS[a]?.k)?1:0, bk = Number.isFinite(PETS[b]?.k)?1:0;
-    if (bk !== ak) return bk-ak; return a.localeCompare(b,'ko');
-  });
-
-  names.forEach(n=>{
-    if (kw && !n.includes(kw)) return;
-    const r = PETS[n];
-    const tr = document.createElement("tr");
-    const tdN = document.createElement("td"); tdN.textContent = n; tdN.style.cursor="pointer";
-    const tdS0= document.createElement("td"); tdS0.textContent = fmtS0(r);
-    const tdSg= document.createElement("td"); tdSg.textContent = fmtSg(r);
-    const tdK = document.createElement("td"); tdK.textContent  = (r?.k ?? "");
-    const tdU = document.createElement("td"); tdU.textContent  = fmtU(r);
-    tr.appendChild(tdN); tr.appendChild(tdS0); tr.appendChild(tdSg); tr.appendChild(tdK); tr.appendChild(tdU);
-    tr.addEventListener("click", ()=>{
-      SELECTED = n;
-      $("#f_name").value = n;
-      write4("f_s0", r?.s0); write4("f_sg", r?.sg);
-      $("#f_k").value = r?.k ?? ""; write4("f_u", r?.u);
-      setStatus(`선택됨: ${n}`);
-      setR8Status("미계산");
-      $("#r8_preview").value = "";
-      LAST_R8_RESULT = null;
-    });
-    tbody.appendChild(tr);
-  });
-}
-
-/* =============== 추정 엔진 (엄격/관용) =============== */
-const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
-const SG_EPS_STRICT = 0.0005;
-
-function calcSG_from_u_e(u, e){
-  const f = new Decimal(e).dividedBy(10000);
-  const up = { hp:new Decimal(u.hp).plus(2.5),
-               atk:new Decimal(u.atk).plus(2.5),
-               def:new Decimal(u.def).plus(2.5),
-               agi:new Decimal(u.agi).plus(2.5) };
-  const hp  = f.times( up.hp.times(4).plus(up.atk).plus(up.def).plus(up.agi) );
-  const atk = f.times( up.hp.times(0.1).plus(up.atk).plus(up.def.times(0.1)).plus(up.agi.times(0.05)) );
-  const def = f.times( up.hp.times(0.1).plus(up.atk.times(0.1)).plus(up.def).plus(up.agi.times(0.05)) );
-  const agi = f.times( up.agi );
-  return { hp:+hp, atk:+atk, def:+def, agi:+agi };
-}
-
-function sgWithinStrict(sgCalc, SG){
-  return Math.abs(sgCalc.hp - SG.hp)  <= SG_EPS_STRICT &&
-         Math.abs(sgCalc.atk - SG.atk)<= SG_EPS_STRICT &&
-         Math.abs(sgCalc.def - SG.def)<= SG_EPS_STRICT &&
-         Math.abs(sgCalc.agi - SG.agi)<= SG_EPS_STRICT;
-}
-
-/* 관용: 표기 반올림 일치 (hp/atk/def는 2dp, agi는 3dp) */
-function roundTo(x, dp){ return +new Decimal(x).toDecimalPlaces(dp, Decimal.ROUND_HALF_UP); }
-function sgWithinTolerant(sgCalc, SG){
-  const hpC = roundTo(sgCalc.hp, 2),  hpT = roundTo(SG.hp, 2);
-  const akC = roundTo(sgCalc.atk, 2), akT = roundTo(SG.atk, 2);
-  const dfC = roundTo(sgCalc.def, 2), dfT = roundTo(SG.def, 2);
-  const agC = roundTo(sgCalc.agi, 3), agT = roundTo(SG.agi, 3);
-  return (hpC===hpT) && (akC===akT) && (dfC===dfT) && (agC===agT);
-}
-
-function solveUFromSG_JJYAL(SG, e){
-  try{
-    if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
-    Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
-
-    const eD = new Decimal(e);
-    const f  = eD.dividedBy(10000);
-    // u.agi 추정
-    const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
-    const u_agi = d.round();
-
-    const dPlus25 = u_agi.plus(2.5);
-    const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
-    const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
-    const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
-
-    let A = [
-      [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
-      [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
-      [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
-    ];
-    for(let i=0;i<3;i++){
-      let mr=i, mv=A[i][i].abs();
-      for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
-      if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
-      const piv=A[i][i];
-      for(let j=i;j<4;j++) A[i][j]=A[i][j].dividedBy(piv);
-      for(let k=0;k<3;k++){
-        if(k===i) continue;
-        const fac=A[k][i];
-        for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
-      }
-    }
-    const u_hp  = A[0][3].minus(2.5).round();
-    const u_atk = A[1][3].minus(2.5).round();
-    const u_def = A[2][3].minus(2.5).round();
-
-    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e };
-  }catch{ return null; }
-}
+/* ====== 짜얄 호환 수식(STRICT) ====== */
+const ESET = [575,555,535,515,495,475,455,435];
 
 function s0_from_k_u_jjyal(k,u){
   const fac = k/100;
@@ -369,323 +190,379 @@ function s0_from_k_u_jjyal(k,u){
   const s_agi= Math.floor(vagi);
   return [s_hp,s_atk,s_def,s_agi];
 }
-function fitKFromS0_JJYAL(S0int,u){
-  for(let k=10;k<=100;k++){
-    const s = s0_from_k_u_jjyal(k,u);
-    const ok = (s[0]===S0int[0] && s[1]===S0int[1] && s[2]===S0int[2] && s[3]===S0int[3]);
-    if (ok) return {k, ok:true};
+
+function solveUFromSG_STRICT(SG,e){
+  try{
+    if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
+    Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+
+    const eD = new Decimal(e);
+    const f  = eD.dividedBy(10000);
+    const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
+    const u_agi = d.round(); // 정수
+
+    const dPlus25 = u_agi.plus(2.5);
+    const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
+    const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+    const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
+
+    // Gauss
+    let A = [
+      [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
+      [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
+      [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
+    ];
+    for(let i=0;i<3;i++){
+      let mr=i; let mv=A[i][i].abs();
+      for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
+      if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
+      const piv=A[i][i];
+      for(let j=i;j<4;j++) A[i][j]=A[i][j].dividedBy(piv);
+      for(let k=0;k<3;k++){
+        if(k===i) continue;
+        const fac=A[k][i];
+        for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
+      }
+    }
+    const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
+
+    const u_hp  = aPrime.minus(2.5).round();
+    const u_atk = bPrime.minus(2.5).round();
+    const u_def = cPrime.minus(2.5).round();
+
+    // 재합성하고 소수 2째 반올림 정확히 일치해야 STRICT 통과
+    const r2 = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
+    const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const agi_chk = r2( f.times( u_agi.plus(2.5) ) );
+
+    const ok = hp_chk.eq(r2(SG.hp)) && atk_chk.eq(r2(SG.atk)) && def_chk.eq(r2(SG.def)) && agi_chk.eq(r2(SG.agi));
+    if(!ok) return null;
+
+    return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e:+e };
+  }catch{ return null; }
+}
+
+function inferKU_STRICT(S0,SG){
+  const S0int = floor4(S0);
+  let best = null;
+  for(const e of ESET){
+    const sol = solveUFromSG_STRICT(SG, e);
+    if(!sol) continue;
+    // k를 10~100 스캔해서 S0 정수부 완전일치 찾기
+    for(let k=10;k<=100;k++){
+      const s = s0_from_k_u_jjyal(k, sol.u);
+      const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
+      if(l1===0){ return {k,u:sol.u,e}; } // 완전일치 즉시 반환
+      if(!best || l1 < best.l1){ best={k,u:sol.u,e,l1}; }
+    }
   }
+  // STRICT: 완전일치 못 찾으면 실패로 간주
   return null;
 }
 
-/* 모드별 추정: strict만 / tolerant면 strict 실패 시 tolerant 재시도 */
-function inferKU_JJYAL(S0, SG, mode){
-  const S0int = S0.map(x=>Math.floor(x));
-  let best=null, bestErr=Infinity;
+/* ====== UI 렌더 ====== */
+const listEl = $("list");
+const searchEl = $("search");
 
-  const tryWith = (cmpFn)=>{
-    let localBest=null, localErr=Infinity;
-    for(const e of ESET){
-      const sol = solveUFromSG_JJYAL(SG, e);
-      if(!sol) continue;
+function renderList(){
+  const kw = (searchEl.value||"").trim();
+  const show = ORDER.filter(n => kw ? n.includes(kw) : true);
+  listEl.innerHTML = "";
+  if(show.length===0){
+    const d = document.createElement('div');
+    d.className="item";
+    d.textContent="결과 없음";
+    listEl.appendChild(d);
+    return;
+  }
+  for(const n of show){
+    const row = DB[n]||{};
+    const it = document.createElement('div');
+    it.className="item";
+    const left = document.createElement('div');
+    left.textContent = n;
+    const right = document.createElement('div');
+    right.className="tags";
+    const t1 = document.createElement('span');
+    t1.className = "tag " + (row?.s0 && row?.sg ? "ok" : "warn");
+    t1.textContent = row?.s0 && row?.sg ? "S0/SG" : "미완";
+    right.appendChild(t1);
 
-      const fit = fitKFromS0_JJYAL(S0int, sol.u);
-      if(!fit || !fit.ok) continue;
-
-      const sgCalc = calcSG_from_u_e(sol.u, e);
-      if(!cmpFn(sgCalc, SG)) continue;
-
-      const errSum = Math.abs(sgCalc.hp - SG.hp) + Math.abs(sgCalc.atk - SG.atk)
-                   + Math.abs(sgCalc.def - SG.def) + Math.abs(sgCalc.agi - SG.agi);
-      if (errSum < localErr){ localErr = errSum; localBest = {k:fit.k, u:sol.u, e}; }
+    if(row?.ku_override){
+      const t2 = document.createElement('span');
+      t2.className = "tag warn";
+      t2.textContent = "k/u수동";
+      right.appendChild(t2);
     }
-    return localBest;
+    it.appendChild(left); it.appendChild(right);
+    it.addEventListener('click', ()=>loadForm(n));
+    listEl.appendChild(it);
+  }
+}
+
+function loadForm(name){
+  CURRENT = name;
+  const r = DB[name] || {};
+  $("name").value = name;
+  $("note").value = r.note || "";
+
+  $("s0_hp").value  = r?.s0?.hp  ?? "";
+  $("s0_atk").value = r?.s0?.atk ?? "";
+  $("s0_def").value = r?.s0?.def ?? "";
+  $("s0_agi").value = r?.s0?.agi ?? "";
+
+  $("sg_hp").value  = r?.sg?.hp  ?? "";
+  $("sg_atk").value = r?.sg?.atk ?? "";
+  $("sg_def").value = r?.sg?.def ?? "";
+  $("sg_agi").value = r?.sg?.agi ?? "";
+
+  $("ovr_check").checked = !!r.ku_override;
+
+  $("ku_k").value   = r?.k ?? "";
+  $("ku_hp").value  = r?.u?.hp  ?? "";
+  $("ku_atk").value = r?.u?.atk ?? "";
+  $("ku_def").value = r?.u?.def ?? "";
+  $("ku_agi").value = r?.u?.agi ?? "";
+
+  updateConsistency();
+}
+
+function gatherForm(){
+  const name = $("name").value.trim();
+  if(!name) { alert("이름을 입력하세요."); return null; }
+  const s0 = {
+    hp:  num($("s0_hp").value),
+    atk: num($("s0_atk").value),
+    def: num($("s0_def").value),
+    agi: num($("s0_agi").value),
   };
+  const sg = {
+    hp:  num($("sg_hp").value),
+    atk: num($("sg_atk").value),
+    def: num($("sg_def").value),
+    agi: num($("sg_agi").value),
+  };
+  // 최소값 체크
+  if([s0.hp,s0.atk,s0.def,s0.agi].some(v=>v==null) || [sg.hp,sg.atk,sg.def,sg.agi].some(v=>v==null)){
+    alert("S0/SG를 모두 채워 주세요.");
+    return null;
+  }
+  const ovr = $("ovr_check").checked;
+  let k=null,u=null;
+  if(ovr){
+    k = num($("ku_k").value);
+    const uh = num($("ku_hp").value), ua=num($("ku_atk").value), ud=num($("ku_def").value), ug=num($("ku_agi").value);
+    if([k,uh,ua,ud,ug].some(v=>v==null)){ alert("오버라이드 k/u를 모두 채워 주세요."); return null; }
+    u = {hp:uh, atk:ua, def:ud, agi:ug};
+  }
+  return {name, s0, sg, ovr, k, u, note:$("note").value.trim()};
+}
 
-  if (mode === "strict"){
-    return tryWith(sgWithinStrict);
-  }else{
-    // tolerant: 먼저 strict 시도
-    best = tryWith(sgWithinStrict);
-    if (best) return best;
-    return tryWith(sgWithinTolerant);
+function updateConsistency(){
+  const box = $("consistency");
+  box.style.display = "none";
+  box.className = "callout";
+
+  const f = gatherForm(); if(!f) return;
+
+  // 오버라이드가 켜져 있으면 S0 정수부 검증 + SG 재합성(참고)
+  if(f.ovr && f.k!=null && f.u){
+    // S0 정수부 체크
+    const sPred = s0_from_k_u_jjyal(f.k, f.u);
+    const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
+    const l1 = Math.abs(sPred[0]-sInt[0]) + Math.abs(sPred[1]-sInt[1]) + Math.abs(sPred[2]-sInt[2]) + Math.abs(sPred[3]-sInt[3]);
+    const okS0 = (l1===0);
+
+    // SG 일관성(참고): AGI로 e 추정 후 HP/ATK/DEF 비교
+    try{
+      Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+      const e = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(f.u.agi).plus(2.5));
+      const fct = e.dividedBy(10000);
+      const r2 = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+      const hpC  = r2( fct.times( (f.u.hp+2.5)*4 + (f.u.atk+2.5) + (f.u.def+2.5) + (f.u.agi+2.5) ) ).toNumber();
+      const atkC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5) + (f.u.def+2.5)*0.1 + (f.u.agi+2.5)*0.05 ) ).toNumber();
+      const defC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5)*0.1 + (f.u.def+2.5) + (f.u.agi+2.5)*0.05 ) ).toNumber();
+
+      const hpDiff  = toFixed2(hpC  - f.sg.hp);
+      const atkDiff = toFixed2(atkC - f.sg.atk);
+      const defDiff = toFixed2(defC - f.sg.def);
+
+      const sgOk = (hpDiff===0 && atkDiff===0 && defDiff===0);
+      const eVal = e.toNumber();
+
+      box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
+          <strong>일관성 검사</strong>
+          <span class="mono muted">k=${f.k}, u=(${f.u.hp},${f.u.atk},${f.u.def},${f.u.agi})</span>
+        </div>
+        <div class="${okS0?'ok':'bad'}">S0 정수부 일치: <b>${okS0?'OK':'불일치'}</b> (예측 ${sPred.join('/')}, 실제 ${sInt.join('/')})</div>
+        <div style="margin-top:6px">
+          <div>SG 참고(e≈<span class="mono">${eVal.toFixed(2)}</span>): 
+            HP <span class="mono">${hpC.toFixed(2)}</span> (${hpDiff>=0?'+':''}${hpDiff}),
+            ATK <span class="mono">${atkC.toFixed(2)}</span> (${atkDiff>=0?'+':''}${atkDiff}),
+            DEF <span class="mono">${defC.toFixed(2)}</span> (${defDiff>=0?'+':''}${defDiff})
+          </div>
+          <div class="${sgOk?'ok':'bad'}">SG 반올림 비교: <b>${sgOk?'OK':'차이 있음'}</b></div>
+        </div>
+        <div class="note" style="margin-top:6px">※ 오버라이드는 저장 가능합니다. 불일치는 경고만 표시됩니다.</div>
+      `;
+      box.classList.add(okS0 ? "ok" : "bad");
+      box.style.display = "block";
+    }catch{
+      box.innerHTML = `<b>일관성 검사 실패</b> (내부 계산 오류)`;
+      box.classList.add("bad");
+      box.style.display = "block";
+    }
   }
 }
 
-/* =============== 8등급 100% 초기치 생성기 =============== */
-function computeGuaranteedR8Sets(k, u, sortKey="sum"){
-  const kD = new Decimal(k), fac = kD.dividedBy(100);
-  const setsMap = new Map(); // "hp,atk,def,agi" -> {all8,count}
+/* ====== 이벤트 ====== */
+$("btnReload").addEventListener("click", async ()=>{
+  await loadRemote();
+  alert("원격 데이터를 불러왔습니다.");
+});
 
-  for(let ar=-2; ar<=2; ar++){
-    for(let dr=-2; dr<=2; dr++){
-      for(let gr=-2; gr<=2; gr++){
-        for(let hr=-2; hr<=2; hr++){
-          const r = ar+dr+gr+hr;
-          for(let ab=0; ab<=10; ab++){
-            for(let db=0; db<=10; db++){
-              for(let gb=0; gb<=10; gb++){
-                const hb = 10 - ab - db - gb;
-                if(hb < 0 || hb > 10) continue;
+$("btnNew").addEventListener("click", ()=>{
+  const name = prompt("새 페트 이름?");
+  if(!name) return;
+  if(DB[name]){ alert("이미 존재하는 이름입니다."); return; }
+  DB[name] = { s0:{hp:null,atk:null,def:null,agi:null}, sg:{hp:null,atk:null,def:null,agi:null} };
+  sortNames(); renderList(); loadForm(name);
+});
 
-                const baseA = new Decimal(u.atk + ar + ab);
-                const baseD = new Decimal(u.def + dr + db);
-                const baseG = new Decimal(u.agi + gr + gb);
-                const baseH = new Decimal(u.hp  + hr + hb);
+searchEl.addEventListener("input", renderList);
 
-                const iA = baseA.times(fac);
-                const iD = baseD.times(fac);
-                const iG = baseG.times(fac);
-                const iH = baseH.times(fac);
-
-                const obsAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
-                const obsDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
-                const obsAgi = iG.floor().toNumber();
-                const obsHp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
-
-                const key = `${obsHp},${obsAtk},${obsDef},${obsAgi}`;
-                let cell = setsMap.get(key);
-                if(!cell){ cell = { all8:true, count:0 }; setsMap.set(key, cell); }
-                cell.count++;
-                if(r !== 8) cell.all8 = false;
-              }
-            }
-          }
-        }
-      }
-    }
+$("btnSolve").addEventListener("click", ()=>{
+  const f = gatherForm(); if(!f) return;
+  const sol = inferKU_STRICT([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi], f.sg);
+  if(!sol){
+    alert("계산할 수 없는 값입니다(STRICT 해 없음). S0/SG를 확인하거나 수동 오버라이드를 사용하세요.");
+    return;
   }
+  $("ku_k").value   = sol.k;
+  $("ku_hp").value  = sol.u.hp;
+  $("ku_atk").value = sol.u.atk;
+  $("ku_def").value = sol.u.def;
+  $("ku_agi").value = sol.u.agi;
+  // 자동으로 오버라이드를 켜지는 않음(사용자 의사)
+  updateConsistency();
+  alert(`추정 완료: k=${sol.k}, u=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
+});
 
-  let arr = [];
-  setsMap.forEach((v, k)=>{
-    if(v.all8){
-      const nums = k.split(",").map(s=>+s);
-      arr.push(nums);
-    }
-  });
+["ovr_check","ku_k","ku_hp","ku_atk","ku_def","ku_agi","s0_hp","s0_atk","s0_def","s0_agi","sg_hp","sg_atk","sg_def","sg_agi"]
+  .forEach(id => $(id).addEventListener("input", updateConsistency));
 
-  const idx = {hp:0, atk:1, def:2, agi:3};
-  if (sortKey === "sum"){
-    arr.sort((a,b)=>(a[0]+a[1]+a[2]+a[3]) - (b[0]+b[1]+b[2]+b[3])
-              || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+$("btnClearKU").addEventListener("click", ()=>{
+  $("ovr_check").checked = false;
+  $("ku_k").value = $("ku_hp").value = $("ku_atk").value = $("ku_def").value = $("ku_agi").value = "";
+  updateConsistency();
+});
+
+$("btnSave").addEventListener("click", ()=>{
+  const f = gatherForm(); if(!f) return;
+
+  // 이름 변경(키 이동) 처리
+  if(CURRENT && CURRENT !== f.name){
+    if(DB[f.name]){ alert("해당 이름은 이미 존재합니다."); return; }
+    DB[f.name] = DB[CURRENT];
+    delete DB[CURRENT];
+    CURRENT = f.name;
+  }
+  const row = DB[f.name] || {};
+  row.s0 = f.s0; row.sg = f.sg; row.note = f.note || undefined;
+
+  if(f.ovr){
+    row.k = f.k; row.u = f.u; row.ku_override = true;
   }else{
-    const i = idx[sortKey] ?? 0;
-    arr.sort((a,b)=>a[i]-b[i] || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
+    delete row.k; delete row.u; delete row.ku_override;
   }
-
-  return arr;
-}
-
-/* =============== 이벤트: 로드/저장/검색/정렬 =============== */
-$("#btnLoad").addEventListener("click", async ()=>{
-  try{
-    setStatus("로드 중…");
-    const owner  = $("#gh_owner").value.trim();
-    const repo   = $("#gh_repo").value.trim();
-    const path   = $("#gh_path").value.trim();
-    const branch = $("#gh_branch").value.trim();
-    const token  = $("#gh_token").value.trim();
-    const r = await ghGet(owner, repo, path, branch, token);
-    if (r.notFound){ PETS = {}; GH_SHA = null; setStatus("원격 파일 없음(새로 생성 예정)."); }
-    else { PETS = JSON.parse(r.text); GH_SHA = r.sha||null; setStatus(`로드 완료 · ${Object.keys(PETS).length} 종`); }
-    SELECTED = null; renderTable("name");
-  }catch(err){ console.error(err); setStatus("로드 실패: " + (err?.message||err)); alert("로드 실패:\n" + (err?.message||err)); }
+  DB[f.name] = row;
+  sortNames(); renderList(); loadForm(f.name);
+  saveLS();
+  alert("저장(브라우저) 완료. 커밋하려면 상단 버튼을 사용하세요.");
 });
-$("#btnSave").addEventListener("click", async ()=>{
-  try{
-    setStatus("커밋 중…");
-    const owner  = $("#gh_owner").value.trim();
-    const repo   = $("#gh_repo").value.trim();
-    const path   = $("#gh_path").value.trim();
-    const branch = $("#gh_branch").value.trim();
-    const token  = $("#gh_token").value.trim();
-    const msg    = $("#gh_message").value.trim() || "update";
-    const text = JSON.stringify(PETS, null, 2);
-    const newSha = await ghPut(owner, repo, path, branch, token, msg, text, GH_SHA);
-    GH_SHA = newSha || GH_SHA; setStatus("저장·커밋 완료!"); alert("저장·커밋 완료!");
-  }catch(err){ console.error(err); setStatus("저장 실패: " + (err?.message||err)); alert("저장 실패:\n" + (err?.message||err)); }
+
+$("btnSaveCommit").addEventListener("click", async ()=>{
+  $("btnSave").click();
+  await commitToGitHub();
 });
-$("#btnBackup").addEventListener("click", ()=>{
-  const blob = new Blob([JSON.stringify(PETS, null, 2)], {type:"application/json;charset=utf-8"});
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "pets.backup.json"; a.click();
+
+$("btnExport").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pets.json";
+  a.click();
   URL.revokeObjectURL(a.href);
 });
 
-$("#search").addEventListener("input", ()=>renderTable());
-$("#btnSortName").addEventListener("click", ()=>renderTable("name"));
-$("#btnSortHasKU").addEventListener("click", ()=>renderTable("hasKU"));
+$("btnCommit").addEventListener("click", commitToGitHub);
 
-/* =============== 폼/CRUD =============== */
-$("#btnClearForm").addEventListener("click", ()=>{
-  SELECTED = null; $("#f_name").value = ""; write4("f_s0", null); write4("f_sg", null); $("#f_k").value = ""; write4("f_u", null);
-  setStatus("폼 초기화");
-  setR8Status("미계산"); $("#r8_preview").value = ""; LAST_R8_RESULT = null;
-});
-$("#btnApply").addEventListener("click", ()=>{
-  const name = $("#f_name").value.trim(); if(!name){ alert("이름을 입력하세요."); return; }
-  const S0 = read4("f_s0"), SG = read4("f_sg");
-  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){ alert("S0, Sg를 모두 입력하세요."); return; }
-  const k = toNum($("#f_k").value); const U = read4("f_u"); const hasU = [U.hp,U.atk,U.def,U.agi].every(Number.isFinite);
-  PETS[name] = { s0:S0, sg:SG, ...(Number.isFinite(k)?{k}:{}), ...(hasU?{u:{hp:U.hp, atk:U.atk, def:U.def, agi:U.agi}}:{}) };
-  setStatus(`적용 완료: ${name}`); renderTable();
-});
-$("#btnDelete").addEventListener("click", ()=>{
-  if(!SELECTED){ alert("삭제할 행을 먼저 선택하세요."); return; }
-  if(!confirm(`정말 삭제할까요?\n${SELECTED}`)) return;
-  delete PETS[SELECTED]; SELECTED=null; setStatus("삭제 완료"); renderTable();
-});
+/* ====== GitHub 커밋 ====== */
+async function commitToGitHub(){
+  const token = prompt("GitHub Personal Access Token 입력(권한: repo, contents)");
+  if(!token){ alert("토큰이 필요합니다."); return; }
 
-/* =============== 추정(k/u) — 모드 반영 =============== */
-$("#btnInfer").addEventListener("click", ()=>{
-  const name = $("#f_name").value.trim() || "(이름없음)";
-  const S0 = read4("f_s0"), SG = read4("f_sg");
-  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-    alert("S0, Sg를 모두 입력하세요."); return;
-  }
-  const mode = $("#infer_mode").value || "tolerant";
-  const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG, mode);
-  if(!fit){
-    const msg =
-      (mode==="strict")
-        ? "k/u 추정 실패: 입력한 S0/SG가 엄격 기준에 부합하지 않습니다.\n→ 관용 모드로 바꾸거나 소숫점 표기를 확인해 주세요."
-        : "k/u 추정 실패: 관용(표기 반올림) 기준에서도 부합하지 않습니다.\n→ 짜얄 계산기처럼 소숫점(특히 agi) 표기를 재확인해 주세요.";
-    alert(msg);
+  // 1) 현재 원격 SHA
+  const metaUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(PETS_PATH)}?ref=${GH_BRANCH}`;
+  const metaRes = await fetch(metaUrl, {headers:{Accept:"application/vnd.github+json"}});
+  if(!metaRes.ok){ alert("원격 SHA 조회 실패: " + metaRes.status); return; }
+  const meta = await metaRes.json();
+  const sha = meta.sha;
+
+  // 2) put
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(DB, null, 2))));
+  const commitMsg = prompt("커밋 메시지 입력", "chore(admin): update pets.json (manual ku override)");
+  const putRes = await fetch(metaUrl, {
+    method:"PUT",
+    headers:{
+      "Authorization":`Bearer ${token}`,
+      "Accept":"application/vnd.github+json",
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      message: commitMsg || "update pets.json",
+      content,
+      branch: GH_BRANCH,
+      sha
+    })
+  });
+  if(!putRes.ok){ 
+    const t = await putRes.text().catch(()=>"(no body)");
+    alert("커밋 실패: " + putRes.status + "\n" + t);
     return;
   }
-  $("#f_k").value = fit.k;
-  $("#f_u_hp").value  = fit.u.hp; $("#f_u_atk").value = fit.u.atk; $("#f_u_def").value = fit.u.def; $("#f_u_agi").value = fit.u.agi;
-  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi}), e=${fit.e} (${mode})`);
-});
-
-/* =============== R8 JSON 로드/저장 =============== */
-$("#btnR8Load").addEventListener("click", async ()=>{
-  try{
-    setR8Status("R8 로드 중…");
-    const owner  = $("#gh_owner").value.trim();
-    const repo   = $("#gh_repo").value.trim();
-    const branch = $("#gh_branch").value.trim();
-    const token  = $("#gh_token").value.trim();
-    const path   = $("#r8_path").value.trim();
-    const r = await ghGet(owner, repo, path, branch, token);
-    if (r.notFound){ R8 = {}; R8_SHA = null; setR8Status("원격 R8 JSON 없음(새로 생성 예정)."); }
-    else { R8 = JSON.parse(r.text); R8_SHA = r.sha||null; setR8Status(`R8 로드 완료 · ${Object.keys(R8).length} 종`); }
-  }catch(err){ console.error(err); setR8Status("R8 로드 실패"); alert("R8 로드 실패:\n" + (err?.message||err)); }
-});
-
-$("#btnR8Save").addEventListener("click", async ()=>{
-  try{
-    const owner  = $("#gh_owner").value.trim();
-    const repo   = $("#gh_repo").value.trim();
-    const branch = $("#gh_branch").value.trim();
-    const token  = $("#gh_token").value.trim();
-    const path   = $("#r8_path").value.trim();
-    const msg    = $("#r8_message").value.trim() || "update";
-    const text = JSON.stringify(R8, null, 2);
-    setR8Status("R8 저장·커밋 중…");
-    const newSha = await ghPut(owner, repo, path, branch, token, msg, text, R8_SHA);
-    R8_SHA = newSha || R8_SHA; setR8Status("R8 저장·커밋 완료!"); alert("R8 저장·커밋 완료!");
-  }catch(err){ console.error(err); setR8Status("R8 저장 실패"); alert("R8 저장 실패:\n" + (err?.message||err)); }
-});
-
-/* =============== 선택 페트 8등급 100% 초기치 계산 =============== */
-function computeGuaranteedR8Sets(k, u, sortKey="sum"){
-  const kD = new Decimal(k), fac = kD.dividedBy(100);
-  const setsMap = new Map();
-
-  for(let ar=-2; ar<=2; ar++){
-    for(let dr=-2; dr<=2; dr++){
-      for(let gr=-2; gr<=2; gr++){
-        for(let hr=-2; hr<=2; hr++){
-          const r = ar+dr+gr+hr;
-          for(let ab=0; ab<=10; ab++){
-            for(let db=0; db<=10; db++){
-              for(let gb=0; gb<=10; gb++){
-                const hb = 10 - ab - db - gb;
-                if(hb < 0 || hb > 10) continue;
-
-                const baseA = new Decimal(u.atk + ar + ab);
-                const baseD = new Decimal(u.def + dr + db);
-                const baseG = new Decimal(u.agi + gr + gb);
-                const baseH = new Decimal(u.hp  + hr + hb);
-
-                const iA = baseA.times(fac);
-                const iD = baseD.times(fac);
-                const iG = baseG.times(fac);
-                const iH = baseH.times(fac);
-
-                const obsAtk = iH.times(0.1).plus(iA).plus(iD.times(0.1)).plus(iG.times(0.05)).floor().toNumber();
-                const obsDef = iH.times(0.1).plus(iA.times(0.1)).plus(iD).plus(iG.times(0.05)).floor().toNumber();
-                const obsAgi = iG.floor().toNumber();
-                const obsHp  = iH.times(4).plus(iA).plus(iD).plus(iG).floor().toNumber();
-
-                const key = `${obsHp},${obsAtk},${obsDef},${obsAgi}`;
-                let cell = setsMap.get(key);
-                if(!cell){ cell = { all8:true, count:0 }; setsMap.set(key, cell); }
-                cell.count++;
-                if(r !== 8) cell.all8 = false;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  let arr = [];
-  setsMap.forEach((v, k)=>{
-    if(v.all8){
-      const nums = k.split(",").map(s=>+s);
-      arr.push(nums);
-    }
-  });
-
-  const idx = {hp:0, atk:1, def:2, agi:3};
-  if (sortKey === "sum"){
-    arr.sort((a,b)=>(a[0]+a[1]+a[2]+a[3]) - (b[0]+b[1]+b[2]+b[3])
-              || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
-  }else{
-    const i = idx[sortKey] ?? 0;
-    arr.sort((a,b)=>a[i]-b[i] || a[0]-b[0] || a[1]-b[1] || a[2]-b[2] || a[3]-b[3]);
-  }
-
-  return arr;
+  alert("커밋 성공!");
 }
 
-$("#btnR8Compute").addEventListener("click", ()=>{
-  const name = $("#f_name").value.trim();
-  if (!name){ alert("오른쪽 폼에서 페트를 선택하거나 이름을 입력하세요."); return; }
-  const row = PETS[name];
-  if (!row){ alert("현재 로드된 pets.json에 이 이름이 없습니다. 먼저 추가/갱신 후 시도하세요."); return; }
+/* ====== 데이터 로드 ====== */
+async function loadRemote(){
+  const [obj, sha] = await Promise.all([
+    fetchJSON(REMOTE_PETS),
+    // SHA는 commit API에서 다시 가져오므로 여기선 생략 가능. 필요 시 HEAD로도 가능.
+    (async ()=>"")()
+  ]);
+  DB = obj || {};
+  sortNames(); renderList();
+  // 첫 항목 로드
+  if(ORDER.length) loadForm(ORDER[0]);
+  saveLS();
+}
 
-  // k/u 확보 (없으면 추정 시도; UI 모드 반영)
-  let k = row.k, u = row.u;
-  if (!(Number.isFinite(k) && u && [u.hp,u.atk,u.def,u.agi].every(Number.isFinite))){
-    const S0=row.s0, SG=row.sg;
-    if(!S0 || !SG || ![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-      alert("k/u가 없고 S0/SG도 불완전합니다. 먼저 k/u를 채우거나 추정하세요."); return;
-    }
-    const mode = $("#infer_mode").value || "tolerant";
-    const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG, mode);
-    if(!fit){ alert("k/u 추정 실패: 현재 일치 기준에서 정확 해를 찾지 못했습니다."); return; }
-    k = fit.k; u = fit.u;
+(async function init(){
+  const local = loadLS();
+  if(local && typeof local==="object"){ DB = local; sortNames(); renderList(); if(ORDER.length) loadForm(ORDER[0]); }
+  // 원격 동기화
+  try{
+    await loadRemote();
+  }catch(e){
+    console.warn("원격 로드 실패, 로컬 캐시로 동작합니다.", e);
+    if(!local) { DB={}; renderList(); }
   }
-
-  const sortKey = $("#r8_sort").value || "sum";
-  setR8Status("전수탐색 계산 중… (178,750 경우)");
-  const t0 = performance.now();
-  const sets = computeGuaranteedR8Sets(k, u, sortKey);
-  const t1 = performance.now();
-  LAST_R8_RESULT = { [name]: { count: sets.length, obs_100_rank8: sets } };
-  $("#r8_preview").value = JSON.stringify(LAST_R8_RESULT, null, 2) + `\n\n(소요 ${(t1-t0).toFixed(0)} ms)`;
-  setR8Status(`계산 완료: ${name} · ${sets.length}세트`);
-
-  // 병합(동명 덮어쓰기)
-  R8[name] = { count: sets.length, obs_100_rank8: sets };
-});
-
-/* =============== 초기 =============== */
-setStatus("대기중… (좌측 상단에서 로드)");
-setR8Status("미계산");
+})();
 </script>
 </body>
 </html>
