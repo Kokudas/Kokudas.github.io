@@ -5315,10 +5315,10 @@
       "agi": 1.28
     },
     "u": {
-      "hp": 33,
-      "atk": 43,
-      "def": 22,
-      "agi": 27
+      "hp": 31,
+      "atk": 41,
+      "def": 20,
+      "agi": 25
     },
     "k": 28,
     "e": 435,
@@ -5326,6 +5326,7 @@
     "s0_l1": 0,
     "s0_ok": true,
     "_deltaDim": null,
-    "_deltaVal": 0
+    "_deltaVal": 0,
+    "ku_override": true
   }
 }
