@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NOVA PET Admin</title>
+<title>NOVA 서버 펫 관리자 · admin.html</title>
+<link rel="shortcut icon" href="data:image/x-icon;," />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
 <style>
   :root{
@@ -12,259 +13,315 @@
     --ring:#1f2530; --text:#e8ecf3; --highlight:#fff;
   }
   *{box-sizing:border-box}
-  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#0f1115; color:#e8ecf3;}
-  header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #232a36;background:#0c1016}
-  a{color:#9ec3ff}
-  .grid{max-width:1200px;margin:18px auto;padding:0 16px;display:grid;gap:16px;grid-template-columns: 1fr 1fr;}
-  @media (max-width: 1080px){ .grid{grid-template-columns:1fr} }
-  .card{background:#161a22;border:1px solid #232a36;border-radius:14px;padding:16px}
-  .card h3{margin:6px 0 10px 0}
-  label{display:block;font-size:12px;color:#8a9099;margin:6px 0 4px 2px}
-  input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a3040;background:#0e1218;color:#e8ecf3;outline:none}
-  textarea{min-height:72px;resize:vertical}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    background:linear-gradient(180deg,#0f1115 0%,#0c0f14 100%); color:var(--text);
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; border-bottom:1px solid #232a36; background:rgba(0,0,0,.2);
+    position:sticky; top:0; z-index:10;
+  }
+  .brand{font-weight:800; letter-spacing:.3px}
+  .muted{color:var(--muted)}
+  .container{max-width:1200px; margin:18px auto; padding:0 16px; display:grid; gap:16px; grid-template-columns: 1.2fr .8fr;}
+  @media (max-width: 980px){ .container{grid-template-columns:1fr} }
+  .card{background:var(--panel); border:1px solid #232a36; border-radius:14px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
+  .card h3{margin:4px 0 12px 0; font-size:16px}
+  .row{display:flex; gap:8px; flex-wrap:wrap}
   .col{flex:1 1 0}
-  .btn{padding:10px 14px;border-radius:10px;border:1px solid #334055;cursor:pointer;background:#142033;color:#cfe1ff;font-weight:600}
-  .btn:hover{filter:brightness(1.08)}
-  .btn.primary{background:linear-gradient(180deg,#2b71ff,#1d56cc);border-color:transparent;color:#fff}
-  .muted{color:#8a9099}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid #262d3a;padding:8px 6px;text-align:right}
-  th:first-child,td:first-child{text-align:left}
-  code{background:#0d1117;border:1px solid #2a3040;padding:2px 6px;border-radius:6px}
-  .badge{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid #2a3040;background:#10141c;font-size:11px}
-  .ok{color:#35c759} .bad{color:#ff5171}
+  label{display:block; font-size:12px; color:var(--muted); margin:6px 0 4px 2px}
+  input[type="number"], input[type="text"], input[type="password"], textarea, select{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
+    background:#0e1218; color:var(--text); outline:none;
+  }
+  textarea{min-height:120px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .btn{ padding:10px 14px; border-radius:10px; border:1px solid #334055; cursor:pointer; background:#142033; color:#cfe1ff; font-weight:600; }
+  .btn:hover{filter:brightness(1.1)}
+  .btn.primary{ background:linear-gradient(180deg,#2b71ff,#1d56cc); border-color:transparent; color:white;}
+  .btn.warn{ background:#3b2a00; color:#ffcf66; border-color:#6a5200;}
+  .btn.danger{ background:#3a0d16; color:#ff8aa1; border-color:#5c1a2b;}
+  .btn.ghost{ background:transparent;}
+  .btn-sm{padding:6px 10px; font-size:12px; border-radius:8px}
+  .grid-two{display:grid; grid-template-columns: 1fr 1fr; gap:8px}
+  .grid-four{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px}
+  .table{width:100%; border-collapse:collapse; font-size:13px}
+  .table th,.table td{border-bottom:1px solid #262d3a; padding:8px 6px; text-align:left; vertical-align:top}
+  .pill{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #2b3242; background:#0e131a; color:#bcd}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .right{margin-left:auto}
+  .kbd{display:inline-block; border:1px solid #404a5e; border-bottom-width:3px; padding:2px 6px; border-radius:6px; background:#0e131a; font-weight:700}
+  .hr{border:none; border-top:1px solid #2a3040; margin:12px 0}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .help{font-size:12px; color:#9aa3af}
 </style>
 </head>
 <body>
 <header>
-  <strong>Admin · NOVA PET 데이터 관리</strong>
-  <div class="muted">data/pets.json · GitHub API로 커밋</div>
+  <div class="brand">NOVA SERVER PET · Admin</div>
+  <div class="muted">데이터 편집 / 추정 / GitHub 커밋</div>
 </header>
 
-<div class="grid">
-  <!-- 좌측: 현재 테이블 / 커밋 -->
+<div class="container">
+
+  <!-- 좌: 리스트/검색/로드/저장 -->
   <section class="card">
-    <h3>① 원격 테이블 불러오기 & 커밋</h3>
-    <div class="row">
-      <div class="col">
-        <label>GitHub Owner / Repo / Branch</label>
-        <div class="row">
-          <div class="col"><input id="ghOwner" value="kokudas"/></div>
-          <div class="col"><input id="ghRepo"  value="kokudas.github.io"/></div>
-          <div class="col"><input id="ghBranch" value="main"/></div>
-        </div>
+    <h3>① GitHub 데이터</h3>
+
+    <div class="grid-two">
+      <div>
+        <label>Owner</label>
+        <input id="gh_owner" type="text" value="kokudas" />
       </div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <div class="col">
-        <label>파일 경로</label>
-        <input id="ghPath" value="data/pets.json"/>
+      <div>
+        <label>Repo</label>
+        <input id="gh_repo" type="text" value="kokudas.github.io" />
       </div>
-      <div class="col" style="display:flex;align-items:flex-end">
-        <button class="btn" id="btnLoad">원격 불러오기</button>
+      <div>
+        <label>Branch</label>
+        <input id="gh_branch" type="text" value="main" />
+      </div>
+      <div>
+        <label>Path (예: <span class="mono">data/pets.json</span> 또는 <span class="mono">data.json</span>)</label>
+        <input id="gh_path" type="text" value="data/pets.json" />
+      </div>
+      <div class="col">
+        <label>GitHub Token (repo 권한)</label>
+        <input id="gh_token" type="password" placeholder="ghp_xxx…" />
+      </div>
+      <div class="col">
+        <label>커밋 메시지</label>
+        <input id="gh_message" type="text" value="chore(admin): update pets.json" />
       </div>
     </div>
 
-    <div style="margin-top:10px">
-      <div class="muted">현재 로컬 편집본 → <span class="badge" id="countBadge">— 항목</span></div>
-      <div style="overflow:auto; max-height:380px; border:1px solid #232a36; border-radius:8px; margin-top:8px">
-        <table id="tbl"><thead>
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn" id="btnLoad">로드</button>
+      <button class="btn primary" id="btnSave">저장·커밋</button>
+      <button class="btn ghost" id="btnBackup">로컬로 백업(.json)</button>
+      <span class="right help" id="status">대기중…</span>
+    </div>
+
+    <hr class="hr"/>
+
+    <div class="toolbar">
+      <input id="search" type="text" placeholder="이름 검색…" style="flex:1 1 240px" />
+      <button class="btn" id="btnSortName">이름 정렬</button>
+      <button class="btn" id="btnSortHasKU">k/u 채움 우선</button>
+      <span class="help">행 클릭 → 우측 폼으로 불러오기</span>
+    </div>
+
+    <div style="margin-top:8px; max-height: 55vh; overflow:auto; border:1px solid #2a3040; border-radius:10px;">
+      <table class="table" id="tbl">
+        <thead>
           <tr>
-            <th>이름</th>
+            <th style="width:180px">이름</th>
             <th>S0 (hp/atk/def/agi)</th>
             <th>Sg (hp/atk/def/agi)</th>
             <th>k</th>
             <th>u (hp/atk/def/agi)</th>
-          </tr></thead>
-          <tbody id="tb"></tbody>
-        </table>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 우: 편집/추정 -->
+  <section class="card">
+    <h3>② 행 편집</h3>
+
+    <div class="row">
+      <div class="col">
+        <label>이름</label>
+        <input id="f_name" type="text" placeholder="예: 골로스" />
       </div>
     </div>
 
-    <details style="margin-top:12px">
-      <summary>커밋 설정</summary>
-      <div class="row" style="margin-top:8px">
-        <div class="col"><label>Personal Access Token (repo 권한)</label><input id="ghToken" type="password" placeholder="ghp_..."/></div>
+    <div style="margin-top:6px">
+      <label>표기 초기치 S0</label>
+      <div class="grid-four">
+        <input id="f_s0_hp"  type="number" step="0.01" placeholder="hp" />
+        <input id="f_s0_atk" type="number" step="0.01" placeholder="atk" />
+        <input id="f_s0_def" type="number" step="0.01" placeholder="def" />
+        <input id="f_s0_agi" type="number" step="0.01" placeholder="agi" />
       </div>
-      <div class="row">
-        <div class="col"><label>커밋 메시지</label><input id="ghMessage" value="Update pets.json via admin"/></div>
+    </div>
+
+    <div style="margin-top:6px">
+      <label>표기 성장치 Sg</label>
+      <div class="grid-four">
+        <input id="f_sg_hp"  type="number" step="0.01" placeholder="hp" />
+        <input id="f_sg_atk" type="number" step="0.01" placeholder="atk" />
+        <input id="f_sg_def" type="number" step="0.01" placeholder="def" />
+        <input id="f_sg_agi" type="number" step="0.01" placeholder="agi" />
       </div>
-      <div class="row" style="margin-top:6px">
-        <button class="btn primary" id="btnCommit">커밋(Replace data/pets.json)</button>
-        <span class="muted">토큰은 브라우저 메모리에만 잠시 보관(sessionStorage).</span>
+    </div>
+
+    <div class="row" style="margin-top:6px">
+      <div class="col">
+        <label>k</label>
+        <input id="f_k" type="number" step="1" placeholder="auto" />
       </div>
-      <div id="commitLog" class="muted" style="margin-top:8px"></div>
+      <div class="col">
+        <label>u.hp / u.atk / u.def / u.agi</label>
+        <div class="grid-four">
+          <input id="f_u_hp"  type="number" step="1" placeholder="u.hp" />
+          <input id="f_u_atk" type="number" step="1" placeholder="u.atk" />
+          <input id="f_u_def" type="number" step="1" placeholder="u.def" />
+          <input id="f_u_agi" type="number" step="1" placeholder="u.agi" />
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn" id="btnInfer">추정(k/u)</button>
+      <button class="btn" id="btnApply">추가/갱신</button>
+      <button class="btn warn" id="btnClearForm">폼 초기화</button>
+      <button class="btn danger" id="btnDelete">선택 삭제</button>
+      <span class="right help">※ 추정 실패 시 “오류 문구”를 표시하고 멈춥니다. (미세 조정 없음)</span>
+    </div>
+
+    <hr class="hr"/>
+
+    <details>
+      <summary>JSON 미리보기</summary>
+      <textarea id="jsonPreview" readonly></textarea>
     </details>
   </section>
 
-  <!-- 우측: 신규 추가 / k,u 추정 -->
-  <section class="card">
-    <h3>② 신규/수정 입력 + k,u 추정</h3>
-    <div class="row">
-      <div class="col"><label>이름</label><input id="f_name" placeholder="예: 골로스"/></div>
-    </div>
-
-    <div class="row">
-      <div class="col"><label>S0.hp</label><input id="s0_hp" type="number" step="0.01"></div>
-      <div class="col"><label>S0.atk</label><input id="s0_atk" type="number" step="0.01"></div>
-      <div class="col"><label>S0.def</label><input id="s0_def" type="number" step="0.01"></div>
-      <div class="col"><label>S0.agi</label><input id="s0_agi" type="number" step="0.01"></div>
-    </div>
-
-    <div class="row">
-      <div class="col"><label>Sg.hp</label><input id="sg_hp" type="number" step="0.01"></div>
-      <div class="col"><label>Sg.atk</label><input id="sg_atk" type="number" step="0.01"></div>
-      <div class="col"><label>Sg.def</label><input id="sg_def" type="number" step="0.01"></div>
-      <div class="col"><label>Sg.agi</label><input id="sg_agi" type="number" step="0.01"></div>
-    </div>
-
-    <div class="row" style="margin-top:8px">
-      <button class="btn" id="btnInfer">k,u 추정(짜얄식)</button>
-      <div class="col" style="display:flex;align-items:center;gap:8px">
-        <span class="muted">결과:</span>
-        <span id="inferOut" class="badge">—</span>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <button class="btn primary" id="btnAdd">테이블에 추가/갱신</button>
-      <span class="muted">※ k,u가 유효하게 계산되지 않으면 추가를 막습니다.</span>
-    </div>
-  </section>
 </div>
 
 <script>
-/* ========= 공통 상수 ========= */
-let GH_OWNER  = "kokudas";
-let GH_REPO   = "kokudas.github.io";
-let GH_BRANCH = "main";
-let GH_PATH   = "data/pets.json";
+/* ===================== UTF-8 안전 Base64 변환 ===================== */
+function decodeBase64UTF8(b64){
+  const cleaned = (b64||"").replace(/\\s/g, "");
+  const bin = atob(cleaned);
+  if (typeof TextDecoder !== "undefined") {
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+  return decodeURIComponent(escape(bin));
+}
+function encodeUTF8Base64(str){
+  if (typeof TextEncoder !== "undefined") {
+    const bytes = new TextEncoder().encode(str);
+    let bin = ""; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  return btoa(unescape(encodeURIComponent(str)));
+}
 
-/* ========= 상태 ========= */
-let PETS = {}; // 편집본
-let LAST_SHA = null; // 커밋 시 필요
-const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
-
-/* ========= 유틸 ========= */
+/* ===================== 상태/전역 ===================== */
+let PETS = {};          // { name: { s0:{hp,atk,def,agi}, sg:{hp,atk,def,agi}, k, u:{hp,atk,def,agi} } }
+let GH_SHA = null;      // 현재 파일 sha (커밋 때 필요)
+let SELECTED = null;    // 선택된 이름
 const $ = sel => document.querySelector(sel);
-function qv(id){ const el=$("#"+id); const v=parseFloat(el.value); return Number.isFinite(v)? v : NaN; }
-function setCount(){ $("#countBadge").textContent = Object.keys(PETS).length + " 항목"; }
-function esc(s){ return (s??"").toString(); }
-function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
-function logCommit(msg){ $("#commitLog").innerHTML += `<div>${esc(msg)}</div>`; }
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const statusEl = $("#status");
 
-/* ========= 표 렌더 ========= */
-function renderTable(){
-  const tb=$("#tb"); tb.innerHTML="";
-  const names=Object.keys(PETS).sort((a,b)=>a.localeCompare(b,'ko'));
-  names.forEach(n=>{
-    const row=PETS[n];
-    const s0=row?.s0||{}, sg=row?.sg||{}, u=row?.u||{};
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td style="text-align:left">${esc(n)}</td>
-      <td>${[s0.hp,s0.atk,s0.def,s0.agi].map(v=>v??"").join(" / ")}</td>
-      <td>${[sg.hp,sg.atk,sg.def,sg.agi].map(v=>v??"").join(" / ")}</td>
-      <td>${row.k??""}</td>
-      <td>${[u.hp,u.atk,u.def,u.agi].map(v=>v??"").join(" / ")}</td>
-    `;
-    tr.addEventListener("click", ()=>{
-      // 행 클릭 → 우측 입력 채우기
-      $("#f_name").value = n;
-      $("#s0_hp").value = s0.hp??""; $("#s0_atk").value=s0.atk??""; $("#s0_def").value=s0.def??""; $("#s0_agi").value=s0.agi??"";
-      $("#sg_hp").value = sg.hp??""; $("#sg_atk").value=sx(sg.atk); $("#sg_def").value=sx(sg.def); $("#sg_agi").value=sx(sg.agi);
-      $("#inferOut").textContent="—";
-      function sx(x){return (x??"");}
-    });
-    tb.appendChild(tr);
-  });
-  setCount();
-}
-
-/* ========= GitHub 불러오기 ========= */
-async function loadRemote(){
-  GH_OWNER = $("#ghOwner").value.trim()||GH_OWNER;
-  GH_REPO  = $("#ghRepo").value.trim()||GH_REPO;
-  GH_BRANCH= $("#ghBranch").value.trim()||GH_BRANCH;
-  GH_PATH  = $("#ghPath").value.trim()||GH_PATH;
-
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
-  const res = await fetch(url);
-  if(!res.ok){ alert("원격 로드 실패: " + res.status); return; }
+/* ===================== GitHub I/O ===================== */
+async function ghGet(owner, repo, path, branch, token){
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+  const res = await fetch(url, { headers: token? {Authorization:`Bearer ${token}`} : {} });
+  if (res.status === 404) return { notFound:true };
+  if (!res.ok) throw new Error("GitHub GET 실패: " + res.status);
   const data = await res.json();
-  LAST_SHA = data.sha || null;
-  const text = atob(data.content.replace(/\n/g,""));
-  try{
-    PETS = JSON.parse(text);
-  }catch(e){
-    alert("JSON 파싱 실패");
-    return;
-  }
-  renderTable();
+  const text = decodeBase64UTF8(data.content);
+  return { text, sha:data.sha };
 }
 
-/* ========= GitHub 커밋 ========= */
-async function commitRemote(){
-  if(!LAST_SHA){ // 혹시 모르니 다시 조회
-    await loadRemote();
-    if(!LAST_SHA){ alert("원격 파일 정보를 가져올 수 없습니다."); return; }
-  }
-  const token = $("#ghToken").value.trim();
-  if(!token){ alert("GitHub 토큰을 입력하세요."); return; }
-
-  const msg = $("#ghMessage").value.trim() || "Update pets.json via admin";
+async function ghPut(owner, repo, path, branch, token, message, text, sha){
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
   const body = {
-    message: msg,
-    content: b64(JSON.stringify(PETS, null, 2)),
-    branch: GH_BRANCH,
-    sha: LAST_SHA
+    message: message || "update",
+    content: encodeUTF8Base64(text),
+    branch
   };
-  logCommit("커밋 중...");
-  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`,{
-    method:"PUT",
-    headers:{
-      "Authorization": "token " + token,
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify(body)
   });
-  if(!res.ok){
-    const txt = await res.text();
-    logCommit(`<span class="bad">실패</span> ${res.status} ${esc(txt)}`);
-    alert("커밋 실패: " + res.status);
-    return;
-  }
-  const js = await res.json();
-  LAST_SHA = js.content?.sha || LAST_SHA;
-  logCommit(`<span class="ok">성공</span> ${js.commit?.sha||"(no sha)"}`);
-  alert("커밋 완료!");
+  if (!res.ok) throw new Error("GitHub PUT 실패: " + res.status);
+  const data = await res.json();
+  return data.content && data.content.sha;
 }
 
-/* ========= 짜얄 호환 k/u 추정 (미세 조정 없음) ========= */
-function s0_from_k_u_jjyal(k,u){
-  const fac = k/100;
-  const vhp  = (u.hp + 2.5) * fac;
-  const vatk = (u.atk+ 2.5) * fac;
-  const vdef = (u.def+ 2.5) * fac;
-  const vagi = (u.agi+ 2.5) * fac;
-  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
-  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
-  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
-  const s_agi= Math.floor(vagi);
-  return [s_hp,s_atk,s_def,s_agi];
+/* ===================== UI 보조 ===================== */
+function setStatus(msg){ statusEl.textContent = msg; }
+function toNum(v){ const n = parseFloat(v); return Number.isFinite(n)? n : null; }
+function read4(prefix){
+  return {
+    hp: toNum($(`#${prefix}_hp`).value),
+    atk:toNum($(`#${prefix}_atk`).value),
+    def:toNum($(`#${prefix}_def`).value),
+    agi:toNum($(`#${prefix}_agi`).value)
+  };
 }
-function fitKFromS0_JJYAL(S0int,u){
-  let best=null;
-  for(let k=10;k<=100;k++){
-    const s = s0_from_k_u_jjyal(k,u);
-    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
-    const ok = (l1===0);
-    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
-    if(ok) break;
-  }
-  return best;
+function write4(prefix, obj){
+  $(`#${prefix}_hp`).value  = (obj?.hp  ?? "");
+  $(`#${prefix}_atk`).value = (obj?.atk ?? "");
+  $(`#${prefix}_def`).value = (obj?.def ?? "");
+  $(`#${prefix}_agi`).value = (obj?.agi ?? "");
 }
+function refreshPreview(){
+  $("#jsonPreview").value = JSON.stringify(PETS, null, 2);
+}
+function fmtS0(row){ const s=row?.s0||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
+function fmtSg(row){ const s=row?.sg||{}; return [s.hp,s.atk,s.def,s.agi].map(n=>n??"").join(", "); }
+function fmtU (row){ const u=row?.u||{};  return [u.hp,u.atk,u.def,u.agi].map(n=>n??"").join(", "); }
+
+/* ===================== 목록 렌더 ===================== */
+function renderTable(sortKey="name"){
+  const tbody = $("#tbody"); tbody.innerHTML = "";
+  const kw = ($("#search").value||"").trim();
+
+  let names = Object.keys(PETS);
+  if (sortKey === "name") names.sort((a,b)=>a.localeCompare(b,'ko'));
+  if (sortKey === "hasKU") names.sort((a,b)=>{
+    const ak = Number.isFinite(PETS[a]?.k)?1:0, bk = Number.isFinite(PETS[b]?.k)?1:0;
+    if (bk !== ak) return bk-ak; // k/u 있는 것 우선
+    return a.localeCompare(b,'ko');
+  });
+
+  names.forEach(n=>{
+    if (kw && !n.includes(kw)) return;
+    const row = PETS[n];
+    const tr = document.createElement("tr");
+    const tdN = document.createElement("td"); tdN.textContent = n; tdN.style.cursor="pointer";
+    const tdS0= document.createElement("td"); tdS0.textContent = fmtS0(row);
+    const tdSg= document.createElement("td"); tdSg.textContent = fmtSg(row);
+    const tdK = document.createElement("td"); tdK.textContent  = (row?.k ?? "");
+    const tdU = document.createElement("td"); tdU.textContent  = fmtU(row);
+
+    tr.appendChild(tdN); tr.appendChild(tdS0); tr.appendChild(tdSg); tr.appendChild(tdK); tr.appendChild(tdU);
+    tr.addEventListener("click", ()=>{
+      SELECTED = n;
+      $("#f_name").value = n;
+      write4("f_s0", row?.s0);
+      write4("f_sg", row?.sg);
+      $("#f_k").value = row?.k ?? "";
+      write4("f_u", row?.u);
+      setStatus(`선택됨: ${n}`);
+    });
+    tbody.appendChild(tr);
+  });
+
+  refreshPreview();
+}
+
+/* ===================== 추정 엔진 (미세조정 제거) ===================== */
+const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
+
 function solveUFromSG_JJYAL(SG, e){
   try{
     if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
@@ -318,6 +375,30 @@ function solveUFromSG_JJYAL(SG, e){
     return { u:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e, sg_err:+err };
   }catch(e){ return null; }
 }
+
+function s0_from_k_u_jjyal(k,u){
+  const fac = k/100;
+  const vhp  = (u.hp + 2.5) * fac;
+  const vatk = (u.atk+ 2.5) * fac;
+  const vdef = (u.def+ 2.5) * fac;
+  const vagi = (u.agi+ 2.5) * fac;
+  const s_hp = Math.floor(vhp*4 + vatk + vdef + vagi);
+  const s_atk= Math.floor(vhp*0.1 + vatk + vdef*0.1 + vagi*0.05);
+  const s_def= Math.floor(vhp*0.1 + vatk*0.1 + vdef + vagi*0.05);
+  const s_agi= Math.floor(vagi);
+  return [s_hp,s_atk,s_def,s_agi];
+}
+function fitKFromS0_JJYAL(S0int,u){
+  let best=null;
+  for(let k=10;k<=100;k++){
+    const s = s0_from_k_u_jjyal(k,u);
+    const l1 = Math.abs(s[0]-S0int[0]) + Math.abs(s[1]-S0int[1]) + Math.abs(s[2]-S0int[2]) + Math.abs(s[3]-S0int[3]);
+    const ok = (l1===0);
+    if(!best || (ok && !best.ok) || (!best.ok && l1<best.l1)) best={k,l1,ok};
+    if(ok) break;
+  }
+  return best;
+}
 function inferKU_JJYAL(S0, SG){
   const S0int = S0.map(x=>Math.floor(x));
   let best=null;
@@ -333,62 +414,139 @@ function inferKU_JJYAL(S0, SG){
   return best;
 }
 
-/* ========= 이벤트 ========= */
-$("#btnLoad").addEventListener("click", loadRemote);
-$("#btnCommit").addEventListener("click", commitRemote);
+/* ===================== 이벤트: 로드/저장 ===================== */
+$("#btnLoad").addEventListener("click", async ()=>{
+  try{
+    setStatus("로드 중…");
+    const owner  = $("#gh_owner").value.trim();
+    const repo   = $("#gh_repo").value.trim();
+    const path   = $("#gh_path").value.trim();
+    const branch = $("#gh_branch").value.trim();
+    const token  = $("#gh_token").value.trim();
 
-$("#btnInfer").addEventListener("click", ()=>{
-  const name = $("#f_name").value.trim();
-  if(!name){ alert("이름을 입력하세요."); return; }
-  const S0 = [qv("s0_hp"), qv("s0_atk"), qv("s0_def"), qv("s0_agi")];
-  const SG = { hp:qv("sg_hp"), atk:qv("sg_atk"), def:qv("sg_def"), agi:qv("sg_agi") };
-  if(S0.some(x=>!Number.isFinite(x)) || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
-    alert("S0/SG를 모두 숫자로 입력하세요."); return;
+    const r = await ghGet(owner, repo, path, branch, token);
+    if (r.notFound){
+      PETS = {}; GH_SHA = null;
+      setStatus("원격 파일 없음(새로 생성 예정).");
+    }else{
+      PETS = JSON.parse(r.text);
+      GH_SHA = r.sha || null;
+      setStatus(`로드 완료 · ${Object.keys(PETS).length} 종`);
+    }
+    SELECTED = null;
+    renderTable("name");
+  }catch(err){
+    console.error(err);
+    setStatus("로드 실패: " + (err?.message||err));
+    alert("로드 실패:\n" + (err?.message||err));
   }
-  const fit = inferKU_JJYAL(S0, SG);
-  if(!fit){
-    $("#inferOut").textContent = "해 불가";
-    $("#inferOut").classList.remove("ok");
-    $("#inferOut").classList.add("bad");
-    alert("현재 입력된 S0/SG로는 계수(k,u)를 산출할 수 없습니다.\nS0/SG 소수점을 소폭 조정해 다시 시도해 주세요.");
-    return;
-  }
-  $("#inferOut").textContent = `k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi})`;
-  $("#inferOut").classList.remove("bad");
-  $("#inferOut").classList.add("ok");
 });
 
-$("#btnAdd").addEventListener("click", ()=>{
+$("#btnSave").addEventListener("click", async ()=>{
+  try{
+    setStatus("커밋 중…");
+    const owner  = $("#gh_owner").value.trim();
+    const repo   = $("#gh_repo").value.trim();
+    const path   = $("#gh_path").value.trim();
+    const branch = $("#gh_branch").value.trim();
+    const token  = $("#gh_token").value.trim();
+    const msg    = $("#gh_message").value.trim() || "update";
+
+    const text = JSON.stringify(PETS, null, 2);
+    const newSha = await ghPut(owner, repo, path, branch, token, msg, text, GH_SHA);
+    GH_SHA = newSha || GH_SHA;
+    setStatus("저장·커밋 완료!");
+    alert("저장·커밋 완료!");
+  }catch(err){
+    console.error(err);
+    setStatus("저장 실패: " + (err?.message||err));
+    alert("저장 실패:\n" + (err?.message||err));
+  }
+});
+
+$("#btnBackup").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(PETS, null, 2)], {type:"application/json;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pets.backup.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ===================== 이벤트: 검색/정렬 ===================== */
+$("#search").addEventListener("input", ()=>renderTable());
+$("#btnSortName").addEventListener("click", ()=>renderTable("name"));
+$("#btnSortHasKU").addEventListener("click", ()=>renderTable("hasKU"));
+
+/* ===================== 폼 조작 ===================== */
+$("#btnClearForm").addEventListener("click", ()=>{
+  SELECTED = null;
+  $("#f_name").value = "";
+  write4("f_s0", null);
+  write4("f_sg", null);
+  $("#f_k").value = "";
+  write4("f_u", null);
+  setStatus("폼 초기화");
+});
+
+/* 추가/갱신 */
+$("#btnApply").addEventListener("click", ()=>{
   const name = $("#f_name").value.trim();
   if(!name){ alert("이름을 입력하세요."); return; }
 
-  const s0 = { hp:qv("s0_hp"), atk:qv("s0_atk"), def:qv("s0_def"), agi:qv("s0_agi") };
-  const sg = { hp:qv("sg_hp"), atk:qv("sg_atk"), def:qv("sg_def"), agi:qv("sg_agi") };
-  if(![s0.hp,s0.atk,s0.def,s0.agi, sg.hp,sg.atk,sg.def,sg.agi].every(Number.isFinite)){
-    alert("S0/SG를 모두 숫자로 입력하세요."); return;
+  const S0 = read4("f_s0"), SG = read4("f_sg");
+  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+    alert("S0, Sg를 모두 입력하세요."); return;
   }
 
-  // 저장 전 반드시 k,u 추정 가능해야 함 (미세 조정 없음)
-  const fit = inferKU_JJYAL([s0.hp,s0.atk,s0.def,s0.agi], sg);
-  if(!fit){
-    alert("현재 S0/SG로는 k,u를 산출할 수 없어 저장할 수 없습니다.\nS0/SG 소수점을 소폭 조정한 뒤 'k,u 추정'을 먼저 통과시켜 주세요.");
-    return;
-  }
+  const k = toNum($("#f_k").value);
+  const U = read4("f_u");
+  const hasU = [U.hp,U.atk,U.def,U.agi].every(Number.isFinite);
 
-  PETS[name] = { s0, sg, k:fit.k, u:fit.u };
+  PETS[name] = {
+    s0: S0,
+    sg: SG,
+    ...(Number.isFinite(k) ? {k} : {}),
+    ...(hasU ? {u:{hp:U.hp, atk:U.atk, def:U.def, agi:U.agi}} : {})
+  };
+  setStatus(`적용 완료: ${name}`);
   renderTable();
-  alert("추가/갱신 완료 (k,u 포함).");
 });
 
-/* ========= 초기 ========= */
-(async function init(){
-  // 기본값 바인딩
-  $("#ghOwner").value = GH_OWNER;
-  $("#ghRepo").value  = GH_REPO;
-  $("#ghBranch").value= GH_BRANCH;
-  $("#ghPath").value  = GH_PATH;
-  setCount();
-})();
+/* 선택 삭제 */
+$("#btnDelete").addEventListener("click", ()=>{
+  if(!SELECTED){ alert("삭제할 행을 먼저 선택하세요."); return; }
+  if(!confirm(`정말 삭제할까요?\n${SELECTED}`)) return;
+  delete PETS[SELECTED];
+  SELECTED = null;
+  setStatus("삭제 완료");
+  renderTable();
+});
+
+/* 추정(k/u) — 미세조정 제거·실패시 오류 */
+$("#btnInfer").addEventListener("click", ()=>{
+  const name = $("#f_name").value.trim() || "(이름없음)";
+  const S0 = read4("f_s0"), SG = read4("f_sg");
+  if(![S0.hp,S0.atk,S0.def,S0.agi,SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)){
+    alert("S0, Sg를 모두 입력하세요."); return;
+  }
+
+  const fit = inferKU_JJYAL([S0.hp,S0.atk,S0.def,S0.agi], SG);
+  if(!fit){
+    alert("k/u 추정 실패: 입력한 S0/SG로는 해가 나오지 않습니다.\n소숫점 셋째 자리 정도를 직접 조정해 다시 시도해 주세요.");
+    return;
+  }
+  $("#f_k").value = fit.k;
+  $("#f_u_hp").value  = fit.u.hp;
+  $("#f_u_atk").value = fit.u.atk;
+  $("#f_u_def").value = fit.u.def;
+  $("#f_u_agi").value = fit.u.agi;
+
+  setStatus(`k/u 추정 완료: k=${fit.k}, u=(${fit.u.hp},${fit.u.atk},${fit.u.def},${fit.u.agi})`);
+});
+
+/* ===================== 초기 ===================== */
+setStatus("대기중… (좌측 상단에서 로드)");
 </script>
 </body>
 </html>
