@@ -258,7 +258,7 @@
 
 <script>
 /* ========= 서버 경로 ========= */ 
-  const LOCAL_PETS = "data/pets.json";
+const LOCAL_PETS = "data/pets.json";
 const GH_OWNER  = "kokudas";
 const GH_REPO   = "kokudas.github.io";
 const GH_BRANCH = "main";
@@ -292,7 +292,8 @@ function fmtPct(x){
   if(x < 0.001) return x.toFixed(6) + "%";
   return x.toFixed(4) + "%";
 }
-// ========= 초성(문자 → 초성) 유틸 복구 =========
+
+/* ========= 초성(문자 → 초성) 유틸 ========= */
 const CHO_CODE = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 const CHO_SIMPLE = (c)=>({"ㄲ":"ㄱ","ㄸ":"ㄷ","ㅃ":"ㅂ","ㅆ":"ㅅ","ㅉ":"ㅈ"}[c]||c);
 function getChosung(str){
@@ -308,7 +309,7 @@ function getChosung(str){
 
 /* ========= 원격 로드 ========= */
 async function loadGlobalTable(){
-try{
+  try{
     // 1차: raw.githubusercontent 경로
     const obj = await fetchJSON(REMOTE_PETS);
     if(typeof obj!=="object" || Array.isArray(obj)) throw 0;
@@ -324,7 +325,7 @@ try{
       GLOBAL_TABLE = getJSONLS(LS_TABLE, {});
       console.warn("[pets] remote/local 모두 실패 → localStorage 캐시 사용");
     }
-}
+  }
   ALL_NAMES = Object.keys(GLOBAL_TABLE).sort((a,b)=>a.localeCompare(b,'ko'));
 }
 async function loadRank8Map(){
@@ -341,10 +342,6 @@ async function loadRank8Map(){
   R8MAP = {};
   console.log("[Rank8] no file found; badge disabled");
 }
-
-/* ========= 초성 ========= */
-const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-
 
 /* ========= DOM ========= */
 const chosungBar = document.getElementById('chosung');
@@ -383,7 +380,7 @@ const btnClear= document.getElementById('btnClear');
 let currentChosung="";
 let selectedName=null;
 let selectedRow=null;
-let selectedItemEl=null; // ★ 선택 하이라이트 유지
+let selectedItemEl=null; // 선택 하이라이트 유지
 
 // ===== 바디 레벨 툴팁 =====
 const tipEl = document.createElement('div');
@@ -395,10 +392,11 @@ function hideTip(){ tipEl.classList.remove('show'); }
 function showTip(target){
   const text = target.getAttribute('data-tip');
   if(!text){ hideTip(); return; }
+  const lines = String(text).split('\n');
   tipEl.textContent = '';
-  String(text).split('\n').forEach((line,i)=>{
+  lines.forEach((line,i)=>{
     tipEl.appendChild(document.createTextNode(line));
-    if(i < text.length-1) tipEl.appendChild(document.createElement('br'));
+    if(i < lines.length-1) tipEl.appendChild(document.createElement('br'));
   });
   tipEl.classList.add('show');
   tipEl.style.left = '-9999px'; tipEl.style.top  = '-9999px'; tipEl.removeAttribute('data-pos');
@@ -442,7 +440,9 @@ document.getElementById('btnAdmin').addEventListener('click', ()=>{
   else alert('암호가 올바르지 않습니다.');
 });
 
-/* ========= 초성 UI ========= */
+/* ========= 초성 키패드 ========= */
+const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
 function renderChosungTokens(){
   chosungTokens.innerHTML = "";
   for(const ch of currentChosung){
@@ -451,7 +451,6 @@ function renderChosungTokens(){
     chosungTokens.appendChild(t);
   }
 }
-const CHO = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 CHO.forEach(c=>{
   const chip=document.createElement('div');
   chip.className='chip'; chip.textContent=c;
@@ -465,6 +464,7 @@ CHO.forEach(c=>{
   chosungBar.appendChild(chip);
 });
 petSearch.addEventListener('input', renderPetList);
+
 /* ========= 목록 ========= */
 function renderPetList(){
   const kw = (petSearch.value||"").trim();
@@ -523,7 +523,6 @@ function renderPetList(){
     div.appendChild(left);
     div.appendChild(right);
     div.addEventListener('click', ()=>{
-      // 선택 하이라이트 고정
       if(selectedItemEl) selectedItemEl.classList.remove('selected');
       div.classList.add('selected');
       selectedItemEl = div;
@@ -810,8 +809,10 @@ btnClear.addEventListener('click', ()=>{
 
 /* ========= 부팅 ========= */
 (async function init(){
+  console.log("[init] start");
   await loadGlobalTable();
   await loadRank8Map();
+  console.log("[init] pets:", Object.keys(GLOBAL_TABLE).length, "rank8 keys:", Object.keys(R8MAP).length);
   renderPetList();
 })();
 </script>
