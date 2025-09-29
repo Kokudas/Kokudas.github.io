@@ -410,76 +410,102 @@ function loadForm(name){
 
 function gatherForm(){
   const name = $("name").value.trim();
-  if(!name) { alert("이름을 입력하세요."); return null; }
-  const s0 = { hp: num($("s0_hp").value), atk: num($("s0_atk").value), def: num($("s0_def").value), agi: num($("s0_agi").value) };
-  const sg = { hp: num($("sg_hp").value), atk: num($("sg_atk").value), def: num($("sg_def").value), agi: num($("sg_agi").value) };
-  if([s0.hp,s0.atk,s0.def,s0.agi].some(v=>v==null) || [sg.hp,sg.atk,sg.def,sg.agi].some(v=>v==null)){
-    alert("S0/SG를 모두 채워 주세요."); return null;
-  }
+
+  const s0 = {
+    hp: num($("s0_hp").value),
+    atk: num($("s0_atk").value),
+    def: num($("s0_def").value),
+    agi: num($("s0_agi").value)
+  };
+  const sg = {
+    hp: num($("sg_hp").value),
+    atk: num($("sg_atk").value),
+    def: num($("sg_def").value),
+    agi: num($("sg_agi").value)
+  };
+
   const ovr = $("ovr_check").checked;
-  let k=null,u=null;
-  if(ovr){
-    k = num($("ku_k").value);
-    const uh = num($("ku_hp").value), ua=num($("ku_atk").value), ud=num($("ku_def").value), ug=num($("ku_agi").value);
-    if([k,uh,ua,ud,ug].some(v=>v==null)){ alert("오버라이드 k/u를 모두 채워 주세요."); return null; }
-    u = {hp:uh, atk:ua, def:ud, agi:ug};
-  }
-  return {name, s0, sg, ovr, k, u, note:$("note").value.trim()};
+
+  let k = num($("ku_k").value);
+  let u = {
+    hp: num($("ku_hp").value),
+    atk: num($("ku_atk").value),
+    def: num($("ku_def").value),
+    agi: num($("ku_agi").value)
+  };
+  // 오버라이드 체크가 없으면 k/u는 무시
+  if(!ovr){ k = null; u = null; }
+
+  return { name, s0, sg, ovr, k, u, note: $("note").value.trim() };
 }
+
 
 function updateConsistency(){
   const box = $("consistency");
-  box.style.display = "none";
-  box.className = "callout";
-  const f = gatherForm(); if(!f) return;
+  box.className = "callout";       // 이전 ok/bad 초기화
+  box.style.display = "none";      // 기본은 숨김
 
-  if(f.ovr && f.k!=null && f.u){
-    const sPred = s0_from_k_u_jjyal(f.k, f.u);
-    const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
-    const okS0 = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
+  const f = gatherForm();          // 경고 없이 읽기만
+  const ready =
+    f?.ovr &&
+    Number.isFinite(f.k) &&
+    f.u && [f.u.hp, f.u.atk, f.u.def, f.u.agi].every(Number.isFinite) &&
+    [f.s0.hp, f.s0.atk, f.s0.def, f.s0.agi].every(Number.isFinite) &&
+    [f.sg.hp, f.sg.atk, f.sg.def, f.sg.agi].every(Number.isFinite);
 
-    try{
-      Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
-      const e = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(f.u.agi).plus(2.5));
-      const fct = e.dividedBy(10000);
-      const r2 = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  // ←← 여기서 준비가 안 됐으면 즉시 숨기고 종료(else 대신 early return)
+  if(!ready){
+    box.innerHTML = "";            // 내용도 비워서 이전 내용 잔상 제거
+    return;
+  }
 
-      const hpC  = r2( fct.times( (f.u.hp+2.5)*4 + (f.u.atk+2.5) + (f.u.def+2.5) + (f.u.agi+2.5) ) ).toNumber();
-      const atkC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5) + (f.u.def+2.5)*0.1 + (f.u.agi+2.5)*0.05 ) ).toNumber();
-      const defC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5)*0.1 + (f.u.def+2.5) + (f.u.agi+2.5)*0.05 ) ).toNumber();
+  // ↓ 준비가 됐을 때만 계산/표시
+  const sPred = s0_from_k_u_jjyal(f.k, f.u);
+  const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
+  const okS0  = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
 
-      const hpDiff  = toFixed2(hpC  - f.sg.hp);
-      const atkDiff = toFixed2(atkC - f.sg.atk);
-      const defDiff = toFixed2(defC - f.sg.def);
+  try{
+    Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+    const e   = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(f.u.agi).plus(2.5));
+    const fct = e.dividedBy(10000);
+    const r2  = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
-      const sgOk = (hpDiff===0 && atkDiff===0 && defDiff===0);
-      const eVal = e.toNumber();
+    const hpC  = r2( fct.times( (f.u.hp+2.5)*4 + (f.u.atk+2.5) + (f.u.def+2.5) + (f.u.agi+2.5) ) ).toNumber();
+    const atkC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5) + (f.u.def+2.5)*0.1 + (f.u.agi+2.5)*0.05 ) ).toNumber();
+    const defC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5)*0.1 + (f.u.def+2.5) + (f.u.agi+2.5)*0.05 ) ).toNumber();
 
-      box.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
-          <strong>일관성 검사</strong>
-          <span class="mono muted">k=${f.k}, u=(${f.u.hp},${f.u.atk},${f.u.def},${f.u.agi})</span>
+    const hpDiff  = toFixed2(hpC  - f.sg.hp);
+    const atkDiff = toFixed2(atkC - f.sg.atk);
+    const defDiff = toFixed2(defC - f.sg.def);
+
+    const sgOk = (hpDiff===0 && atkDiff===0 && defDiff===0);
+    const eVal = e.toNumber();
+
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
+        <strong>일관성 검사</strong>
+        <span class="mono muted">k=${f.k}, u=(${f.u.hp},${f.u.atk},${f.u.def},${f.u.agi})</span>
+      </div>
+      <div class="${okS0?'ok':'bad'}">S0 정수부 일치: <b>${okS0?'OK':'불일치'}</b> (예측 ${sPred.join('/')}, 실제 ${sInt.join('/')})</div>
+      <div style="margin-top:6px">
+        <div>SG 참고(e≈<span class="mono">${eVal.toFixed(2)}</span>): 
+          HP <span class="mono">${hpC.toFixed(2)}</span> (${hpDiff>=0?'+':''}${hpDiff}),
+          ATK <span class="mono">${atkC.toFixed(2)}</span> (${atkDiff>=0?'+':''}${atkDiff}),
+          DEF <span class="mono">${defC.toFixed(2)}</span> (${defDiff>=0?'+':''}${defDiff})
         </div>
-        <div class="${okS0?'ok':'bad'}">S0 정수부 일치: <b>${okS0?'OK':'불일치'}</b> (예측 ${sPred.join('/')}, 실제 ${sInt.join('/')})</div>
-        <div style="margin-top:6px">
-          <div>SG 참고(e≈<span class="mono">${eVal.toFixed(2)}</span>): 
-            HP <span class="mono">${hpC.toFixed(2)}</span> (${hpDiff>=0?'+':''}${hpDiff}),
-            ATK <span class="mono">${atkC.toFixed(2)}</span> (${atkDiff>=0?'+':''}${atkDiff}),
-            DEF <span class="mono">${defC.toFixed(2)}</span> (${defDiff>=0?'+':''}${defDiff})
-          </div>
-          <div class="${sgOk?'ok':'bad'}">SG 반올림 비교: <b>${sgOk?'OK':'차이 있음'}</b></div>
-        </div>
-        <div class="note" style="margin-top:6px">※ 오버라이드는 저장 가능합니다. 불일치는 경고만 표시됩니다.</div>
-      `;
-      box.classList.add(okS0 ? "ok" : "bad");
-      box.style.display = "block";
-    }catch{
-      box.innerHTML = `<b>일관성 검사 실패</b> (내부 계산 오류)`;
-      box.classList.add("bad");
-      box.style.display = "block";
-    }
+        <div class="${sgOk?'ok':'bad'}">SG 반올림 비교: <b>${sgOk?'OK':'차이 있음'}</b></div>
+      </div>
+      <div class="note" style="margin-top:6px">※ 오버라이드는 저장 가능합니다. 불일치는 경고만 표시됩니다.</div>
+    `;
+    box.classList.add(okS0 ? "ok" : "bad");
+    box.style.display = "block";
+  }catch{
+    box.innerHTML = `<b>일관성 검사 실패</b> (내부 계산 오류)`;
+    box.classList.add("bad");
+    box.style.display = "block";
   }
 }
+
 
 /* ====== 이벤트 바인딩 ====== */
 $("btnReload").addEventListener("click", async ()=>{
@@ -496,7 +522,13 @@ $("btnNew").addEventListener("click", ()=>{
 searchEl.addEventListener("input", renderList);
 
 $("btnSolve").addEventListener("click", ()=>{
-  const f = gatherForm(); if(!f) return;
+  const f = gatherForm();
+
+  if(!f.name){ alert("이름을 입력하세요."); return; }
+  if([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi].some(v=>v==null) ||
+     [f.sg.hp,f.sg.atk,f.sg.def,f.sg.agi].some(v=>v==null)){
+    alert("S0/SG를 모두 채워 주세요."); return;
+  }
   const sol = inferKU_STRICT([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi], f.sg);
   if(!sol){
     alert("계산할 수 없는 값입니다(STRICT 해 없음). S0/SG를 확인하거나 수동 오버라이드를 사용하세요.");
@@ -521,7 +553,18 @@ $("btnClearKU").addEventListener("click", ()=>{
 });
 
 $("btnSave").addEventListener("click", ()=>{
-  const f = gatherForm(); if(!f) return;
+  const f = gatherForm();
+
+  if(!f.name){ alert("이름을 입력하세요."); return; }
+  if([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi].some(v=>v==null) ||
+     [f.sg.hp,f.sg.atk,f.sg.def,f.sg.agi].some(v=>v==null)){
+   alert("S0/SG를 모두 채워 주세요."); return;
+  }
+  if(f.ovr){
+    if(!(Number.isFinite(f.k) && f.u && [f.u.hp,f.u.atk,f.u.def,f.u.agi].every(Number.isFinite))){
+      alert("오버라이드 k/u를 모두 채워 주세요."); return;
+    }
+  }
   if(CURRENT && CURRENT !== f.name){
     if(DB[f.name]){ alert("해당 이름은 이미 존재합니다."); return; }
     DB[f.name] = DB[CURRENT];
