@@ -5328,5 +5328,27 @@
     "_deltaDim": null,
     "_deltaVal": 0,
     "ku_override": true
+  },
+  "기가로스": {
+    "s0": {
+      "hp": 66.5,
+      "atk": 13.11,
+      "def": 12.61,
+      "agi": 6.86
+    },
+    "sg": {
+      "hp": 10.33,
+      "atk": 2.04,
+      "def": 1.96,
+      "agi": 1.07
+    },
+    "k": 28,
+    "u": {
+      "hp": 32,
+      "atk": 36,
+      "def": 34,
+      "agi": 22
+    },
+    "ku_override": true
   }
 }
