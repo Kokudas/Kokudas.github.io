@@ -74,9 +74,49 @@
     .r8item{ grid-template-columns: 24px 1fr; }
     .r8item .extra{ grid-column: 2 / 3; justify-self:start; margin-top:2px; }
   }
+
+  /* === 비밀번호 게이트 === */
+  body.locked{overflow:hidden}
+  body.locked header, body.locked .grid{display:none}
+  #gate{
+    position:fixed; inset:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(15,17,21,.94)
+  }
+  #gate .panel{
+    width:min(420px,92vw); border-radius:14px; padding:18px;
+    background:#161a22; border:1px solid #232a36; color:#e8ecf3
+  }
+  #gate h2{margin:0 0 10px; font-size:18px}
+  #gate .row{display:flex; gap:8px; margin-top:8px}
+  #gate input{
+    flex:1 1 auto; padding:12px; border-radius:10px; border:1px solid #2a3040;
+    background:#0e1218; color:#e8ecf3; outline:none; font-size:14px
+  }
+  #gate button{
+    padding:12px 14px; border-radius:10px; border:1px solid #334055;
+    background:#142033; color:#cfe1ff; font-weight:600; cursor:pointer
+  }
+  #gate .err{margin-top:8px; color:#ff7e92; font-size:13px; min-height:18px}
 </style>
 </head>
-<body>
+<body class="locked">
+  <!-- 비밀번호 게이트 -->
+  <div id="gate" role="dialog" aria-modal="true">
+    <div class="panel">
+      <h2>NOVA PET Admin</h2>
+      <div class="muted" style="font-size:13px">접근을 위해 비밀번호를 입력하세요.</div>
+      <div class="row">
+        <input id="gate_pass" type="password" placeholder="Password" autocomplete="current-password" />
+        <button id="gate_btn">입장</button>
+      </div>
+      <div id="gate_err" class="err"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:#8a9099">
+        <input id="gate_rem" type="checkbox" /> 브라우저 탭에서 2시간 기억하기
+      </label>
+    </div>
+  </div>
+
 <header>
   <div class="brand">NOVA PET Admin</div>
   <div class="right">
@@ -186,6 +226,66 @@
     <div id="r8Preview" class="callout" style="margin-top:10px; display:none"></div>
   </section>
 </div>
+
+<!-- === 비밀번호 게이트 스크립트 (페이지 잠금/해제) === -->
+<script>
+/* ① 여기 해시값(HEX)을 바꿔 넣으세요. 예: '새_비번'의 SHA-256 HEX */
+const ADMIN_PASSWORD_HASH = "PUT_SHA256_HEX_HERE";
+/* ② '2시간 기억하기' 체크 시 유지 시간(ms) */
+const LOGIN_TTL_MS = 2 * 60 * 60 * 1000;
+
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function getSess(){
+  try{ return JSON.parse(sessionStorage.getItem("nova_admin_ok")||"null"); }catch{ return null; }
+}
+function setSess(){
+  sessionStorage.setItem("nova_admin_ok", JSON.stringify({h:ADMIN_PASSWORD_HASH, t:Date.now()}));
+}
+function sessValid(){
+  const s = getSess();
+  return !!(s && s.h===ADMIN_PASSWORD_HASH && (Date.now()-s.t) < LOGIN_TTL_MS);
+}
+function unlock(){
+  document.body.classList.remove("locked");
+  const g = document.getElementById("gate");
+  if(g) g.remove();
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const pass = document.getElementById("gate_pass");
+  const btn  = document.getElementById("gate_btn");
+  const err  = document.getElementById("gate_err");
+  const rem  = document.getElementById("gate_rem");
+
+  if(sessValid()){ unlock(); return; }
+
+  async function tryLogin(){
+    err.textContent = "";
+    const p = pass.value ?? "";
+    if(!p){ err.textContent="비밀번호를 입력하세요."; pass.focus(); return; }
+    try{
+      const hex = await sha256Hex(p);
+      if(hex === ADMIN_PASSWORD_HASH){
+        if(rem && rem.checked) setSess();
+        unlock();
+      }else{
+        err.textContent = "비밀번호가 올바르지 않습니다.";
+        pass.value = ""; pass.focus();
+      }
+    }catch(e){
+      err.textContent = "브라우저가 WebCrypto를 지원하지 않습니다.";
+      console.error(e);
+    }
+  }
+
+  btn.addEventListener("click", tryLogin);
+  pass.addEventListener("keydown", e=>{ if(e.key==="Enter") tryLogin(); });
+  setTimeout(()=>pass.focus(), 0);
+});
+</script>
 
 <script>
 /* ====== 설정 ====== */
@@ -453,13 +553,13 @@ function updateConsistency(){
     [f.s0.hp, f.s0.atk, f.s0.def, f.s0.agi].every(Number.isFinite) &&
     [f.sg.hp, f.sg.atk, f.sg.def, f.sg.agi].every(Number.isFinite);
 
-  // ←← 여기서 준비가 안 됐으면 즉시 숨기고 종료(else 대신 early return)
+  // 준비 안 됐으면 즉시 종료
   if(!ready){
-    box.innerHTML = "";            // 내용도 비워서 이전 내용 잔상 제거
+    box.innerHTML = "";
     return;
   }
 
-  // ↓ 준비가 됐을 때만 계산/표시
+  // 준비가 됐을 때만 계산/표시
   const sPred = s0_from_k_u_jjyal(f.k, f.u);
   const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
   const okS0  = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
