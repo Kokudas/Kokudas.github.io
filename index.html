@@ -252,7 +252,7 @@
 
 <div class="footer">
   <p>· “환각(8등급)”은 베이스 합계가 <b>+8</b>인 경우만 집계합니다. (베이스 각 항목 범위 −2..+2, 보너스 총합 10 분배)</p>
-  <p>· 이 계산기는 해피 서버 페트 데이터 계수 기반으로 제작되었으며, 이에 따라 결과값은 단순 재미로만 봐 주시길 바랍니다.</p>
+  <p>· 이 계산기는 해피 서버 페트 및 짜얄 계산기 데이터 계수 기반으로 제작되었으며, 이에 따라 결과값은 단순 재미로만 봐 주시길 바랍니다.</p>
   <p>· 계산기 사용 중 예외사항이나 에러가 있다면, 디스코드 인게임닉 [과장] 으로 연락 주세요. </p>
 </div>
 
@@ -623,7 +623,7 @@ document.addEventListener('click', (e)=>{
   const curr=parseInt(input.value||"0",10); input.value=String(curr+delta);
 });
 
-/* ========= 짜얄 호환 k/u 추정 ========= */
+/* ========= k/u 추정 ========= */
 const ESET = [575, 555, 535, 515, 495, 475, 455, 435];
 
 function solveUFromSG_JJYAL(SG, e){
@@ -718,7 +718,7 @@ function inferKU_JJYAL(S0, SG){
   return best;
 }
 
-/* ========= 짜얄 호환 엔진(합산 후 floor) ========= */
+/* ========= 엔진(합산 후 floor) ========= */
 function enumerate_jjyal(pku, obs){
   const k = new Decimal(pku.k);
   const fac = k.dividedBy(100);
