@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>스톤에이지 · 페트 필터(v9)</title>
+<title>NOVA SERVER PETS FILTER(v1.0)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#161a22; --ink:#e8ecf3; --muted:#9aa1ad; --pri:#7aa2ff; --ring:#1f2632;
@@ -85,8 +85,8 @@
   <div class="wrap">
     <div class="row" style="grid-template-columns: 1fr auto auto;">
       <div>
-        <h1>스톤에이지 · 페트 필터(v9)</h1>
-        <div class="muted">듀얼 합계=10 고정 • 관리자 잠금(복원) • Import 버튼 높이 통일 • GitHub 커밋</div>
+        <h1>NOVA SERVER PETS FILTER(v1.0)</h1>
+        <div class="muted">추석 패치 전 정보입니다.</div>
       </div>
       <div class="toolbar hidden" id="adminToolbar" style="display:none">
         <button class="btn toggleEdit" id="toggleEditBtn">편집모드</button>
@@ -648,12 +648,55 @@ $("#ghDoCommit")?.addEventListener("click", async ()=>{ if(!ADMIN) return;
 if (localStorage.getItem("pets_admin_unlocked") === "1") { ADMIN = true; }
 
 // Controls re-render
-["#q","#onlySearchable","#attrPick","#dual_high",
+["#q","#onlySearchable","#attrPick",
  "#min_init_hp","#min_init_atk","#min_init_def","#min_init_agi",
  "#min_grow_hp","#min_grow_atk","#min_grow_def","#min_grow_agi"].forEach(sel=>{
    const el = $(sel);
    if (el) el.addEventListener("input", render);
 });
+
+// Specialized guard: dual_high must be >= 5. Revert and alert if violated.
+let prevDualHigh = parseInt($("#dual_high")?.value || "5", 10) || 5;
+function syncDualLow() {
+  const high = Math.max(0, Math.min(10, parseInt($("#dual_high")?.value || String(prevDualHigh), 10)));
+  const low = 10 - high;
+  if ($("#dual_low")) $("#dual_low").value = String(low);
+}
+// Intercept user inputs to dual_high
+const dualHighEl = $("#dual_high");
+if (dualHighEl) {
+  dualHighEl.addEventListener("input", (e) => {
+    let v = parseInt(e.target.value || "0", 10);
+    if (Number.isNaN(v)) v = 0;
+    if (v < 5) {
+      alert("듀얼 상위 값은 5 이상이어야 합니다.");
+      e.target.value = String(prevDualHigh);
+      syncDualLow();
+      return;
+    }
+    if (v > 10) v = 10;
+    e.target.value = String(v);
+    prevDualHigh = v;
+    syncDualLow();
+    render();
+  });
+  dualHighEl.addEventListener("change", (e) => {
+    let v = parseInt(e.target.value || "0", 10);
+    if (Number.isNaN(v)) v = prevDualHigh;
+    if (v < 5) {
+      alert("듀얼 상위 값은 5 이상이어야 합니다.");
+      e.target.value = String(prevDualHigh);
+      syncDualLow();
+      return;
+    }
+    if (v > 10) v = 10;
+    e.target.value = String(v);
+    prevDualHigh = v;
+    syncDualLow();
+    render();
+  });
+}
+
 $$(".grade").forEach(el=>el.addEventListener("change", render));
 $$(".mount").forEach(el=>el.addEventListener("change", render));
 
