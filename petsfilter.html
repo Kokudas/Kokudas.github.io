@@ -73,6 +73,9 @@
   .toolbar{display:flex; gap:8px; align-items:center} .hidden{display:none!important}
   .editPanel{display:none; grid-template-columns: 1fr auto; gap:8px; align-items:center} .editing .editPanel{display:grid}
   .toggleEdit.btn.active{outline:2px solid #2a364b} .u-input{width:100%; background:#0f141f; border:1px solid #263045; color:var(--ink); border-radius:10px; padding:6px 8px}
+  .backBtn{background:#111826; border:1px dashed #223049; color:#a7b0c0; border-radius:10px; padding:8px 12px; cursor:pointer}
+  .backBtn:hover{border-color:#2a3a59; color:#c6d0e0}
+  
   .adminLogin{background:#111826; border:1px dashed #223049; color:#a7b0c0; border-radius:10px; padding:8px 12px; cursor:pointer}
   .adminLogin:hover{border-color:#2a3a59; color:#c6d0e0}
   .dualAdv{display:none; margin-top:8px; gap:8px; grid-template-columns: 1fr 90px 1fr}
@@ -95,7 +98,6 @@
         <h1>노바 서버 페트 필터(v1.1)</h1>
         <div class="muted">추석 패치 이전 데이터입니다.</div>
       </div>
-      <a class="btn" id="backBtn" href="https://kokudas.github.io/">계산기로 돌아가기</a>
       <div class="toolbar hidden" id="adminToolbar" style="display:none">
         <button class="btn toggleEdit" id="toggleEditBtn">편집모드</button>
         <button class="btn" id="exportCsv">CSV 내보내기</button>
@@ -104,6 +106,7 @@
         <input id="importJson" type="file" accept="application/json" class="hidden"/>
         <button class="btn" id="githubBtn">GitHub 커밋</button>
       </div>
+      <a class="btn" id="backBtn" href="https://kokudas.github.io/">계산기로 돌아가기</a>
       <button class="adminLogin" id="adminLoginBtn">관리자 로그인</button>
     </div>
 
