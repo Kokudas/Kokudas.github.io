@@ -25,6 +25,8 @@
     --grade-adv-tx: #0b1b14;
     --grade-top-bg: radial-gradient(130% 130% at 30% 30%, #e8ffff 0%, #b8e6ff 45%, #9bd9ff 70%, #e6f7ff 100%);
     --grade-top-tx: #0a1a22;
+    --toast-bg: #101826;
+    --toast-bd: #2a3a59;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -42,7 +44,7 @@
   input[readonly]{opacity:.7; pointer-events:none}
   .checks{display:flex; gap:10px; flex-wrap:wrap}
   .check{display:flex; gap:6px; align-items:center; font-size:13px}
-  .btn{background:#141c29; border:1px solid #1c2433; color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer; height:38px; display:inline-flex; align-items:center}
+  .btn{background:#141c29; border:1px solid #1c2433; color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer; height:38px; display:inline-flex; align-items:center; justify-content:center}
   .btn:hover{border-color:#2a364b}
   .pill{display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:2px 8px; border-radius:999px; background:#111826; border:1px solid #1c2433}
   .muted{color:var(--muted)} .name{font-weight:800; font-size:16px}
@@ -73,8 +75,13 @@
   .toggleEdit.btn.active{outline:2px solid #2a364b} .u-input{width:100%; background:#0f141f; border:1px solid #263045; color:var(--ink); border-radius:10px; padding:6px 8px}
   .adminLogin{background:#111826; border:1px dashed #223049; color:#a7b0c0; border-radius:10px; padding:8px 12px; cursor:pointer}
   .adminLogin:hover{border-color:#2a3a59; color:#c6d0e0}
-  .dualAdv{display:none; margin-top:8px; gap:8px; grid-template-columns: 1fr 1fr}
+  .dualAdv{display:none; margin-top:8px; gap:8px; grid-template-columns: 1fr 90px 1fr}
   .dualAdv.active{display:grid}
+  .btnSm{height:36px; min-width:36px; padding:0 10px}
+  .toastWrap{position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:1000}
+  .toast{background:var(--toast-bg); border:1px solid var(--toast-bd); color:#cfe3ff; padding:10px 12px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.3); opacity:0; transform:translateY(10px); transition: all .25s ease}
+  .toast.show{opacity:1; transform:translateY(0)}
+  .loading{padding:24px; text-align:center; color:#9aa1ad}
   .gh-panel{display:none; grid-template-columns: repeat(3, 1fr); gap:8px; padding:10px; border:1px dashed #2a3a59; border-radius:12px; background:#0f141f; margin-top:10px}
   .gh-panel.active{display:grid}
   .gh-panel .wide{grid-column: 1 / -1}
@@ -85,8 +92,8 @@
   <div class="wrap">
     <div class="row" style="grid-template-columns: 1fr auto auto;">
       <div>
-        <h1>노바 서버 페트 필터(v1.1)</h1>
-        <div class="muted">추석 이전 데이터입니다.</div>
+        <h1>노바 서버 페트 필터(v11)</h1>
+        <div class="muted">추석 패치 이전 데이터입니다.</div>
       </div>
       <div class="toolbar hidden" id="adminToolbar" style="display:none">
         <button class="btn toggleEdit" id="toggleEditBtn">편집모드</button>
@@ -99,10 +106,9 @@
       <button class="adminLogin" id="adminLoginBtn">관리자 로그인</button>
     </div>
 
-    <!-- GitHub commit inline panel -->
     <div id="ghPanel" class="gh-panel">
-      <div><label>Owner</label><input type="text" id="ghOwner" placeholder="예: kokudas"/></div>
-      <div><label>Repo</label><input type="text" id="ghRepo" placeholder="예: kokudas.github.io"/></div>
+      <div><label>Owner</label><input type="text" id="ghOwner" value="kokudas"/></div>
+      <div><label>Repo</label><input type="text" id="ghRepo" value="kokudas.github.io"/></div>
       <div><label>Branch</label><input type="text" id="ghBranch" value="main"/></div>
       <div class="wide"><label>Path</label><input type="text" id="ghPath" value="data/pets_filter.json"/></div>
       <div class="wide"><label>Commit Message</label><input type="text" id="ghMsg" value="Update pets data via UI"/></div>
@@ -142,6 +148,10 @@
             <div>
               <label class="section" style="margin-bottom:6px">듀얼 상위 값 (합계=10)</label>
               <input type="number" id="dual_high" min="5" max="10" step="1" value="5" />
+            </div>
+            <div style="display:flex; align-items:end; gap:8px">
+              <button class="btn btnSm" id="dualDec">-1</button>
+              <button class="btn btnSm" id="dualInc">+1</button>
             </div>
             <div>
               <label class="section" style="margin-bottom:6px">듀얼 하위 값 (자동=10-상위)</label>
@@ -192,56 +202,41 @@
           <div class="spacer"></div>
           <div class="pill"><strong id="countShow">0</strong>&nbsp;/&nbsp;<span id="totalShow">0</span> 개</div>
         </div>
-        <div class="resultGrid" id="resultGrid"></div>
+        <div id="listWrap" class="resultGrid">
+          <div class="loading" id="loading">데이터를 불러오는 중…</div>
+        </div>
       </div>
     </section>
   </div>
 </main>
 
-<script>
-// ----- Data model (fetched) -----
-let PETS = [];
+<div class="toastWrap" id="toastWrap"></div>
 
+<script>
+const DATA_URL_DEFAULT = "/data/pets_filter.json";
+let DATA_URL = DATA_URL_DEFAULT;
+
+let PETS = [];
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 let EDIT_MODE = false;
 let ADMIN = false;
-// 기본 비밀번호는 'petsfilter'의 SHA-256. 운영 시 아래 값을 교체하세요.
-const ADMIN_HASH = "37bd45d638c2d11c49c641d2e9c4f49f406caf3ee282743e0c800aa1ed68e2ee"; // placeholder: replace with your own hash
+const ADMIN_HASH = "37bd45d638c2d11c49c641d2e9c4f49f406caf3ee282743e0c800aa1ed68e2ee";
 
-// ---- Data Source (GitHub raw) ----
-function guessRepoFromHost() {
-  const host = (location.hostname || "").toLowerCase();
-  const owner = host.split(".")[0] || "kokudas";
-  const repo = owner + ".github.io";
-  return { owner, repo };
-}
-const __guess = guessRepoFromHost();
-let DATA_SRC = {
-  owner: __guess.owner,
-  repo: __guess.repo,
-  branch: "main",
-  path: "data/pets_filter.json"
-};
-
-async function loadPets(opts = {silent:true}) {
-  const rawUrl = `https://raw.githubusercontent.com/${DATA_SRC.owner}/${DATA_SRC.repo}/${DATA_SRC.branch}/${DATA_SRC.path}?t=${Date.now()}`;
-  try {
-    const res = await fetch(rawUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const json = await res.json();
-    if (!Array.isArray(json)) throw new Error("JSON 루트는 배열이어야 합니다.");
-    PETS.length = 0;
-    json.forEach(x => PETS.push(x));
-    render();
-    if (!opts.silent) alert("데이터를 불러왔습니다.");
-  } catch (err) {
-    console.error("loadPets failed:", err);
-    if (!opts.silent) alert("데이터 불러오기 실패: " + err.message);
-  }
+function showToast(msg, ms=1800) {
+  const wrap = $("#toastWrap");
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  wrap.appendChild(t);
+  void t.offsetWidth;
+  t.classList.add("show");
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => wrap.removeChild(t), 250);
+  }, ms);
 }
 
-// ---------- UI helpers ----------
 function dominantAttrs(attr) {
   const keys = ["지","수","화","풍"];
   const vals = keys.map(k=> (attr && typeof attr[k]==="number") ? attr[k] : 0);
@@ -250,7 +245,6 @@ function dominantAttrs(attr) {
   return keys.filter((k,i)=>vals[i]===maxv);
 }
 
-// 듀얼: 정확히 두 속성만 사용, 값 합계=10, 순서 무관 (high / 10-high)
 function isDualExactSum10(attr, high) {
   const low = 10 - high;
   const keys = ["지","수","화","풍"];
@@ -262,13 +256,12 @@ function isDualExactSum10(attr, high) {
 function fmt(x) { return (x==null || Number.isNaN(x)) ? "—" : (Math.round(x*100)/100).toFixed(2); }
 
 function getFilters() {
-  const highEl = $("#dual_high");
-  let high = parseInt(highEl?.value || "5", 10);
+  const highInput = $("#dual_high");
+  let high = parseInt(highInput?.value || "5", 10);
   if (Number.isNaN(high)) high = 5;
-  let low = 10 - high;
-  const lowEl = $("#dual_low");
-  if (lowEl) lowEl.value = String(low);
-
+  high = Math.max(5, Math.min(10, high));
+  const low = 10 - high;
+  if ($("#dual_low")) $("#dual_low").value = String(low);
   return {
     q: $("#q").value.trim(),
     onlySearchable: $("#onlySearchable").checked,
@@ -482,6 +475,16 @@ function sortRows(rows, f) {
   });
 }
 
+function ensureMountAtLeastOne(e) {
+  const boxes = $$(".mount");
+  const checked = boxes.filter(b=>b.checked);
+  if (checked.length === 0) {
+    e.target.checked = true;
+    showToast("탑승 필터는 최소 1개 이상 선택해야 합니다.");
+  }
+  render();
+}
+
 function render() {
   const f = getFilters();
   let rows = PETS.filter(p => match(p, f));
@@ -508,11 +511,17 @@ function render() {
     if (v>0) chips.appendChild(chip(`최소 ${k.replace('_',' ').toUpperCase()}: ${v}`, ()=>{ $("#"+key).value=""; render(); }));
   });
 
-  const grid = $("#resultGrid");
+  const grid = $("#listWrap");
   grid.innerHTML = "";
-  rows.forEach(p => grid.appendChild(petCard(p)));
+  if (rows.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "loading";
+    empty.textContent = "조건에 맞는 페트가 없습니다.";
+    grid.appendChild(empty);
+  } else {
+    rows.forEach(p => grid.appendChild(petCard(p)));
+  }
 
-  // Admin toolbar visibility - robust
   const adminTb = $("#adminToolbar");
   if (ADMIN) { adminTb.classList.remove("hidden"); adminTb.style.display="flex"; }
   else { adminTb.classList.add("hidden"); adminTb.style.display="none"; }
@@ -521,7 +530,6 @@ function render() {
   const toggleBtn = $("#toggleEditBtn");
   if (toggleBtn) toggleBtn.textContent = (EDIT_MODE && ADMIN) ? "편집모드 해제" : "편집모드";
 
-  // Dual advanced panel toggle
   const dv = document.getElementById("dualAdv");
   if (dv) dv.classList.toggle("active", $("#attrPick").value === "듀얼");
 }
@@ -584,19 +592,47 @@ async function adminUnlock() {
     if (h === ADMIN_HASH) {
       ADMIN = true;
       localStorage.setItem("pets_admin_unlocked","1");
-      alert("관리자 모드가 활성화되었습니다.");
+      showToast("관리자 모드가 활성화되었습니다.");
       return true;
     } else {
-      alert("비밀번호가 올바르지 않습니다.");
+      showToast("비밀번호가 올바르지 않습니다.");
       return false;
     }
   } catch(err) {
-    alert("해시 계산 중 오류가 발생했습니다: " + err.message);
+    showToast("해시 계산 중 오류: " + err.message);
     return false;
   }
 }
 
-// ---- GitHub Commit ----
+$("#adminLoginBtn").addEventListener("click", async ()=>{ await adminUnlock(); render(); });
+
+$("#toggleEditBtn")?.addEventListener("click", ()=>{ if (!ADMIN) return; EDIT_MODE = !EDIT_MODE; render(); });
+$("#exportCsv")?.addEventListener("click", ()=>{ if(!ADMIN) return; const rows = currentFiltered(); download("stoneage_pets_filtered.csv", toCSV(rows), "text/csv;charset=utf-8"); });
+$("#exportJson")?.addEventListener("click", ()=>{ if(!ADMIN) return; download("pets_filter.json", JSON.stringify(PETS, null, 2), "application/json;charset=utf-8"); });
+$("#importJsonBtn")?.addEventListener("click", ()=>{ if(!ADMIN) return; $("#importJson").click(); });
+$("#importJson")?.addEventListener("change", (e)=>{ if (!ADMIN) return;
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ try{ const arr = JSON.parse(reader.result);
+      if(!Array.isArray(arr)) throw new Error("JSON은 배열이어야 합니다.");
+      const byName = Object.fromEntries(PETS.map(p=>[p.name,p]));
+      arr.forEach(obj=>{ if(!obj || typeof obj!=="object") return;
+        const name = obj.name; if(!name) return;
+        byName[name] = Object.assign({}, byName[name]||{}, obj);
+      });
+      PETS.length = 0; Object.values(byName).forEach(v=>PETS.push(v));
+      render(); e.target.value = ""; showToast("JSON 병합 완료");
+    }catch(err){ showToast("JSON 파싱 실패: " + err.message); }
+  };
+  reader.readAsText(file, "utf-8");
+});
+
+$("#githubBtn")?.addEventListener("click", ()=>{ if(!ADMIN) return;
+  const pnl = $("#ghPanel");
+  pnl.classList.toggle("active");
+});
+
 function b64EncodeUnicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
@@ -607,7 +643,6 @@ async function githubCommit(owner, repo, branch, path, message, token, jsonText)
     "Accept": "application/vnd.github+json",
     "Authorization": "Bearer " + token
   };
-  // Get current file sha if exists
   let sha = null;
   try {
     const res = await fetch(`${base}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`, {headers});
@@ -634,50 +669,6 @@ async function githubCommit(owner, repo, branch, path, message, token, jsonText)
   return putRes.json();
 }
 
-// ---- Wire up ----
-document.addEventListener("DOMContentLoaded", ()=>{
-  // Initial render (empty) then load remote data
-  render();
-  loadPets({silent:true});
-
-  // Sync guessed owner/repo into panel defaults if empty
-  const o = $("#ghOwner"), r = $("#ghRepo"), b = $("#ghBranch"), p = $("#ghPath");
-  if (o && !o.value) o.value = DATA_SRC.owner;
-  if (r && !r.value) r.value = DATA_SRC.repo;
-  if (b && !b.value) b.value = DATA_SRC.branch;
-  if (p && !p.value) p.value = DATA_SRC.path;
-});
-
-$("#adminLoginBtn").addEventListener("click", async ()=>{ await adminUnlock(); render(); });
-
-// Admin buttons
-$("#toggleEditBtn")?.addEventListener("click", ()=>{ if (!ADMIN) return; EDIT_MODE = !EDIT_MODE; render(); });
-$("#exportCsv")?.addEventListener("click", ()=>{ if(!ADMIN) return; const rows = currentFiltered(); download("stoneage_pets_filtered.csv", toCSV(rows), "text/csv;charset=utf-8"); });
-$("#exportJson")?.addEventListener("click", ()=>{ if(!ADMIN) return; download("pets_filter.json", JSON.stringify(PETS, null, 2), "application/json;charset=utf-8"); });
-$("#importJsonBtn")?.addEventListener("click", ()=>{ if(!ADMIN) return; $("#importJson").click(); });
-$("#importJson")?.addEventListener("change", (e)=>{ if (!ADMIN) return;
-  const file = e.target.files?.[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{ try{ const arr = JSON.parse(reader.result);
-      if(!Array.isArray(arr)) throw new Error("JSON은 배열이어야 합니다.");
-      const byName = Object.fromEntries(PETS.map(p=>[p.name,p]));
-      arr.forEach(obj=>{ if(!obj || typeof obj!=="object") return;
-        const name = obj.name; if(!name) return;
-        byName[name] = Object.assign({}, byName[name]||{}, obj);
-      });
-      PETS.length = 0; Object.values(byName).forEach(v=>PETS.push(v));
-      render(); e.target.value = ""; alert("JSON 병합 완료");
-    }catch(err){ alert("JSON 파싱 실패: " + err.message); }
-  };
-  reader.readAsText(file, "utf-8");
-});
-
-// GitHub commit UI
-$("#githubBtn")?.addEventListener("click", ()=>{ if(!ADMIN) return;
-  $("#ghPanel").classList.toggle("active");
-});
-
 $("#ghDoCommit")?.addEventListener("click", async ()=>{ if(!ADMIN) return;
   const owner = $("#ghOwner").value.trim();
   const repo = $("#ghRepo").value.trim();
@@ -691,72 +682,68 @@ $("#ghDoCommit")?.addEventListener("click", async ()=>{ if(!ADMIN) return;
     const jsonText = JSON.stringify(PETS, null, 2);
     const result = await githubCommit(owner, repo, branch, path, msg, token, jsonText);
     status.innerHTML = `성공! <a href="${result.content?.html_url||'#'}" target="_blank" style="color:#7aa2ff">커밋 파일 보기</a>`;
-    // 바로 재로딩 시 브라우저 캐시 문제를 피하기 위해 loadPets에 cache-bust 쿼리 사용
-    loadPets({silent:true});
+    await loadPets(true);
+    showToast("원격 JSON 업데이트 및 재로드 완료");
   } catch (err) {
     status.textContent = err.message;
+    showToast("커밋 실패: " + err.message);
   }
 });
 
-// Keep admin state from previous sessions
-if (localStorage.getItem("pets_admin_unlocked") === "1") { ADMIN = true; }
+$$(".mount").forEach(el=>el.addEventListener("change", ensureMountAtLeastOne));
 
-// Filter listeners (generic)
-["#q","#onlySearchable","#attrPick",
- "#min_init_hp","#min_init_atk","#min_init_def","#min_init_agi",
- "#min_grow_hp","#min_grow_atk","#min_grow_def","#min_grow_agi"].forEach(sel=>{
-   const el = $(sel);
-   if (el) el.addEventListener("input", render);
-});
-$$(".grade").forEach(el=>el.addEventListener("change", render));
-$$(".mount").forEach(el=>el.addEventListener("change", render));
-
-// Dual high guard (>=5) + auto low (=10-high)
 let prevDualHigh = 5;
-const dualHighEl = $("#dual_high");
 function syncDualLow() {
-  const high = Math.max(5, Math.min(10, parseInt($("#dual_high")?.value || String(prevDualHigh), 10) || 5));
+  const high = Math.max(5, Math.min(10, parseInt($("#dual_high")?.value || String(prevDualHigh), 10)));
   const low = 10 - high;
   if ($("#dual_low")) $("#dual_low").value = String(low);
 }
+const dualHighEl = $("#dual_high");
 if (dualHighEl) {
   dualHighEl.addEventListener("input", (e) => {
-    let v = parseInt(e.target.value || "0", 10);
+    let v = parseInt(e.target.value || "5", 10);
     if (Number.isNaN(v)) v = prevDualHigh;
-    if (v < 5) {
-      alert("듀얼 상위 값은 5 이상이어야 합니다.");
-      e.target.value = String(prevDualHigh);
-      syncDualLow();
-      return;
-    }
+    if (v < 5) { showToast("듀얼 상위 값은 5 이상이어야 합니다."); e.target.value = String(prevDualHigh); syncDualLow(); return; }
     if (v > 10) v = 10;
-    e.target.value = String(v);
-    prevDualHigh = v;
-    syncDualLow();
-    render();
+    e.target.value = String(v); prevDualHigh = v; syncDualLow(); render();
   });
   dualHighEl.addEventListener("change", (e) => {
-    let v = parseInt(e.target.value || "0", 10);
+    let v = parseInt(e.target.value || "5", 10);
     if (Number.isNaN(v)) v = prevDualHigh;
-    if (v < 5) {
-      alert("듀얼 상위 값은 5 이상이어야 합니다.");
-      e.target.value = String(prevDualHigh);
-      syncDualLow();
-      return;
-    }
+    if (v < 5) { showToast("듀얼 상위 값은 5 이상이어야 합니다."); e.target.value = String(prevDualHigh); syncDualLow(); return; }
     if (v > 10) v = 10;
-    e.target.value = String(v);
-    prevDualHigh = v;
-    syncDualLow();
-    render();
+    e.target.value = String(v); prevDualHigh = v; syncDualLow(); render();
   });
 }
+$("#dualDec")?.addEventListener("click", ()=>{ const el = $("#dual_high"); let v = parseInt(el.value||"5",10); if (v>5) { v--; el.value=String(v); prevDualHigh=v; syncDualLow(); render(); } else showToast("듀얼 상위 값은 5 이상이어야 합니다."); });
+$("#dualInc")?.addEventListener("click", ()=>{ const el = $("#dual_high"); let v = parseInt(el.value||"5",10); if (v<10) { v++; el.value=String(v); prevDualHigh=v; syncDualLow(); render(); } else showToast("최대 10까지 가능합니다."); });
 
-// Ensure panels reflect current state on load
+async function loadPets(force=false) {
+  try {
+    $("#loading")?.classList.remove("hidden");
+    const res = await fetch(DATA_URL + (force ? ("?t="+Date.now()) : ""));
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const arr = await res.json();
+    if (!Array.isArray(arr)) throw new Error("JSON 최상위는 배열이어야 합니다.");
+    PETS = arr;
+    $("#totalShow").textContent = PETS.length;
+    render();
+  } catch (err) {
+    showToast("데이터 로드 실패: " + err.message);
+    const wrap = $("#listWrap");
+    if (wrap) { wrap.innerHTML = '<div class="loading">데이터를 불러오지 못했습니다. 경로와 CORS 설정을 확인해 주세요.</div>'; }
+  } finally {
+    $("#loading")?.classList.add("hidden");
+  }
+}
+
+if (localStorage.getItem("pets_admin_unlocked") === "1") { ADMIN = true; }
 document.addEventListener("DOMContentLoaded", ()=>{
+  $$(".mount").forEach(el=>el.addEventListener("change", ensureMountAtLeastOne));
   const dv = document.getElementById("dualAdv");
   if (dv) dv.classList.toggle("active", $("#attrPick").value === "듀얼");
   syncDualLow();
+  loadPets();
   render();
 });
 </script>
