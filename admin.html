@@ -323,8 +323,9 @@ function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
 function encJSON(obj){ return b64(JSON.stringify(obj, null, 2)); }
 
 /* ====== 추정/검증 로직 ====== */
-const ESET = [575,555,535,515,495,475,455,435];
-
+// const ESET = [575,555,535,515,495,475,455,435];
+const ESET = Array.from({length: ((575-435)/5)+1 }, (_,i) => 575 - i*5);
+  
 function s0_from_k_u_jjyal(k,u){
   const fac = k/100;
   const vhp  = (u.hp + 2.5) * fac;
