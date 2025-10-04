@@ -906,7 +906,7 @@
       "agi": 0.42
     },
     "route": "맘모스 복권 2등 랜덤 페트 (마리너스)",
-    "mount": false,
+    "mount": true,
     "img": "https://stoneage001.com/data/file/board23/69a4a14b3f4c5839b7292aef0c8409f6_XBz60aqe_ba397942a4575e72472d984a5fcfc2fde8be1bf2.gif"
   },
   {
