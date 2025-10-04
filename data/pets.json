@@ -5906,17 +5906,25 @@
   },
   "고로": {
     "s0": {
-      "hp": null,
-      "atk": null,
-      "def": null,
-      "agi": null
+      "hp": 65.88,
+      "atk": 11.71,
+      "def": 12.14,
+      "agi": 2.76
     },
     "sg": {
-      "hp": null,
-      "atk": null,
-      "def": null,
-      "agi": null
-    }
+      "hp": 11.94,
+      "atk": 2.12,
+      "def": 2.2,
+      "agi": 0.5
+    },
+    "k": 24,
+    "u": {
+      "hp": 41,
+      "atk": 35,
+      "def": 37,
+      "agi": 7
+    },
+    "ku_override": true
   },
   "가스트": {
     "s0": {
