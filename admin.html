@@ -22,7 +22,8 @@
   label{display:block;font-size:12px;color:var(--muted);margin:6px 0 4px 2px}
   input,textarea,select{
     width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3040;
-    background:#0e1218; color:var(--text); outline:none; font-size:14px;
+    background:#0e1218; color:#var(--text); outline:none; font-size:14px;
+    color:var(--text);
   }
   textarea{min-height:84px; resize:vertical}
   .btn{padding:10px 12px;border-radius:10px;border:1px solid #334055;background:#142033;color:#cfe1ff;cursor:pointer;font-weight:600}
@@ -179,7 +180,7 @@
       </label>
       <button class="btn" id="btnSolve">S0/SG로 k/u 추정</button>
       <button class="btn warn" id="btnClearKU">오버라이드 해제</button>
-      <span class="note">추정은 STRICT 모드(해 없으면 오류)</span>
+      <span class="note">※ 추정은 <b>짜얄식</b> 규약으로 수행됩니다.</span>
     </div>
 
     <div class="row" style="margin-top:8px">
@@ -227,7 +228,7 @@
   </section>
 </div>
 
-<!-- === 비밀번호 게이트 스크립트 (페이지 잠금/해제) === -->
+<!-- === 비밀번호 게이트 스크립트 === -->
 <script>
 /* ① 여기 해시값(HEX)을 바꿔 넣으세요. 예: '새_비번'의 SHA-256 HEX */
 const ADMIN_PASSWORD_HASH = "4f43276989987a73f9beabd8d0fa966b326edd0d9ffc5b987f138d3481a0bec1";
@@ -238,21 +239,10 @@ async function sha256Hex(text){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function getSess(){
-  try{ return JSON.parse(sessionStorage.getItem("nova_admin_ok")||"null"); }catch{ return null; }
-}
-function setSess(){
-  sessionStorage.setItem("nova_admin_ok", JSON.stringify({h:ADMIN_PASSWORD_HASH, t:Date.now()}));
-}
-function sessValid(){
-  const s = getSess();
-  return !!(s && s.h===ADMIN_PASSWORD_HASH && (Date.now()-s.t) < LOGIN_TTL_MS);
-}
-function unlock(){
-  document.body.classList.remove("locked");
-  const g = document.getElementById("gate");
-  if(g) g.remove();
-}
+function getSess(){ try{ return JSON.parse(sessionStorage.getItem("nova_admin_ok")||"null"); }catch{ return null; } }
+function setSess(){ sessionStorage.setItem("nova_admin_ok", JSON.stringify({h:ADMIN_PASSWORD_HASH, t:Date.now()})); }
+function sessValid(){ const s=getSess(); return !!(s && s.h===ADMIN_PASSWORD_HASH && (Date.now()-s.t)<LOGIN_TTL_MS); }
+function unlock(){ document.body.classList.remove("locked"); const g=document.getElementById("gate"); if(g) g.remove(); }
 
 document.addEventListener("DOMContentLoaded", ()=>{
   const pass = document.getElementById("gate_pass");
@@ -322,10 +312,7 @@ function toFixed2(x){ return new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HAL
 function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
 function encJSON(obj){ return b64(JSON.stringify(obj, null, 2)); }
 
-/* ====== 추정/검증 로직 ====== */
-// const ESET = [575,555,535,515,495,475,455,435];
-const ESET = Array.from({length: ((575-435)/5)+1 }, (_,i) => 575 - i*5);
-  
+/* ====== 짜얄/STRICT 공용 수식 ====== */
 function s0_from_k_u_jjyal(k,u){
   const fac = k/100;
   const vhp  = (u.hp + 2.5) * fac;
@@ -338,6 +325,9 @@ function s0_from_k_u_jjyal(k,u){
   const s_agi= Math.floor(vagi);
   return [s_hp,s_atk,s_def,s_agi];
 }
+
+/* ====== STRICT(참고용, 버튼에서는 미사용) ====== */
+const ESET = [575,555,535,515,495,475,455,435];
 function solveUFromSG_STRICT(SG,e){
   try{
     if(!SG || ![SG.hp,SG.atk,SG.def,SG.agi].every(Number.isFinite)) return null;
@@ -396,13 +386,95 @@ function inferKU_STRICT(S0,SG){
     for(let k=10;k<=100;k++){
       const s = s0_from_k_u_jjyal(k, sol.u);
       if(s[0]===S0int[0] && s[1]===S0int[1] && s[2]===S0int[2] && s[3]===S0int[3]){
-        return {k:uInt(k),u:sol.u,e};
+        return {k:Math.round(k),u:sol.u,e};
       }
     }
   }
   return null;
 }
-function uInt(x){ return Math.round(x); }
+
+/* ====== 짜얄식 추정 루틴 ====== */
+// e를 연속적으로 스윕, u 라운딩/내림 분기 동시 탐색, S0/SG 동시 정확일치(=0점) 우선
+function trySolveUFromSG(e, SG){
+  Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
+  const eD = new Decimal(e), f = eD.dividedBy(10000);
+  const d = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
+  const u_agi_round = d.round();
+  const u_agi_floor = d.floor();
+
+  function solveWith(u_agi){
+    const dPlus25 = u_agi.plus(2.5);
+    const rhs1 = new Decimal(SG.hp).minus(dPlus25.times(f)).dividedBy(f);
+    const rhs2 = new Decimal(SG.atk).minus(dPlus25.times(f).times(0.05)).dividedBy(f);
+    const rhs3 = new Decimal(SG.def).minus(dPlus25.times(f).times(0.05)).dividedBy(f);
+
+    let A = [
+      [ new Decimal(4),   new Decimal(1),   new Decimal(1),   rhs1 ],
+      [ new Decimal(0.1), new Decimal(1),   new Decimal(0.1), rhs2 ],
+      [ new Decimal(0.1), new Decimal(0.1), new Decimal(1),   rhs3 ],
+    ];
+    for(let i=0;i<3;i++){
+      let mr=i, mv=A[i][i].abs();
+      for(let j=i+1;j<3;j++){ const t=A[j][i].abs(); if(t.greaterThan(mv)){mr=j; mv=t;} }
+      if(mr!==i){ const tmp=A[i]; A[i]=A[mr]; A[mr]=tmp; }
+      const piv=A[i][i];
+      for(let j=i;j<4;j++) A[i][j]=A[i][j].dividedBy(piv);
+      for(let k=0;k<3;k++){
+        if(k===i) continue;
+        const fac=A[k][i];
+        for(let j=i;j<4;j++) A[k][j]=A[k][j].minus( fac.times(A[i][j]) );
+      }
+    }
+    const aPrime=A[0][3], bPrime=A[1][3], cPrime=A[2][3];
+
+    // 두 갈래(반올림/내림) 모두 시도
+    const CANDS = [
+      { hp: aPrime.minus(2.5).round() , atk: bPrime.minus(2.5).round() , def: cPrime.minus(2.5).round() , agi: u_agi },
+      { hp: aPrime.minus(2.5).floor() , atk: bPrime.minus(2.5).floor() , def: cPrime.minus(2.5).floor() , agi: u_agi },
+    ];
+    return CANDS.map(u=>({u:{hp:+u.hp, atk:+u.atk, def:+u.def, agi:+u.agi}, e:+e}));
+  }
+
+  return [...solveWith(u_agi_round), ...solveWith(u_agi_floor)];
+}
+
+function exactMatchScore(S0, SG, k, u){
+  const s = s0_from_k_u_jjyal(k, u);
+  const sInt = floor4(S0);
+  const s0ok = (s[0]===sInt[0] && s[1]===sInt[1] && s[2]===sInt[2] && s[3]===sInt[3]);
+
+  const e = (SG.agi * 10000) / (u.agi + 2.5);
+  const f = e/10000;
+  const r2 = (x)=> Math.round(x*100)/100;
+  const hpC  = r2( f * ((u.hp+2.5)*4 + (u.atk+2.5) + (u.def+2.5) + (u.agi+2.5)) );
+  const atkC = r2( f * ((u.hp+2.5)*0.1 + (u.atk+2.5) + (u.def+2.5)*0.1 + (u.agi+2.5)*0.05) );
+  const defC = r2( f * ((u.hp+2.5)*0.1 + (u.atk+2.5)*0.1 + (u.def+2.5) + (u.agi+2.5)*0.05) );
+  const sgok = (hpC===r2(SG.hp) && atkC===r2(SG.atk) && defC===r2(SG.def));
+
+  if(s0ok && sgok) return 0;
+  const s0diff = Math.abs(s[0]-sInt[0])+Math.abs(s[1]-sInt[1])+Math.abs(s[2]-sInt[2])+Math.abs(s[3]-sInt[3]);
+  const sgdiff = Math.abs(hpC-r2(SG.hp))+Math.abs(atkC-r2(SG.atk))+Math.abs(defC-r2(SG.def));
+  return 1000 + s0diff*10 + sgdiff;
+}
+
+function inferKU_JJYAL(S0, SG){
+  const S0arr = S0;
+  let best = null;
+  // e를 연속 탐색(필요시 범위 넓혀도 OK)
+  for(let e=430; e<=600; e+=1){
+    const solset = trySolveUFromSG(e, SG);
+    for(const sol of solset){
+      const u = sol.u;
+      for(let k=10;k<=100;k++){
+        const sc = exactMatchScore(S0arr, SG, k, u);
+        const cand = {k,u,e,score:sc};
+        if(!best || cand.score < best.score) best = cand;
+        if(sc===0) return cand; // 완전 일치 즉시 반환
+      }
+    }
+  }
+  return best; // 완전 일치가 없으면 최저 스코어
+}
 
 /* ====== R8 집계 엔진 ====== */
 function collectR8ObsForKU(k,u){
@@ -534,19 +606,17 @@ function gatherForm(){
     def: num($("ku_def").value),
     agi: num($("ku_agi").value)
   };
-  // 오버라이드 체크가 없으면 k/u는 무시
   if(!ovr){ k = null; u = null; }
 
   return { name, s0, sg, ovr, k, u, note: $("note").value.trim() };
 }
 
-
 function updateConsistency(){
   const box = $("consistency");
-  box.className = "callout";       // 이전 ok/bad 초기화
-  box.style.display = "none";      // 기본은 숨김
+  box.className = "callout";
+  box.style.display = "none";
 
-  const f = gatherForm();          // 경고 없이 읽기만
+  const f = gatherForm();
   const ready =
     f?.ovr &&
     Number.isFinite(f.k) &&
@@ -554,13 +624,11 @@ function updateConsistency(){
     [f.s0.hp, f.s0.atk, f.s0.def, f.s0.agi].every(Number.isFinite) &&
     [f.sg.hp, f.sg.atk, f.sg.def, f.sg.agi].every(Number.isFinite);
 
-  // 준비 안 됐으면 즉시 종료
   if(!ready){
     box.innerHTML = "";
     return;
   }
 
-  // 준비가 됐을 때만 계산/표시
   const sPred = s0_from_k_u_jjyal(f.k, f.u);
   const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
   const okS0  = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
@@ -607,7 +675,6 @@ function updateConsistency(){
   }
 }
 
-
 /* ====== 이벤트 바인딩 ====== */
 $("btnReload").addEventListener("click", async ()=>{
   await loadRemote();
@@ -622,6 +689,7 @@ $("btnNew").addEventListener("click", ()=>{
 });
 searchEl.addEventListener("input", renderList);
 
+// ★ 짜얄식 추정 호출
 $("btnSolve").addEventListener("click", ()=>{
   const f = gatherForm();
 
@@ -630,9 +698,9 @@ $("btnSolve").addEventListener("click", ()=>{
      [f.sg.hp,f.sg.atk,f.sg.def,f.sg.agi].some(v=>v==null)){
     alert("S0/SG를 모두 채워 주세요."); return;
   }
-  const sol = inferKU_STRICT([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi], f.sg);
+  const sol = inferKU_JJYAL([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi], f.sg);
   if(!sol){
-    alert("계산할 수 없는 값입니다(STRICT 해 없음). S0/SG를 확인하거나 수동 오버라이드를 사용하세요.");
+    alert("계산 실패: S0/SG를 확인하세요.");
     return;
   }
   $("ku_k").value   = sol.k;
@@ -640,8 +708,10 @@ $("btnSolve").addEventListener("click", ()=>{
   $("ku_atk").value = sol.u.atk;
   $("ku_def").value = sol.u.def;
   $("ku_agi").value = sol.u.agi;
+  // 추정값을 바로 오버라이드로 쓰고 싶다면 체크 켜기
+  $("ovr_check").checked = true;
   updateConsistency();
-  alert(`추정 완료: k=${sol.k}, u=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
+  alert(`추정 완료(짜얄식): k=${sol.k}, u=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
 });
 
 ["ovr_check","ku_k","ku_hp","ku_atk","ku_def","ku_agi","s0_hp","s0_atk","s0_def","s0_agi","sg_hp","sg_atk","sg_def","sg_agi"]
@@ -716,7 +786,7 @@ async function commitPets(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
-      message: prompt("커밋 메시지 입력", "chore(admin): update pets.json (manual ku override)") || "update pets.json",
+      message: prompt("커밋 메시지 입력", "chore(admin): update pets.json (jjyal inference)") || "update pets.json",
       content: btoa(unescape(encodeURIComponent(JSON.stringify(DB, null, 2)))),
       branch: GH_BRANCH,
       sha
