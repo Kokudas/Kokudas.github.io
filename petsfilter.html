@@ -35,6 +35,23 @@
   header{position:sticky; top:0; background:rgba(15,17,21,.75); backdrop-filter: blur(8px);
          border-bottom:1px solid #15202c; z-index:10;}
   .wrap{max-width:1280px; margin:0 auto; padding:12px 16px}
+
+  /* === 상단바 반응형 정돈 === */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .topbar .title{min-width:0}
+  .topbar-actions{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  @media (max-width: 760px){
+    .topbar{flex-wrap:wrap}
+    .topbar .title{flex: 1 0 100%}
+    .topbar-actions{flex: 1 0 100%; justify-content:flex-start; gap:8px}
+    #adminToolbar{order:1; width:100%; display:none;}
+    .backBtn, .adminLogin{order:2;}
+  }
+
   .row{display:grid; gap:12px}
   h1{margin:0 0 6px; font-size:18px}
   .card{background:var(--panel); border:1px solid var(--ring); border-radius:14px; padding:12px}
@@ -73,25 +90,14 @@
   .toolbar{display:flex; gap:8px; align-items:center} .hidden{display:none!important}
   .editPanel{display:none; grid-template-columns: 1fr auto; gap:8px; align-items:center} .editing .editPanel{display:grid}
   .toggleEdit.btn.active{outline:2px solid #2a364b} .u-input{width:100%; background:#0f141f; border:1px solid #263045; color:var(--ink); border-radius:10px; padding:6px 8px}
-/* 기존에 있던 .backBtn, .adminLogin 정의를 아래처럼 통합/보강 */
-.backBtn, .adminLogin{
-  background:#111826;
-  border:1px dashed #223049;
-  color:#a7b0c0;
-  border-radius:10px;
-  padding:8px 12px;
-  cursor:pointer;
 
-  /* 크기/정렬 통일 */
-  height:38px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-  .backBtn:hover, .adminLogin:hover{
-  border-color:#2a3a59;
-  color:#c6d0e0;
+  /* backBtn/adminLogin 통일 스타일 */
+  .backBtn, .adminLogin{
+    background:#111826; border:1px dashed #223049; color:#a7b0c0; border-radius:10px;
+    padding:8px 12px; cursor:pointer; height:38px; display:inline-flex; align-items:center; justify-content:center;
   }
+  .backBtn:hover, .adminLogin:hover{ border-color:#2a3a59; color:#c6d0e0; }
+
   .dualAdv{display:none; margin-top:8px; gap:8px; grid-template-columns: 1fr 90px 1fr}
   .dualAdv.active{display:grid}
   .btnSm{height:36px; min-width:36px; padding:0 10px}
@@ -107,21 +113,27 @@
 <body>
 <header>
   <div class="wrap">
-    <div class="row" style="grid-template-columns: 1fr auto auto auto;">
-      <div>
+    <!-- 상단바: 반응형 -->
+    <div class="topbar">
+      <div class="title">
         <h1>노바 서버 페트 필터(v1.1)</h1>
         <div class="muted">추석 패치 적용 완료. 초기치 미완성 : 피피아, 포루나, 진주토로스 </div>
       </div>
-      <div class="toolbar hidden" id="adminToolbar" style="display:none">
-        <button class="btn toggleEdit" id="toggleEditBtn">편집모드</button>
-        <button class="btn" id="exportCsv">CSV 내보내기</button>
-        <button class="btn" id="exportJson">JSON 내보내기</button>
-        <button class="btn" id="importJsonBtn">JSON 불러오기</button>
-        <input id="importJson" type="file" accept="application/json" class="hidden"/>
-        <button class="btn" id="githubBtn">GitHub 커밋</button>
+
+      <div class="topbar-actions">
+        <div class="toolbar hidden" id="adminToolbar" style="display:none">
+          <button class="btn toggleEdit" id="toggleEditBtn">편집모드</button>
+          <button class="btn" id="exportCsv">CSV 내보내기</button>
+          <button class="btn" id="exportJson">JSON 내보내기</button>
+          <button class="btn" id="importJsonBtn">JSON 불러오기</button>
+          <input id="importJson" type="file" accept="application/json" class="hidden"/>
+          <button class="btn" id="githubBtn">GitHub 커밋</button>
+          <!-- 로그아웃 버튼 추가 -->
+          <button class="btn" id="adminLogoutBtn">로그아웃</button>
+        </div>
+        <a class="backBtn" id="backBtn" href="https://kokudas.github.io/">계산기로 돌아가기</a>
+        <button class="adminLogin" id="adminLoginBtn">관리자 로그인</button>
       </div>
-      <a class="backBtn" id="backBtn" href="https://kokudas.github.io/">계산기로 돌아가기</a>
-      <button class="adminLogin" id="adminLoginBtn">관리자 로그인</button>
     </div>
 
     <div id="ghPanel" class="gh-panel">
@@ -231,6 +243,7 @@
 <div class="toastWrap" id="toastWrap"></div>
 
 <script>
+/* ========= 데이터 경로 ========= */
 const DATA_URL_DEFAULT = "/data/pets_filter.json";
 let DATA_URL = DATA_URL_DEFAULT;
 
@@ -241,6 +254,41 @@ let EDIT_MODE = false;
 let ADMIN = false;
 const ADMIN_HASH = "37bd45d638c2d11c49c641d2e9c4f49f406caf3ee282743e0c800aa1ed68e2ee";
 
+/* ==== 관리자 세션(만료) 설정 ==== */
+const ADMIN_KEY = "pets_admin_unlocked_v2";      // 새 키(만료 포함)
+const ADMIN_TTL_MS = 30 * 60 * 1000;             // 30분 (원하는 값으로 조정)
+const USE_SESSION_ADMIN = false;                  // true: 탭/브라우저 닫으면 해제
+const ADMIN_STORAGE = USE_SESSION_ADMIN ? sessionStorage : localStorage;
+
+function isAdminAlive(){
+  try{
+    const raw = ADMIN_STORAGE.getItem(ADMIN_KEY);
+    if(!raw) return false;
+    const obj = JSON.parse(raw);
+    if(!obj || !obj.expires) return false;
+    if(Date.now() > obj.expires){ ADMIN_STORAGE.removeItem(ADMIN_KEY); return false; }
+    return true;
+  }catch{ return false; }
+}
+function refreshAdminTTL(){
+  ADMIN_STORAGE.setItem(ADMIN_KEY, JSON.stringify({ on:1, expires: Date.now() + ADMIN_TTL_MS }));
+}
+let adminTimer = null;
+function scheduleAdminAutoLock(){
+  clearTimeout(adminTimer);
+  if(!ADMIN) return;
+  const raw = ADMIN_STORAGE.getItem(ADMIN_KEY);
+  const exp = raw ? JSON.parse(raw).expires : Date.now();
+  const ms = Math.max(0, exp - Date.now());
+  adminTimer = setTimeout(()=>{
+    ADMIN = false;
+    ADMIN_STORAGE.removeItem(ADMIN_KEY);
+    render();
+    showToast("관리자 모드가 만료되었습니다.");
+  }, ms);
+}
+
+/* ========= UI 유틸 ========= */
 function showToast(msg, ms=1800) {
   const wrap = $("#toastWrap");
   const t = document.createElement("div");
@@ -277,7 +325,7 @@ function getFilters() {
   const highInput = $("#dual_high");
   let high = parseInt(highInput?.value || "5", 10);
   if (Number.isNaN(high)) high = 5;
-  high = Math.max(5, Math.min(9, high));
+  high = Math.max(5, Math.min(9, high));     // ⬅️ 9까지만
   const low = 10 - high;
   if ($("#dual_low")) $("#dual_low").value = String(low);
   return {
@@ -551,38 +599,33 @@ function render() {
   const dv = document.getElementById("dualAdv");
   if (dv) dv.classList.toggle("active", $("#attrPick").value === "듀얼");
 }
+
 function bindFilterEvents() {
   // 이름 검색
   document.querySelector("#q")?.addEventListener("input", render);
-
   // 검색 가능만
   document.querySelector("#onlySearchable")?.addEventListener("change", render);
-
-  // 주 속성 선택 (듀얼 패널 토글은 render가 처리)
+  // 주 속성 선택
   document.querySelector("#attrPick")?.addEventListener("change", render);
-
   // 등급 체크박스
-  document.querySelectorAll(".grade").forEach(el => {
-    el.addEventListener("change", render);
-  });
-
-  // 탑승 체크박스 (최소 1개 유지 + 재렌더)
+  document.querySelectorAll(".grade").forEach(el => el.addEventListener("change", render));
+  // 탑승 체크박스 (최소 1개 유지)
   document.querySelectorAll(".mount").forEach(el => {
-    el.removeEventListener?.("change", ensureMountAtLeastOne); // 중복 방지용(있어도 무해)
+    el.removeEventListener?.("change", ensureMountAtLeastOne);
     el.addEventListener("change", ensureMountAtLeastOne);
   });
-
-  // 최소치(이상) 숫자 입력들
+  // 최소치 입력들
   [
     "min_init_hp","min_init_atk","min_init_def","min_init_agi",
     "min_grow_hp","min_grow_atk","min_grow_def","min_grow_agi"
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener("input", render);  // 입력 즉시 반영
-    el.addEventListener("change", render); // 포커스 아웃 시도 반영
+    el.addEventListener("input", render);
+    el.addEventListener("change", render);
   });
 }
+
 function toCSV(rows) {
   const headers = ["name","searchable","grade","attr_지","attr_수","attr_화","attr_풍","dom_attr","init_hp","init_atk","init_def","init_agi","grow_hp","grow_atk","grow_def","grow_agi","route","mount","img"];
   const esc = (v) => {
@@ -632,15 +675,16 @@ async function sha256Hex(str) {
 }
 
 async function adminUnlock() {
-  const saved = localStorage.getItem("pets_admin_unlocked");
-  if (saved === "1") { ADMIN = true; return true; }
+  const saved = ADMIN_STORAGE.getItem(ADMIN_KEY);
+  if (saved && isAdminAlive()) { ADMIN = true; return true; }
   const pw = prompt("관리자 비밀번호를 입력하세요");
   if (!pw) return false;
   try {
     const h = await sha256Hex(pw);
     if (h === ADMIN_HASH) {
       ADMIN = true;
-      localStorage.setItem("pets_admin_unlocked","1");
+      refreshAdminTTL();        // 만료 갱신 저장
+      scheduleAdminAutoLock();  // 자동 해제 타이머
       showToast("관리자 모드가 활성화되었습니다.");
       return true;
     } else {
@@ -653,8 +697,8 @@ async function adminUnlock() {
   }
 }
 
+/* ========== 이벤트 바인딩 ========== */
 $("#adminLoginBtn").addEventListener("click", async ()=>{ await adminUnlock(); render(); });
-
 $("#toggleEditBtn")?.addEventListener("click", ()=>{ if (!ADMIN) return; EDIT_MODE = !EDIT_MODE; render(); });
 $("#exportCsv")?.addEventListener("click", ()=>{ if(!ADMIN) return; const rows = currentFiltered(); download("stoneage_pets_filtered.csv", toCSV(rows), "text/csv;charset=utf-8"); });
 $("#exportJson")?.addEventListener("click", ()=>{ if(!ADMIN) return; download("pets_filter.json", JSON.stringify(PETS, null, 2), "application/json;charset=utf-8"); });
@@ -676,16 +720,29 @@ $("#importJson")?.addEventListener("change", (e)=>{ if (!ADMIN) return;
   };
   reader.readAsText(file, "utf-8");
 });
-
 $("#githubBtn")?.addEventListener("click", ()=>{ if(!ADMIN) return;
   const pnl = $("#ghPanel");
   pnl.classList.toggle("active");
 });
+$("#adminLogoutBtn")?.addEventListener("click", ()=>{
+  ADMIN = false;
+  ADMIN_STORAGE.removeItem(ADMIN_KEY);
+  localStorage.removeItem("pets_admin_unlocked"); // 구버전 잔여키도 정리
+  render();
+  showToast("관리자 모드를 해제했습니다.");
+});
 
+/* 활동 시 TTL 자동 연장(선택) */
+["click","keydown","touchstart"].forEach(ev=>{
+  document.addEventListener(ev, ()=>{
+    if(ADMIN && isAdminAlive()){ refreshAdminTTL(); scheduleAdminAutoLock(); }
+  }, {passive:true});
+});
+
+/* ========= GitHub 커밋 도우미 ========= */
 function b64EncodeUnicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
-
 async function githubCommit(owner, repo, branch, path, message, token, jsonText) {
   const base = "https://api.github.com";
   const headers = {
@@ -700,11 +757,7 @@ async function githubCommit(owner, repo, branch, path, message, token, jsonText)
       sha = data.sha;
     }
   } catch (e) {}
-  const body = {
-    message,
-    content: b64EncodeUnicode(jsonText),
-    branch,
-  };
+  const body = { message, content: b64EncodeUnicode(jsonText), branch };
   if (sha) body.sha = sha;
   const putRes = await fetch(`${base}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
     method:"PUT",
@@ -717,7 +770,6 @@ async function githubCommit(owner, repo, branch, path, message, token, jsonText)
   }
   return putRes.json();
 }
-
 $("#ghDoCommit")?.addEventListener("click", async ()=>{ if(!ADMIN) return;
   const owner = $("#ghOwner").value.trim();
   const repo = $("#ghRepo").value.trim();
@@ -739,16 +791,13 @@ $("#ghDoCommit")?.addEventListener("click", async ()=>{ if(!ADMIN) return;
   }
 });
 
-$$(".mount").forEach(el=>el.addEventListener("change", ensureMountAtLeastOne));
-
-
+/* ========= 듀얼 상위값 10 방지 + 안내 ========= */
 let prevDualHigh = 5;
 function syncDualLow() {
   const high = Math.max(5, Math.min(9, parseInt($("#dual_high")?.value || String(prevDualHigh), 10)));
   const low = 10 - high;
   if ($("#dual_low")) $("#dual_low").value = String(low);
 }
-
 const dualHighEl = $("#dual_high");
 if (dualHighEl) {
   const handleDualHigh = (e) => {
@@ -773,7 +822,6 @@ if (dualHighEl) {
   dualHighEl.addEventListener("input", handleDualHigh);
   dualHighEl.addEventListener("change", handleDualHigh);
 }
-
 $("#dualDec")?.addEventListener("click", ()=>{
   const el = $("#dual_high");
   let v = parseInt(el.value||"5",10);
@@ -790,8 +838,7 @@ $("#dualInc")?.addEventListener("click", ()=>{
   }
 });
 
-
-  
+/* ========= 데이터 로드 ========= */
 async function loadPets(force=false) {
   try {
     $("#loading")?.classList.remove("hidden");
@@ -811,13 +858,20 @@ async function loadPets(force=false) {
   }
 }
 
-if (localStorage.getItem("pets_admin_unlocked") === "1") { ADMIN = true; }
+/* ========= 부팅 ========= */
+/* 구버전 키 → 만료 키로 1회 이관 */
+if (localStorage.getItem("pets_admin_unlocked") === "1") {
+  localStorage.removeItem("pets_admin_unlocked");
+  ADMIN_STORAGE.setItem(ADMIN_KEY, JSON.stringify({ on:1, expires: Date.now() + ADMIN_TTL_MS }));
+}
+ADMIN = isAdminAlive();
+if (ADMIN) { scheduleAdminAutoLock(); }
+
 document.addEventListener("DOMContentLoaded", ()=>{
   $$(".mount").forEach(el=>el.addEventListener("change", ensureMountAtLeastOne));
   const dv = document.getElementById("dualAdv");
   if (dv) dv.classList.toggle("active", $("#attrPick").value === "듀얼");
   syncDualLow();
-    // ✅ 필터 이벤트 바인딩
   bindFilterEvents();
   loadPets();
   render();
