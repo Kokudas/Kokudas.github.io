@@ -165,7 +165,7 @@
           <div id="dualAdv" class="dualAdv">
             <div>
               <label class="section" style="margin-bottom:6px">듀얼 상위 값 (합계=10)</label>
-              <input type="number" id="dual_high" min="5" max="10" step="1" value="5" />
+              <input type="number" id="dual_high" min="5" max="9" step="1" value="5" />
             </div>
             <div style="display:flex; align-items:end; gap:8px">
               <button class="btn btnSm" id="dualDec">-1</button>
@@ -277,7 +277,7 @@ function getFilters() {
   const highInput = $("#dual_high");
   let high = parseInt(highInput?.value || "5", 10);
   if (Number.isNaN(high)) high = 5;
-  high = Math.max(5, Math.min(10, high));
+  high = Math.max(5, Math.min(9, high));
   const low = 10 - high;
   if ($("#dual_low")) $("#dual_low").value = String(low);
   return {
@@ -743,7 +743,7 @@ $$(".mount").forEach(el=>el.addEventListener("change", ensureMountAtLeastOne));
 
 let prevDualHigh = 5;
 function syncDualLow() {
-  const high = Math.max(5, Math.min(10, parseInt($("#dual_high")?.value || String(prevDualHigh), 10)));
+  const high = Math.max(5, Math.min(9, parseInt($("#dual_high")?.value || String(prevDualHigh), 10)));
   const low = 10 - high;
   if ($("#dual_low")) $("#dual_low").value = String(low);
 }
@@ -753,20 +753,36 @@ if (dualHighEl) {
     let v = parseInt(e.target.value || "5", 10);
     if (Number.isNaN(v)) v = prevDualHigh;
     if (v < 5) { showToast("듀얼 상위 값은 5 이상이어야 합니다."); e.target.value = String(prevDualHigh); syncDualLow(); return; }
-    if (v > 10) v = 10;
+    if (v >= 10) {  // ✅ 10 이상 입력/붙여넣기 방지
+      showToast("주 속성 10은 지,수,화,풍 데이터를 이용하세요.");
+      v = 9;
+    }
+    if (v > 9) v = 9;
     e.target.value = String(v); prevDualHigh = v; syncDualLow(); render();
-  });
-  dualHighEl.addEventListener("change", (e) => {
-    let v = parseInt(e.target.value || "5", 10);
-    if (Number.isNaN(v)) v = prevDualHigh;
-    if (v < 5) { showToast("듀얼 상위 값은 5 이상이어야 합니다."); e.target.value = String(prevDualHigh); syncDualLow(); return; }
-    if (v > 10) v = 10;
-    e.target.value = String(v); prevDualHigh = v; syncDualLow(); render();
-  });
+  };
+  
+  dualHighEl.addEventListener("input",  block10);
+  dualHighEl.addEventListener("change", block10);
 }
-$("#dualDec")?.addEventListener("click", ()=>{ const el = $("#dual_high"); let v = parseInt(el.value||"5",10); if (v>5) { v--; el.value=String(v); prevDualHigh=v; syncDualLow(); render(); } else showToast("듀얼 상위 값은 5 이상이어야 합니다."); });
-$("#dualInc")?.addEventListener("click", ()=>{ const el = $("#dual_high"); let v = parseInt(el.value||"5",10); if (v<10) { v++; el.value=String(v); prevDualHigh=v; syncDualLow(); render(); } else showToast("최대 10까지 가능합니다."); });
+$("#dualDec")?.addEventListener("click", ()=>{
+  const el = $("#dual_high");
+  let v = parseInt(el.value||"5",10);
+  if (v>5) { v--; el.value=String(v); prevDualHigh=v; syncDualLow(); render(); }
+  else showToast("듀얼 상위 값은 5 이상이어야 합니다.");
+});
 
+$("#dualInc")?.addEventListener("click", ()=>{
+  const el = $("#dual_high");
+  let v = parseInt(el.value||"5",10);
+  if (v<9) {                               // ✅ 최대 9
+    v++; el.value=String(v); prevDualHigh=v; syncDualLow(); render();
+  } else {
+    showToast("주 속성 10은 지,수,화,풍 데이터를 이용하세요."); // ✅ 안내
+  }
+});
+
+
+  
 async function loadPets(force=false) {
   try {
     $("#loading")?.classList.remove("hidden");
