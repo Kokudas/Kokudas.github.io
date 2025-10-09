@@ -598,7 +598,7 @@ function updateConsistency(){
     box.innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px">
         <strong>일관성 검사</strong>
-        <span class="mono muted">k=${f.k}, u(짜얄)=(${f.u.hp},${f.u.atk},${f.u.def},${f.u.agi})</span>
+        <span class="mono muted">k=${f.k}, u=(${f.u.hp},${f.u.atk},${f.u.def},${f.u.agi})</span>
       </div>
       <div class="${okS0?'ok':'bad'}">S0 정수부 일치: <b>${okS0?'OK':'불일치'}</b> (예측 ${sPred.join('/')}, 실제 ${sInt.join('/')})</div>
       <div style="margin-top:6px">
@@ -654,7 +654,7 @@ $("btnSolve").addEventListener("click", ()=>{
   $("ovr_check").checked = true;
 
   updateConsistency();
-  alert(`추정 완료: k=${sol.k}, u(짜얄)=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
+  alert(`추정 완료: k=${sol.k}, u=(${sol.u.hp},${sol.u.atk},${sol.u.def},${sol.u.agi})`);
 });
 
 
