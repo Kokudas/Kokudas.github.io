@@ -319,7 +319,6 @@ function $(id){ return document.getElementById(id); }
 const num = (v)=> (v===""||v==null||isNaN(+v)) ? null : +v;
 const floor4 = (a)=> a.map(x=>Math.floor(x??NaN));
 function toFixed2(x){ return new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(); }
-function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
 
 /* ====== 추정/검증 로직 ====== */
 const ESET = Array.from({ length: ((575 - 435) / 5) + 1 }, (_, i) => 575 - i*5);
@@ -344,10 +343,13 @@ function solveUFromSG_STRICT(SG,e){
 
     const eD = new Decimal(e);
     const f  = eD.dividedBy(10000);
+
+    // u_eff.agi = round( SG.agi*10000/e - 2.5 )
     const d  = new Decimal(SG.agi).times(10000).dividedBy(eD).minus(2.5);
     const u_agi = d.round();
 
     const dPlus25 = u_agi.plus(2.5);
+    // 선형계 풀기 (변수는 모두 u_eff)
     const rhs1 = new Decimal(SG.hp).minus( dPlus25.times(f) ).dividedBy(f);
     const rhs2 = new Decimal(SG.atk).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
     const rhs3 = new Decimal(SG.def).minus( dPlus25.times(f).times(0.05) ).dividedBy(f);
@@ -376,6 +378,16 @@ function solveUFromSG_STRICT(SG,e){
     const u_atk = bPrime.minus(2.5).round();
     const u_def = cPrime.minus(2.5).round();
 
+    // === SG 반올림 일치 엄격 검증 (u_eff 기준) ===
+    const r2 = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const hp_chk  = r2( f.times( u_hp.plus(2.5).times(4).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5)) ) );
+    const atk_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5)).plus(u_def.plus(2.5).times(0.1)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const def_chk = r2( f.times( u_hp.plus(2.5).times(0.1).plus(u_atk.plus(2.5).times(0.1)).plus(u_def.plus(2.5)).plus(u_agi.plus(2.5).times(0.05)) ) );
+    const agi_chk = r2( f.times( u_agi.plus(2.5) ) );
+
+    const ok = hp_chk.eq(r2(SG.hp)) && atk_chk.eq(r2(SG.atk)) && def_chk.eq(r2(SG.def)) && agi_chk.eq(r2(SG.agi));
+    if(!ok) return null;
+
     return { u_eff:{hp:+u_hp, atk:+u_atk, def:+u_def, agi:+u_agi}, e:+e };
   }catch{ return null; }
 }
@@ -396,7 +408,7 @@ function inferKU_STRICT(S0, SG){
           def: sol.u_eff.def - 2,
           agi: sol.u_eff.agi - 2,
         };
-        return {k:Math.round(k), u, e};
+        return {k:Math.round(k), u, e:sol.e};
       }
     }
   }
@@ -556,7 +568,10 @@ function updateConsistency(){
 
   if(!ready){ box.innerHTML = ""; return; }
 
-  const uEff = { hp:f.u.hp+2, atk:f.u.atk+2, def:f.u.def+2, agi:f.u.agi+2 }; // ← 여기서 변환
+  // 일관성 표시는 u_eff 기준으로 계산
+  const uEff = { hp:f.u.hp+2, atk:f.u.atk+2, def:f.u.def+2, agi:f.u.agi+2 };
+
+  // S0 정수 비교
   const sPred = s0_from_k_u_jjyal(f.k, uEff);
   const sInt  = floor4([f.s0.hp,f.s0.atk,f.s0.def,f.s0.agi]);
   const okS0  = (sPred[0]===sInt[0] && sPred[1]===sInt[1] && sPred[2]===sInt[2] && sPred[3]===sInt[3]);
@@ -564,14 +579,14 @@ function updateConsistency(){
   try{
     Decimal.set({ precision:50, rounding: Decimal.ROUND_HALF_UP });
 
-    // SG 참고 e (짜얄 표기 기준)
-    const e = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(f.u.agi).plus(2.5));
+    // SG 참고 e (u_eff 기준)
+    const e = new Decimal(f.sg.agi).times(10000).dividedBy(new Decimal(uEff.agi).plus(2.5));
     const fct = e.dividedBy(10000);
     const r2  = x => new Decimal(x).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
-    const hpC  = r2( fct.times( (f.u.hp+2.5)*4 + (f.u.atk+2.5) + (f.u.def+2.5) + (f.u.agi+2.5) ) ).toNumber();
-    const atkC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5) + (f.u.def+2.5)*0.1 + (f.u.agi+2.5)*0.05 ) ).toNumber();
-    const defC = r2( fct.times( (f.u.hp+2.5)*0.1 + (f.u.atk+2.5)*0.1 + (f.u.def+2.5) + (f.u.agi+2.5)*0.05 ) ).toNumber();
+    const hpC  = r2( fct.times( (uEff.hp+2.5)*4 + (uEff.atk+2.5) + (uEff.def+2.5) + (uEff.agi+2.5) ) ).toNumber();
+    const atkC = r2( fct.times( (uEff.hp+2.5)*0.1 + (uEff.atk+2.5) + (uEff.def+2.5)*0.1 + (uEff.agi+2.5)*0.05 ) ).toNumber();
+    const defC = r2( fct.times( (uEff.hp+2.5)*0.1 + (uEff.atk+2.5)*0.1 + (uEff.def+2.5) + (uEff.agi+2.5)*0.05 ) ).toNumber();
 
     const hpDiff  = toFixed2(hpC  - f.sg.hp);
     const atkDiff = toFixed2(atkC - f.sg.atk);
