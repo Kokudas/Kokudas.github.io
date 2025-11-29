@@ -85,6 +85,21 @@
       pointer-events:none;
     }
 
+    .pip-overlay{
+      position:absolute;
+      inset:0;                     /* top/right/bottom/left:0 */
+      display:none;                /* 기본은 숨김 */
+      align-items:center;
+      justify-content:center;
+      background:#000;
+      color:#fff;
+      font-size:1.3rem;
+      font-weight:600;
+      z-index:10;
+      pointer-events:none;         /* 클릭 막지 않게 */
+    }
+
+
     .hint{
       margin-top:8px;
       font-size:1.25rem;
@@ -119,6 +134,17 @@
       align-items:center;
       margin-top:8px;
     }
+
+    /* PiP 활성화 시 메인 화면을 검은 화면 + 문구로 교체 */
+body.pip-active #stage #screenVideo,
+body.pip-active #stage #navCanvas{
+  opacity:0;
+}
+
+body.pip-active #stage #pipOverlay{
+  display:flex;
+}
+
   </style>
 </head>
 <body>
@@ -154,6 +180,9 @@
     <div id="stage">
       <video id="screenVideo" autoplay playsinline></video>
       <canvas id="navCanvas"></canvas>
+        <div id="pipOverlay" class="pip-overlay">
+        PIP 모드에서 재생 중
+      </div>
     </div>
   </div>
 
@@ -191,7 +220,7 @@
     3) <b>캡쳐 시작</b> 버튼을 누르고, 게임 창을 선택한다.<br>
     4) <b>게임 화면 중 우측 하단의 좌표가 모두 노출되게 창의 위치를 조정한다.</b><br>
     5) <b>자동 추적 시작</b>을 누르면 좌표와 네비 라인이 자동으로 갱신된다.<br>
-    6) <b>1~3층은 자동으로 층수전환이 되고, 3층 마무리 후 캡쳐를 종료한다.</b> <br>
+    6) <b>1~3층은 자동으로 층수전환이 되고, 3층 마무리 후 캡쳐를 종료한다. </b><br>
     7) <b>끈 자르는 돌을 받은 다음, 다시 1층 진입 후 직접 수동으로 층수를 "끈돌"층으로 바꾼 후 다시 추적 시작버튼을 누른다.</b> <br>
     <br>
     <br>
@@ -213,6 +242,8 @@
   const video    = document.getElementById('screenVideo');
   const navCanvas= document.getElementById('navCanvas');
   const navCtx   = navCanvas.getContext('2d');
+  const pipOverlay = document.getElementById('pipOverlay');
+
 
   const floorSelect = document.getElementById('floorSelect');
   const ocrOnceBtn  = document.getElementById('ocrOnceBtn');
@@ -239,6 +270,19 @@
   const OCR_INTERVAL = 200;
   let currentStream  = null;
 
+function setMainOverlayForPip(active){
+  if (active){
+    // PiP ON: 바디에 상태 클래스 부여 → CSS가 영상/캔버스 숨기고 오버레이 표시
+    document.body.classList.add('pip-active');
+  } else {
+    // PiP OFF: 상태 해제 → 원래 화면 복원
+    document.body.classList.remove('pip-active');
+    updateNavigation(); // 네비 다시 그리기
+  }
+}
+
+
+
   function cleanupCapture() {
     if (currentStream) {
       currentStream.getTracks().forEach(t => t.stop());
@@ -255,6 +299,8 @@
     }
     pipActive = false;
     if (pipBtn) pipBtn.textContent = 'pip모드로 보기';
+
+    setMainOverlayForPip(false);  // ★ 혹시 남아있을 오버레이/투명도 초기화
   }
 
 
@@ -886,7 +932,7 @@ function autoDetectFloorByCoord(e, s) {
   let ocrLoopTimer = null;
   let ocrBusy      = false;
 
-  const MAX_STEP     = 15;
+  const MAX_STEP     = 20;
   const HISTORY_SIZE = 5;
   let eastHistory  = [];
   let southHistory = [];
@@ -1277,78 +1323,98 @@ function autoDetectFloorByCoord(e, s) {
     }
   });
 
-  // ===== 4.y 네비게이션 Picture-in-Picture(PiP) =====
-  async function enterNavPiP() {
-    if (!('pictureInPictureEnabled' in document)) {
-      alert('이 브라우저는 Picture-in-Picture 기능을 지원하지 않습니다.');
-      return;
-    }
-    if (!video.srcObject) {
-      alert('먼저 캡쳐를 시작해주세요.');
-      return;
-    }
-
-    try {
-      // 합성 렌더링 루프 시작
-      startPipRenderingLoop();
-
-      // pipCanvas 스트림을 PiP로 보내기
-      if (!pipVideo) {
-        pipVideo = document.createElement('video');
-        pipVideo.muted = true;
-        pipVideo.playsInline = true;
-        pipVideo.srcObject = pipCanvas.captureStream(30);
-      }
-
-      await pipVideo.play();
-      await pipVideo.requestPictureInPicture();
-
-      pipActive = true;
-      pipBtn.textContent = '팝업 닫기';
-    } catch (err) {
-      console.error(err);
-      alert('PiP 진입 중 오류가 발생했습니다.\n' + err.message);
-      stopPipRenderingLoop();
-    }
+// ===== 4.y 네비게이션 Picture-in-Picture(PiP) =====
+async function enterNavPiP() {
+  if (!('pictureInPictureEnabled' in document)) {
+    alert('이 브라우저는 Picture-in-Picture 기능을 지원하지 않습니다.');
+    return;
+  }
+  if (!video.srcObject) {
+    alert('먼저 캡쳐를 시작해주세요.');
+    return;
   }
 
-  async function exitNavPiP() {
-    try {
-      if (document.pictureInPictureElement === pipVideo) {
-        await document.exitPictureInPicture();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      pipActive = false;
-      pipBtn.textContent = 'pip모드로 보기';
-      stopPipRenderingLoop();
+  try {
+    // 합성 렌더링 루프 시작
+    startPipRenderingLoop();
+
+    // pipCanvas 스트림을 PiP로 보내기
+    if (!pipVideo) {
+      pipVideo = document.createElement('video');
+      pipVideo.muted = true;
+      pipVideo.playsInline = true;
+      pipVideo.srcObject = pipCanvas.captureStream(30);
+
+      // ★ PiP 창을 X로 끄거나 "탭으로 돌아가기" 했을 때도 여기로 옴
+      pipVideo.addEventListener('leavepictureinpicture', () => {
+        exitNavPiP(true);   // fromEvent = true
+      });
     }
+
+    await pipVideo.play();
+    await pipVideo.requestPictureInPicture();
+
+    pipActive = true;
+    pipBtn.textContent = '팝업 닫기';
+    setMainOverlayForPip(true);   // ★ 메인 화면을 검은 화면 + 문구로 교체
+  } catch (err) {
+    console.error(err);
+    alert('PiP 진입 중 오류가 발생했습니다.\n' + err.message);
+    stopPipRenderingLoop();
+  }
+}
+
+/**
+ * fromEvent:
+ *  - 사용자가 PiP 창에서 직접 닫았을 때 → true
+ *  - 페이지 버튼으로 닫을 때 → false
+ */
+async function exitNavPiP(fromEvent = false) {
+  try {
+    // 이벤트에서 온 경우에는 이미 PiP가 종료된 상태일 수 있으므로 재호출 금지
+    if (!fromEvent && document.pictureInPictureElement === pipVideo) {
+      await document.exitPictureInPicture();
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    pipActive = false;
+    pipBtn.textContent = 'pip모드로 보기';
+    stopPipRenderingLoop();
+    setMainOverlayForPip(false);   // ★ 메인 화면 복원
+  }
+}
+
+pipBtn.addEventListener('click', () => {
+  // 다른 요소가 PiP 중이면 우선 종료
+  if (document.pictureInPictureElement &&
+      document.pictureInPictureElement !== pipVideo) {
+    document.exitPictureInPicture().catch(()=>{});
+    return;
   }
 
-  pipBtn.addEventListener('click', () => {
-    // 다른 요소가 PiP 중이면 우선 종료
-    if (document.pictureInPictureElement &&
-        document.pictureInPictureElement !== pipVideo) {
-      document.exitPictureInPicture().catch(()=>{});
-      return;
-    }
+  if (!pipActive) {
+    // 켜기
+    enterNavPiP();
+  } else {
+    // 끄기(페이지 버튼으로 끌 때)
+    exitNavPiP(false);
+  }
+});
 
-    if (!pipActive) {
-      enterNavPiP();
-    } else {
-      exitNavPiP();
-    }
-  });
+// ★ 더 이상 document 단위의 leavepictureinpicture 리스너는 필요 없음
+// document.addEventListener('leavepictureinpicture', ...) 부분은 전부 삭제
 
-  // 사용자가 PiP 창을 직접 닫았을 때 버튼/루프 상태 정리
-  document.addEventListener('leavepictureinpicture', (event) => {
-    if (event.target === pipVideo) {
-      pipActive = false;
-      pipBtn.textContent = 'pip모드로 보기';
-      stopPipRenderingLoop();
-    }
-  });
+
+  function handlePipLeave(event){
+  // 혹시 다른 video가 PiP를 썼을 경우 대비
+  if (event.target !== pipVideo) return;
+
+  pipActive = false;
+  pipBtn.textContent = 'pip모드로 보기';
+  stopPipRenderingLoop();
+  setMainOverlayForPip(false);   // ★ 메인 화면 복원(오버레이 숨기기)
+}
 
   // ===== 4.x PiP용 합성 캔버스 렌더링 =====
   function startPipRenderingLoop() {
@@ -1437,8 +1503,6 @@ function autoDetectFloorByCoord(e, s) {
 </script>
 </body>
 </html>
-
-
 
 
 
